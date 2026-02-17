@@ -160,7 +160,8 @@ public class CameraQrScannerView : UIView
 
     private void OnQrCodeDetected(string value)
     {
-        _logger?.LogDebug("QR code detected: {Value}", value);
+        _logger?.LogInformation("QR code detected in native view: {Value}", value);
+        System.Diagnostics.Debug.WriteLine($"[CameraQrScannerView] QR code detected: {value}");
         QrCodeDetected?.Invoke(this, value);
     }
 
@@ -179,17 +180,34 @@ public class CameraQrScannerView : UIView
         public override void DidOutputMetadataObjects(AVCaptureMetadataOutput captureOutput,
             AVMetadataObject[] metadataObjects, AVCaptureConnection connection)
         {
+            System.Diagnostics.Debug.WriteLine($"[MetadataDelegate] DidOutputMetadataObjects called with {metadataObjects?.Length ?? 0} objects");
+
             if (metadataObjects == null || metadataObjects.Length == 0)
                 return;
+
+            foreach (var obj in metadataObjects)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MetadataDelegate] Found object type: {obj.Type}");
+            }
 
             // Get first QR code detected
             var metadataObject = metadataObjects.FirstOrDefault(obj =>
                 obj.Type == AVMetadataObjectType.QRCode);
 
+            if (metadataObject != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[MetadataDelegate] Found QR code object");
+            }
+
             if (metadataObject is AVMetadataMachineReadableCodeObject readableObject
                 && !string.IsNullOrEmpty(readableObject.StringValue))
             {
+                System.Diagnostics.Debug.WriteLine($"[MetadataDelegate] QR code value: {readableObject.StringValue}");
                 _parent.OnQrCodeDetected(readableObject.StringValue);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[MetadataDelegate] QR code object has no readable value");
             }
         }
     }
