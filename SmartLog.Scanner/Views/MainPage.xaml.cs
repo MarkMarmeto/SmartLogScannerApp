@@ -70,16 +70,34 @@ public partial class MainPage : ContentPage
     /// </summary>
     private void OnBarcodeDetected(object? sender, string value)
     {
+        if (string.IsNullOrEmpty(value))
+        {
+            System.Diagnostics.Debug.WriteLine("[MainPage] OnBarcodeDetected called with null/empty value");
+            return;
+        }
+
+        System.Diagnostics.Debug.WriteLine($"[MainPage] OnBarcodeDetected called with value: {value.Substring(0, Math.Min(50, value.Length))}...");
+
         // Only process in Camera mode
         if (_scannerMode != "Camera")
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Not in Camera mode (current: {_scannerMode}), ignoring barcode");
             return;
+        }
+
+        System.Diagnostics.Debug.WriteLine("[MainPage] Processing QR code via ViewModel...");
 
         // Process the QR code payload via ViewModel
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             if (_viewModel != null)
             {
+                System.Diagnostics.Debug.WriteLine("[MainPage] Calling ProcessCameraQrCodeAsync...");
                 await _viewModel.ProcessCameraQrCodeAsync(value);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[MainPage] ERROR: ViewModel is null!");
             }
         });
     }
