@@ -1,0 +1,241 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using SmartLog.Scanner.Core.Data;
+using SmartLog.Scanner.Core.Models;
+
+namespace SmartLog.Scanner.Core.Services;
+
+/// <summary>
+/// US0014 (EP0004): SQLite-backed offline queue service.
+/// Persists scans when network is unavailable for later sync.
+/// </summary>
+public class OfflineQueueService : IOfflineQueueService
+{
+    private readonly IDbContextFactory<ScannerDbContext> _dbFactory;
+    private readonly ILogger<OfflineQueueService> _logger;
+
+    public OfflineQueueService(
+        IDbContextFactory<ScannerDbContext> dbFactory,
+        ILogger<OfflineQueueService> logger)
+    {
+        _dbFactory = dbFactory;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// US0014 AC1: Enqueue scan to SQLite database.
+    /// Extracts StudentId from QR payload for deduplication queries.
+    /// </summary>
+    public async Task EnqueueScanAsync(string qrPayload, DateTimeOffset scannedAt, string scanType)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+
+            // Extract StudentId from payload (SMARTLOG:{studentId}:{timestamp}:{hmac})
+            var studentId = ExtractStudentIdFromPayload(qrPayload);
+
+            var queuedScan = new QueuedScan
+            {
+                QrPayload = qrPayload,
+                StudentId = studentId,
+                ScannedAt = scannedAt.UtcDateTime.ToString("o"), // ISO 8601
+                ScanType = scanType,
+                CreatedAt = DateTimeOffset.UtcNow.ToString("o"),
+                SyncStatus = "PENDING",
+                SyncAttempts = 0
+            };
+
+            context.QueuedScans.Add(queuedScan);
+            await context.SaveChangesAsync();
+
+            _logger.LogInformation("Scan queued offline: StudentId {StudentId}, ID: {Id}",
+                studentId, queuedScan.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to enqueue scan: {QrPayload}", qrPayload);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Extracts the student ID from the QR payload.
+    /// Format: SMARTLOG:{studentId}:{timestamp}:{hmac}
+    /// </summary>
+    private static string ExtractStudentIdFromPayload(string qrPayload)
+    {
+        var parts = qrPayload.Split(':');
+        if (parts.Length >= 4 && parts[0] == "SMARTLOG")
+        {
+            return parts[1];
+        }
+
+        // Fallback if format is unexpected (shouldn't happen after HMAC validation)
+        return "UNKNOWN";
+    }
+
+    /// <summary>
+    /// US0014 AC2: Get count of pending scans.
+    /// </summary>
+    public async Task<int> GetQueueCountAsync()
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.QueuedScans
+                .Where(q => q.SyncStatus == "PENDING")
+                .CountAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get queue count");
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// US0014 AC3: Get pending scans for background sync.
+    /// Ordered by creation time (oldest first).
+    /// </summary>
+    public async Task<List<QueuedScan>> GetPendingScansAsync(int limit = 100)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.QueuedScans
+                .Where(q => q.SyncStatus == "PENDING")
+                .OrderBy(q => q.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get pending scans");
+            return new List<QueuedScan>();
+        }
+    }
+
+    /// <summary>
+    /// US0014 AC4: Mark scan as successfully synced.
+    /// </summary>
+    public async Task MarkSyncedAsync(int queueId, string serverScanId)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var scan = await context.QueuedScans.FindAsync(queueId);
+
+            if (scan != null)
+            {
+                scan.SyncStatus = "SYNCED";
+                scan.ServerScanId = serverScanId;
+                await context.SaveChangesAsync();
+
+                _logger.LogInformation("Scan marked as synced: Queue ID {QueueId}, Server ID {ServerScanId}",
+                    queueId, serverScanId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to mark scan as synced: {QueueId}", queueId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// US0014 AC5 / US0016 AC5/AC7: Mark scan as failed sync attempt.
+    /// Increments retry counter, stores error message, and updates LastAttemptAt.
+    /// After 10 attempts, marks scan as permanently FAILED.
+    /// </summary>
+    public async Task MarkFailedAsync(int queueId, string errorMessage)
+    {
+        const int MaxRetryAttempts = 10;
+
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var scan = await context.QueuedScans.FindAsync(queueId);
+
+            if (scan != null)
+            {
+                scan.SyncAttempts++;
+                scan.LastSyncError = errorMessage;
+                scan.LastAttemptAt = DateTimeOffset.UtcNow.ToString("o"); // US0016: Track last attempt time for backoff
+
+                // US0016 AC7: Mark as permanently FAILED after max attempts
+                if (scan.SyncAttempts >= MaxRetryAttempts)
+                {
+                    scan.SyncStatus = "FAILED";
+                    _logger.LogError("Scan permanently FAILED after {Attempts} attempts: Queue ID {QueueId}, Error: {Error}",
+                        scan.SyncAttempts, queueId, errorMessage);
+                }
+                else
+                {
+                    // US0016 AC5: Keep PENDING for retry
+                    _logger.LogWarning("Scan sync attempt {Attempts}/{MaxAttempts} failed: Queue ID {QueueId}, Error: {Error}",
+                        scan.SyncAttempts, MaxRetryAttempts, queueId, errorMessage);
+                }
+
+                await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to mark scan as failed: {QueueId}", queueId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// US0014 AC6: Delete old synced scans for cleanup.
+    /// Only deletes scans with SyncStatus = "SYNCED".
+    /// </summary>
+    public async Task DeleteSyncedScansAsync(int olderThanDays = 7)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var cutoffDate = DateTimeOffset.UtcNow.AddDays(-olderThanDays).ToString("o");
+
+            var oldScans = await context.QueuedScans
+                .Where(q => q.SyncStatus == "SYNCED" && q.CreatedAt.CompareTo(cutoffDate) < 0)
+                .ToListAsync();
+
+            if (oldScans.Any())
+            {
+                context.QueuedScans.RemoveRange(oldScans);
+                await context.SaveChangesAsync();
+
+                _logger.LogInformation("Deleted {Count} old synced scans", oldScans.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete old synced scans");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Checks if a pending scan already exists in the queue for the given student and scan type.
+    /// Uses composite index (StudentId, ScanType, SyncStatus) for efficient queries.
+    /// </summary>
+    public async Task<bool> HasPendingForStudentAsync(string studentId, string scanType)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.QueuedScans
+                .Where(q => q.StudentId == studentId &&
+                           q.ScanType == scanType &&
+                           q.SyncStatus == "PENDING")
+                .AnyAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check pending queue for student {StudentId}", studentId);
+            return false; // On error, allow enqueue to proceed (fail-open)
+        }
+    }
+}

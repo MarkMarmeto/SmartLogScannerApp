@@ -1,0 +1,17 @@
+# SmartLog Scanner - SDLC Studio Project Config
+# Overrides defaults from templates/config-defaults.yaml
+
+coverage:
+  unit: 90
+  integration: 85
+  e2e: 100
+
+story_quality:
+  edge_cases:
+    api: 8
+    other: 5
+  sizing:
+    max_points: 8    # Prefer smaller stories for incremental delivery
+
+tdd:
+  edge_case_threshold: 5
