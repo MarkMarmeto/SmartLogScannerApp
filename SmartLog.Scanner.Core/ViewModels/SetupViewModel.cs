@@ -26,6 +26,12 @@ public partial class SetupViewModel : ObservableObject
 	[ObservableProperty] private string _hmacSecret = string.Empty;
 	[ObservableProperty] private string _selectedScanType = "ENTRY";
 
+	/// <summary>
+	/// SECURITY: Certificate validation setting (default: false for security).
+	/// User must explicitly opt-in via checkbox with warning.
+	/// </summary>
+	[ObservableProperty] private bool _acceptSelfSignedCerts = false;
+
 	// Device detection properties
 	[ObservableProperty] private bool _isDetectingDevices;
 	[ObservableProperty] private string _detectedDevicesMessage = "Detecting devices...";
@@ -92,6 +98,7 @@ public partial class SetupViewModel : ObservableObject
 				ApiKey = existingConfig.ApiKey;
 				HmacSecret = existingConfig.HmacSecret;
 				SelectedScanType = existingConfig.DefaultScanType;
+				AcceptSelfSignedCerts = existingConfig.AcceptSelfSignedCerts;
 
 				_logger.LogInformation("Loaded existing configuration for editing");
 			}
@@ -166,7 +173,8 @@ public partial class SetupViewModel : ObservableObject
 				},
 				DefaultScanType = SelectedScanType,
 				SetupCompleted = true,
-				SoundEnabled = true
+				SoundEnabled = true,
+				AcceptSelfSignedCerts = AcceptSelfSignedCerts
 			};
 
 			await _fileConfig.SaveConfigAsync(config);

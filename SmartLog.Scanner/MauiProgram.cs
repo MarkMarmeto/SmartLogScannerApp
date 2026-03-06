@@ -98,9 +98,19 @@ public static class MauiProgram
 			args.SetObserved(); // Prevent process termination, app continues
 		};
 
+		// SECURITY: Certificate validation setting from appsettings.json
+		// Defaults to false (production-safe). User explicitly enables via setup UI.
+		// Note: This reads from appsettings.json; actual runtime value comes from config.json
+		// via user's setup choices (saved in FileConfigService).
 		var acceptSelfSigned = config.GetValue<bool>("Server:AcceptSelfSignedCerts", false);
-
 		var timeoutSeconds = config.GetValue<int>("Server:TimeoutSeconds", 30);
+
+		// SECURITY: Log warning if self-signed certificates would be accepted (by default)
+		if (acceptSelfSigned)
+		{
+			Log.Warning("⚠️ Self-signed TLS certificate acceptance is enabled in appsettings.json. " +
+				"User can override this in setup wizard.");
+		}
 
 		// US0002: Register named HttpClient "SmartLogApi" with resilience policies (AC1-AC8)
 		builder.Services.AddHttpClient("SmartLogApi")

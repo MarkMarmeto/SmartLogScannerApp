@@ -102,4 +102,10 @@ public class AppConfig
     public string DefaultScanType { get; set; } = "ENTRY";
     public bool SetupCompleted { get; set; } = false;
     public bool SoundEnabled { get; set; } = true;
+
+    /// <summary>
+    /// SECURITY: Accept self-signed TLS certificates.
+    /// Default: false (production-safe). Only enable for trusted LAN deployments.
+    /// </summary>
+    public bool AcceptSelfSignedCerts { get; set; } = false;
 }
