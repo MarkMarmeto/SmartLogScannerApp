@@ -259,18 +259,35 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// Test command to demonstrate valid QR scan feedback.
+    /// SECURITY: Uses actual HMAC secret from secure storage (not hard-coded).
     /// </summary>
     [RelayCommand]
     private async Task TestValidQr()
     {
+        // SECURITY: Retrieve HMAC secret from secure storage
+        var secret = await _secureConfig.GetHmacSecretAsync();
+        if (string.IsNullOrEmpty(secret))
+        {
+            _logger.LogWarning("Cannot generate test QR: HMAC secret not configured");
+            LastScanMessage = "⚠️ HMAC secret not configured. Complete setup first.";
+            FeedbackColor = Color.FromArgb("#FF9800"); // Amber
+            ShowFeedback = true;
+
+            // Auto-hide after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+            });
+            return;
+        }
+
         // Simulate valid QR: SMARTLOG:{studentId}:{timestamp}:{hmacBase64}
         var studentId = "STU12345";
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
         var message = $"{studentId}:{timestamp}";
 
-        // Compute HMAC using test secret (matches server default)
-        const string TEST_SECRET = "your-secret-key-here";
-        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(TEST_SECRET));
+        // Compute HMAC using actual secret from secure storage
+        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secret));
         var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(message));
         var hmacBase64 = Convert.ToBase64String(hash);
 

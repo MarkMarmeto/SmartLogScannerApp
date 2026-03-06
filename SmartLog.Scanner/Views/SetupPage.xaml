@@ -202,6 +202,49 @@
                                FontSize="12"
                                Margin="5,0,0,0" />
                     </VerticalStackLayout>
+
+                    <!-- SECURITY: TLS Certificate Validation Setting -->
+                    <VerticalStackLayout Spacing="10" Margin="0,15,0,0">
+                        <Border BackgroundColor="#FFF3E0"
+                                StrokeThickness="2"
+                                Stroke="#FF9800"
+                                Padding="16,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="10">
+                                <HorizontalStackLayout Spacing="10">
+                                    <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
+                                    <Label Text="TLS Certificate Security"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="#E65100"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+
+                                <Label FontSize="13" TextColor="#6D4C41" LineBreakMode="WordWrap">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="By default, this app requires valid TLS certificates. Only enable the option below if your server uses a self-signed certificate on a " />
+                                            <Span Text="trusted network. " FontAttributes="Bold" />
+                                            <Span Text="Accepting self-signed certificates reduces TLS security and may expose you to man-in-the-middle attacks." />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+
+                                <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
+                                    <CheckBox IsChecked="{Binding AcceptSelfSignedCerts, Mode=TwoWay}"
+                                              Color="#FF9800"
+                                              VerticalOptions="Center" />
+                                    <Label Text="Accept self-signed certificates (not recommended for production)"
+                                           FontSize="13"
+                                           TextColor="#E65100"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
 
