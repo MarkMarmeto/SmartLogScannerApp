@@ -1,11 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<!-- Temporarily target only macOS for local development on macOS -->
-		<TargetFrameworks>net8.0-maccatalyst</TargetFrameworks>
-		<!-- Original multi-platform targets (restore for Windows builds):
+		<!-- Multi-platform targets: macOS and Windows -->
 		<TargetFrameworks>net8.0-maccatalyst;net8.0-windows10.0.19041.0</TargetFrameworks>
-		-->
 		<OutputType>Exe</OutputType>
 		<RootNamespace>SmartLog.Scanner</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -13,6 +10,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>12</LangVersion>
+
+		<!-- Enable Windows targeting on non-Windows platforms (for cross-platform builds) -->
+		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 
 		<!-- Display name -->
 		<ApplicationTitle>SmartLog Scanner</ApplicationTitle>
@@ -27,6 +27,9 @@
 		<!-- Windows Target -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</TargetPlatformMinVersion>
+		<WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
+		<!-- Disable self-contained for cross-platform builds (requires actual Windows machine for full build) -->
+		<WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKSelfContained>
 
 		<!-- macOS Target -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
