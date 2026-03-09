@@ -6,17 +6,20 @@ namespace SmartLog.Scanner;
 
 public partial class App : Application
 {
+	private readonly SecurityMigrationService _securityMigration;
 	private readonly DatabaseInitializationService _databaseInit;
 	private readonly IBackgroundSyncService _backgroundSync;
 	private readonly ILogger<App> _logger;
 
 	public App(
+		SecurityMigrationService securityMigration,
 		DatabaseInitializationService databaseInit,
 		IBackgroundSyncService backgroundSync,
 		ILogger<App> logger)
 	{
 		InitializeComponent();
 
+		_securityMigration = securityMigration;
 		_databaseInit = databaseInit;
 		_backgroundSync = backgroundSync;
 		_logger = logger;
@@ -28,6 +31,18 @@ public partial class App : Application
 	protected override async void OnStart()
 	{
 		base.OnStart();
+
+		// SECURITY FIX (CRITICAL-01): Migrate secrets from config.json to SecureStorage
+		// This runs on every app start but is idempotent (safe to run multiple times)
+		try
+		{
+			await _securityMigration.MigrateSecretsAsync();
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Security migration failed");
+			System.Diagnostics.Debug.WriteLine($"Security migration failed: {ex.Message}");
+		}
 
 		// US0014 AC7: Initialize SQLite database on app startup
 		try
