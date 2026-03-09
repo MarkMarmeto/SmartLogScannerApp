@@ -95,8 +95,11 @@ public partial class SetupViewModel : ObservableObject
 				SaveButtonText = "Save Changes";
 
 				ServerUrl = existingConfig.ServerUrl;
-				ApiKey = existingConfig.ApiKey;
-				HmacSecret = existingConfig.HmacSecret;
+
+				// SECURITY FIX (CRITICAL-01): Load secrets from SecureStorage ONLY
+				ApiKey = await _secureConfig.GetApiKeyAsync() ?? string.Empty;
+				HmacSecret = await _secureConfig.GetHmacSecretAsync() ?? string.Empty;
+
 				SelectedScanType = existingConfig.DefaultScanType;
 				AcceptSelfSignedCerts = existingConfig.AcceptSelfSignedCerts;
 
@@ -158,12 +161,32 @@ public partial class SetupViewModel : ObservableObject
 
 		try
 		{
-			// Save configuration using file-based storage (more reliable)
+			// SECURITY FIX (CRITICAL-01): Save secrets to SecureStorage FIRST
+			// This ensures secrets are stored securely before anything else
+			try
+			{
+				await _secureConfig.SetApiKeyAsync(ApiKey);
+				if (!string.IsNullOrWhiteSpace(HmacSecret))
+				{
+					await _secureConfig.SetHmacSecretAsync(HmacSecret);
+				}
+				_logger.LogInformation("Secrets saved to SecureStorage");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to save secrets to SecureStorage");
+				SaveError = "Cannot securely store credentials. Device may not support SecureStorage.";
+				return;
+			}
+
+			// Save non-sensitive configuration to file
 			var config = new AppConfig
 			{
 				ServerUrl = ServerUrl,
-				ApiKey = ApiKey,
-				HmacSecret = HmacSecret,
+				// SECURITY FIX (CRITICAL-01): ApiKey and HmacSecret NOT saved to config file
+				// They are stored in SecureStorage (above)
+				DeviceId = GenerateDeviceId(),
+				DeviceName = $"Scanner-{Environment.MachineName}",
 				ScanMode = DetectedScanMethod switch
 				{
 					ScanningMethod.Camera => "Camera",
@@ -179,20 +202,6 @@ public partial class SetupViewModel : ObservableObject
 
 			await _fileConfig.SaveConfigAsync(config);
 			_logger.LogInformation("Configuration saved successfully");
-
-			// Also try to save to secure storage (fallback to preferences if unavailable)
-			try
-			{
-				await _secureConfig.SetApiKeyAsync(ApiKey);
-				if (!string.IsNullOrWhiteSpace(HmacSecret))
-				{
-					await _secureConfig.SetHmacSecretAsync(HmacSecret);
-				}
-			}
-			catch (Exception secEx)
-			{
-				_logger.LogWarning(secEx, "Could not save to secure storage, config.json will be used instead");
-			}
 
 			// Navigate to main page
 			await _navigation.GoToAsync("//main");
@@ -225,6 +234,22 @@ public partial class SetupViewModel : ObservableObject
 			ServerUrlError = "Please enter a valid URL (e.g., https://192.168.1.100:8443)";
 			isValid = false;
 		}
+#if !DEBUG
+		// SECURITY FIX (HIGH-01): Enforce HTTPS-only in production builds
+		else if (uri.Scheme == Uri.UriSchemeHttp)
+		{
+			ServerUrlError = "HTTPS is required for production. HTTP connections are not allowed.";
+			_logger.LogError("HTTP URL rejected in production build: {ServerUrl}", ServerUrl);
+			isValid = false;
+		}
+#else
+		// DEBUG: Allow HTTP but warn
+		else if (uri.Scheme == Uri.UriSchemeHttp)
+		{
+			_logger.LogWarning("⚠️ Using HTTP connection - acceptable in development only. URL: {ServerUrl}", ServerUrl);
+			ServerUrlError = null;
+		}
+#endif
 		else
 		{
 			ServerUrlError = null;
@@ -295,5 +320,30 @@ public partial class SetupViewModel : ObservableObject
 	private async Task CancelAsync()
 	{
 		await _navigation.GoToAsync("//main");
+	}
+
+	/// <summary>
+	/// Generates a unique device ID based on machine name and a GUID.
+	/// </summary>
+	private string GenerateDeviceId()
+	{
+		// Try to use existing DeviceId if available
+		try
+		{
+			var existingConfig = _fileConfig.LoadConfigAsync().Result;
+			if (!string.IsNullOrWhiteSpace(existingConfig.DeviceId))
+			{
+				return existingConfig.DeviceId;
+			}
+		}
+		catch
+		{
+			// Ignore - will generate new ID
+		}
+
+		// Generate new ID
+		var machineName = Environment.MachineName.Replace(" ", "-").ToUpperInvariant();
+		var shortGuid = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
+		return $"SCANNER-{machineName}-{shortGuid}";
 	}
 }

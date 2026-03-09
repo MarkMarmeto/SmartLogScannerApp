@@ -10,6 +10,8 @@ using SmartLog.Scanner.Core.Data;
 using SmartLog.Scanner.Core.Services;
 using SmartLog.Scanner.Core.ViewModels;
 using SmartLog.Scanner.ViewModels;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SmartLog.Scanner;
 
@@ -103,13 +105,82 @@ public static class MauiProgram
 		// Note: This reads from appsettings.json; actual runtime value comes from config.json
 		// via user's setup choices (saved in FileConfigService).
 		var acceptSelfSigned = config.GetValue<bool>("Server:AcceptSelfSignedCerts", false);
+		var certificateThumbprint = config.GetValue<string>("Server:CertificateThumbprint", string.Empty);
 		var timeoutSeconds = config.GetValue<int>("Server:TimeoutSeconds", 30);
+
+		// SECURITY FIX (HIGH-02): Certificate pinning validation
+		// Replaces DangerousAcceptAnyServerCertificateValidator with proper validation
+		Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> certificateValidator =
+			(message, cert, chain, errors) =>
+		{
+			// Accept valid CA-signed certificates
+			if (errors == SslPolicyErrors.None)
+			{
+				Log.Debug("Valid CA-signed certificate accepted");
+				return true;
+			}
+
+			// Reject all invalid certificates if self-signed mode is disabled
+			if (!acceptSelfSigned)
+			{
+				Log.Warning("Certificate validation failed. Self-signed mode disabled. Errors: {Errors}", errors);
+				return false;
+			}
+
+			// Self-signed mode enabled - validate certificate thumbprint
+			if (string.IsNullOrWhiteSpace(certificateThumbprint))
+			{
+				Log.Error("Self-signed cert mode enabled but no thumbprint configured. Rejecting certificate.");
+				return false;
+			}
+
+			if (cert == null)
+			{
+				Log.Error("No certificate provided by server");
+				return false;
+			}
+
+			// Verify exact certificate thumbprint match (certificate pinning)
+			var actualThumbprint = cert.Thumbprint;
+			if (!string.Equals(actualThumbprint, certificateThumbprint, StringComparison.OrdinalIgnoreCase))
+			{
+				Log.Error("Certificate thumbprint mismatch. Expected: {Expected}, Got: {Actual}",
+					certificateThumbprint, actualThumbprint);
+				return false;
+			}
+
+			// Verify hostname matches certificate
+			var requestHost = message.RequestUri?.Host;
+			var certDnsName = cert.GetNameInfo(X509NameType.DnsName, false);
+			if (!string.Equals(requestHost, certDnsName, StringComparison.OrdinalIgnoreCase))
+			{
+				Log.Warning("Certificate hostname mismatch. Request: {RequestHost}, Cert: {CertHost}",
+					requestHost, certDnsName);
+				// Allow mismatch for IP addresses (common in dev/test environments)
+				if (!System.Net.IPAddress.TryParse(requestHost, out _))
+				{
+					Log.Error("Hostname mismatch for non-IP address. Rejecting.");
+					return false;
+				}
+			}
+
+			Log.Warning("⚠️ Accepting pinned self-signed certificate: {Thumbprint}", actualThumbprint);
+			return true;
+		};
 
 		// SECURITY: Log warning if self-signed certificates would be accepted (by default)
 		if (acceptSelfSigned)
 		{
-			Log.Warning("⚠️ Self-signed TLS certificate acceptance is enabled in appsettings.json. " +
-				"User can override this in setup wizard.");
+			if (string.IsNullOrWhiteSpace(certificateThumbprint))
+			{
+				Log.Error("⚠️ Self-signed TLS certificate acceptance is enabled but NO THUMBPRINT configured. " +
+					"All HTTPS requests will FAIL. Please configure Server:CertificateThumbprint in appsettings.json.");
+			}
+			else
+			{
+				Log.Warning("⚠️ Self-signed TLS certificate acceptance is enabled with pinned thumbprint: {Thumbprint}. " +
+					"User can override this in setup wizard.", certificateThumbprint);
+			}
 		}
 
 		// Register dedicated HttpClient for health checks (NO retry/circuit breaker to prevent flapping)
@@ -119,9 +190,10 @@ public static class MauiProgram
 				var handler = new HttpClientHandler();
 				if (acceptSelfSigned)
 				{
-					handler.ServerCertificateCustomValidationCallback =
-						HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+					// SECURITY FIX (HIGH-02): Use proper certificate validation with pinning
+					handler.ServerCertificateCustomValidationCallback = certificateValidator;
 				}
+				// When acceptSelfSigned is false, use default validation (no callback)
 				return handler;
 			})
 			.ConfigureHttpClient(client =>
@@ -137,9 +209,9 @@ public static class MauiProgram
 				var handler = new HttpClientHandler();
 				if (acceptSelfSigned)
 				{
-					// AC2: Accept self-signed certificates when flag is true
-					handler.ServerCertificateCustomValidationCallback =
-						HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+					// SECURITY FIX (HIGH-02): Use proper certificate validation with pinning
+					// AC2: Accept self-signed certificates ONLY if thumbprint matches
+					handler.ServerCertificateCustomValidationCallback = certificateValidator;
 				}
 				// AC3: Use default validation when flag is false (no callback set)
 				return handler;
@@ -182,6 +254,9 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ISecureConfigService, SecureConfigService>();
 		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
 		builder.Services.AddSingleton<Core.Services.FileConfigService>();
+
+		// SECURITY FIX (CRITICAL-01): Register security migration service
+		builder.Services.AddSingleton<Core.Services.SecurityMigrationService>();
 
 		// Device detection service (automatic camera/USB detection)
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();

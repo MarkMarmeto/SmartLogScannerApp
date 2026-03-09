@@ -35,8 +35,10 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-            // Fallback to Preferences for development builds
-            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback. Operation: GetApiKey");
+#if DEBUG
+            // SECURITY: Fallback to Preferences for development builds ONLY
+            // In production, we fail fast to prevent insecure storage
+            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetApiKey");
             try
             {
                 return Preferences.Default.Get<string?>(ConfigKeys.ApiKey, null);
@@ -45,6 +47,11 @@ public class SecureConfigService : ISecureConfigService
             {
                 return null;
             }
+#else
+            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+            _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot retrieve API key securely. Operation: GetApiKey", _platform);
+            return null;
+#endif
         }
     }
 
@@ -65,14 +72,16 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-            // Fallback to Preferences for development builds without proper entitlements
-            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - development only). Operation: SetApiKey. Exception: {ExceptionType}",
+#if DEBUG
+            // SECURITY: Fallback to Preferences for development builds ONLY without proper entitlements
+            // In production, we fail fast to prevent insecure storage
+            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - DEBUG mode only). Operation: SetApiKey. Exception: {ExceptionType}",
                 _platform, ex.GetType().Name);
 
             try
             {
                 Preferences.Default.Set(ConfigKeys.ApiKey, apiKey);
-                _logger.LogInformation("API key stored in Preferences (fallback storage)");
+                _logger.LogInformation("API key stored in Preferences (fallback storage - DEBUG mode)");
             }
             catch (Exception prefEx)
             {
@@ -80,6 +89,12 @@ public class SecureConfigService : ISecureConfigService
                 throw new SecureStorageUnavailableException(_platform, "SetApiKey",
                     $"Failed to store API key on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
             }
+#else
+            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+            _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot store API key securely. Operation: SetApiKey", _platform);
+            throw new SecureStorageUnavailableException(_platform, "SetApiKey",
+                $"Failed to store API key securely on {_platform}. Preferences fallback is disabled in production builds.", ex);
+#endif
         }
     }
 
@@ -109,8 +124,10 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-            // Fallback to Preferences for development builds
-            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback. Operation: GetHmacSecret");
+#if DEBUG
+            // SECURITY: Fallback to Preferences for development builds ONLY
+            // In production, we fail fast to prevent insecure storage
+            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetHmacSecret");
             try
             {
                 return Preferences.Default.Get<string?>(ConfigKeys.HmacSecretKey, null);
@@ -119,6 +136,11 @@ public class SecureConfigService : ISecureConfigService
             {
                 return null;
             }
+#else
+            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+            _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot retrieve HMAC secret securely. Operation: GetHmacSecret", _platform);
+            return null;
+#endif
         }
     }
 
@@ -139,14 +161,16 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-            // Fallback to Preferences for development builds without proper entitlements
-            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - development only). Operation: SetHmacSecret",
+#if DEBUG
+            // SECURITY: Fallback to Preferences for development builds ONLY without proper entitlements
+            // In production, we fail fast to prevent insecure storage
+            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - DEBUG mode only). Operation: SetHmacSecret",
                 _platform);
 
             try
             {
                 Preferences.Default.Set(ConfigKeys.HmacSecretKey, hmacSecret);
-                _logger.LogInformation("HMAC secret stored in Preferences (fallback storage)");
+                _logger.LogInformation("HMAC secret stored in Preferences (fallback storage - DEBUG mode)");
             }
             catch (Exception prefEx)
             {
@@ -154,6 +178,12 @@ public class SecureConfigService : ISecureConfigService
                 throw new SecureStorageUnavailableException(_platform, "SetHmacSecret",
                     $"Failed to store HMAC secret on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
             }
+#else
+            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+            _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot store HMAC secret securely. Operation: SetHmacSecret", _platform);
+            throw new SecureStorageUnavailableException(_platform, "SetHmacSecret",
+                $"Failed to store HMAC secret securely on {_platform}. Preferences fallback is disabled in production builds.", ex);
+#endif
         }
     }
 

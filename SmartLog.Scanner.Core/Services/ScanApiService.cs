@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Models;
 
@@ -62,28 +63,26 @@ public class ScanApiService : IScanApiService
                 // Continue to submit instead of queueing
             }
 
-            // AC9: Retrieve API key from secure config
-            var config = await _fileConfig.LoadConfigAsync();
-            var apiKey = config.ApiKey;
+            // SECURITY FIX (CRITICAL-01): Retrieve API key from SecureStorage ONLY
+            // Secrets are no longer stored in file config for security reasons
+            var apiKey = await _secureConfig.GetApiKeyAsync();
 
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                apiKey = await _secureConfig.GetApiKeyAsync();
-            }
-
-            if (string.IsNullOrWhiteSpace(apiKey))
-            {
-                _logger.LogError("API key not configured");
+                _logger.LogError("API key not configured in SecureStorage");
                 return new ScanResult
                 {
                     RawPayload = qrPayload,
                     Status = ScanStatus.Error,
                     ErrorReason = "MissingApiKey",
-                    Message = "Device API key not configured. Please contact IT administrator.",
+                    Message = "Device API key not configured. Please run device setup.",
                     ScannedAt = scannedAt,
                     ScanType = scanType
                 };
             }
+
+            // Load server URL from file config (non-sensitive data)
+            var config = await _fileConfig.LoadConfigAsync();
 
             // Check server URL is configured
             if (string.IsNullOrWhiteSpace(config.ServerUrl))
@@ -195,30 +194,8 @@ public class ScanApiService : IScanApiService
                 };
             }
 
-            var status = responseData.Status?.ToUpperInvariant() switch
-            {
-                "ACCEPTED" => ScanStatus.Accepted,
-                "DUPLICATE" => ScanStatus.Duplicate,
-                _ => ScanStatus.Error
-            };
-
-            _logger.LogInformation("Scan {Status}: StudentId={StudentId}, StudentName={StudentName}",
-                status, responseData.StudentId, responseData.StudentName);
-
-            return new ScanResult
-            {
-                RawPayload = qrPayload,
-                Status = status,
-                ScanId = responseData.ScanId,
-                StudentId = responseData.StudentId,
-                StudentName = responseData.StudentName,
-                Grade = responseData.Grade,
-                Section = responseData.Section,
-                ScanType = responseData.ScanType,
-                ScannedAt = responseData.ScannedAt ?? DateTimeOffset.UtcNow,
-                OriginalScanId = responseData.OriginalScanId,
-                Message = responseData.Message
-            };
+            // SECURITY FIX (HIGH-03): Validate and sanitize all response data
+            return ValidateAndBuildScanResult(responseData, qrPayload);
         }
         catch (JsonException ex)
         {
@@ -406,6 +383,132 @@ public class ScanApiService : IScanApiService
 
         // Check if at limit
         return _requestTimestamps.Count >= MaxRequestsPerMinute;
+    }
+
+    /// <summary>
+    /// SECURITY FIX (HIGH-03): Validate and sanitize server response data.
+    /// Prevents XSS, injection, and DoS attacks via malicious server responses.
+    /// </summary>
+    private ScanResult ValidateAndBuildScanResult(
+        ServerResponse response,
+        string qrPayload,
+        DateTimeOffset? scannedAt = null)
+    {
+        // Maximum string lengths to prevent DoS attacks
+        const int MaxNameLength = 200;
+        const int MaxGradeLength = 20;
+        const int MaxSectionLength = 10;
+        const int MaxMessageLength = 500;
+        const int MaxScanIdLength = 100;
+
+        // Validate and truncate StudentName
+        var studentName = response.StudentName;
+        if (studentName?.Length > MaxNameLength)
+        {
+            _logger.LogWarning("StudentName exceeds max length ({Length} > {Max}). Truncating.",
+                studentName.Length, MaxNameLength);
+            studentName = studentName.Substring(0, MaxNameLength);
+        }
+
+        // Validate and truncate Message
+        var message = response.Message;
+        if (message?.Length > MaxMessageLength)
+        {
+            _logger.LogWarning("Message exceeds max length ({Length} > {Max}). Truncating.",
+                message.Length, MaxMessageLength);
+            message = message.Substring(0, MaxMessageLength);
+        }
+
+        // Validate StudentId format (alphanumeric + hyphen, max 50 chars)
+        var studentId = response.StudentId;
+        if (!string.IsNullOrEmpty(studentId))
+        {
+            if (studentId.Length > 50)
+            {
+                _logger.LogWarning("StudentId exceeds max length ({Length} > 50). Truncating.",
+                    studentId.Length);
+                studentId = studentId.Substring(0, 50);
+            }
+
+            if (!Regex.IsMatch(studentId, @"^[A-Za-z0-9\-]+$"))
+            {
+                _logger.LogWarning("Invalid StudentId format from server: {StudentId}. Contains invalid characters.",
+                    studentId);
+                // Replace invalid characters with hyphen
+                studentId = Regex.Replace(studentId, @"[^A-Za-z0-9\-]", "-");
+            }
+        }
+
+        // Validate and truncate Grade
+        var grade = response.Grade;
+        if (grade?.Length > MaxGradeLength)
+        {
+            _logger.LogWarning("Grade exceeds max length ({Length} > {Max}). Truncating.",
+                grade.Length, MaxGradeLength);
+            grade = grade.Substring(0, MaxGradeLength);
+        }
+
+        // Validate and truncate Section
+        var section = response.Section;
+        if (section?.Length > MaxSectionLength)
+        {
+            _logger.LogWarning("Section exceeds max length ({Length} > {Max}). Truncating.",
+                section.Length, MaxSectionLength);
+            section = section.Substring(0, MaxSectionLength);
+        }
+
+        // Validate and truncate ScanId
+        var scanId = response.ScanId;
+        if (scanId?.Length > MaxScanIdLength)
+        {
+            _logger.LogWarning("ScanId exceeds max length ({Length} > {Max}). Truncating.",
+                scanId.Length, MaxScanIdLength);
+            scanId = scanId.Substring(0, MaxScanIdLength);
+        }
+
+        // Validate and truncate OriginalScanId
+        var originalScanId = response.OriginalScanId;
+        if (originalScanId?.Length > MaxScanIdLength)
+        {
+            _logger.LogWarning("OriginalScanId exceeds max length ({Length} > {Max}). Truncating.",
+                originalScanId.Length, MaxScanIdLength);
+            originalScanId = originalScanId.Substring(0, MaxScanIdLength);
+        }
+
+        // Validate Status enum (whitelist)
+        var status = ValidateStatus(response.Status);
+
+        _logger.LogInformation("Validated scan {Status}: StudentId={StudentId}, StudentName={StudentName}",
+            status, studentId, studentName);
+
+        return new ScanResult
+        {
+            RawPayload = qrPayload,
+            Status = status,
+            ScanId = scanId,
+            StudentId = studentId,
+            StudentName = studentName,
+            Grade = grade,
+            Section = section,
+            ScanType = response.ScanType,
+            ScannedAt = response.ScannedAt ?? scannedAt ?? DateTimeOffset.UtcNow,
+            OriginalScanId = originalScanId,
+            Message = message
+        };
+    }
+
+    /// <summary>
+    /// SECURITY FIX (HIGH-03): Validate status enum value against whitelist.
+    /// </summary>
+    private ScanStatus ValidateStatus(string? status)
+    {
+        return status?.ToUpperInvariant() switch
+        {
+            "ACCEPTED" => ScanStatus.Accepted,
+            "DUPLICATE" => ScanStatus.Duplicate,
+            "REJECTED" => ScanStatus.Rejected,
+            _ => ScanStatus.Error
+        };
     }
 
     #region Response Models

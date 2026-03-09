@@ -92,12 +92,19 @@ public class FileConfigService
 
 /// <summary>
 /// Application configuration model.
+/// SECURITY: ApiKey and HmacSecret are NOT stored here.
+/// They MUST be stored in SecureStorage (Keychain/DPAPI) only.
 /// </summary>
 public class AppConfig
 {
     public string ServerUrl { get; set; } = string.Empty;
-    public string ApiKey { get; set; } = string.Empty;
-    public string HmacSecret { get; set; } = string.Empty;
+
+    // SECURITY FIX (CRITICAL-01): Removed ApiKey and HmacSecret from config.json
+    // These sensitive values are now stored ONLY in SecureStorage (Keychain/DPAPI)
+    // Migration: Existing values will be moved to SecureStorage on app startup
+
+    public string DeviceId { get; set; } = string.Empty;
+    public string DeviceName { get; set; } = string.Empty;
     public string ScanMode { get; set; } = "Camera";
     public string DefaultScanType { get; set; } = "ENTRY";
     public bool SetupCompleted { get; set; } = false;

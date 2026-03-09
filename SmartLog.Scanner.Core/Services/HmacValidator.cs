@@ -51,28 +51,15 @@ public class HmacValidator : IHmacValidator
             return HmacValidationResult.Failure("InvalidPrefix: expected 'SMARTLOG'");
         }
 
-        // AC8: Retrieve HMAC secret - try file config first, then secure storage
-        string? secret = null;
-        try
-        {
-            var config = await _fileConfig.LoadConfigAsync();
-            secret = config.HmacSecret;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not load HMAC from file config, trying secure storage");
-        }
+        // SECURITY FIX (CRITICAL-01): Retrieve HMAC secret from SecureStorage ONLY
+        // Secrets are no longer stored in file config for security reasons
+        string? secret = await _secureConfig.GetHmacSecretAsync();
 
         if (string.IsNullOrWhiteSpace(secret))
         {
-            secret = await _secureConfig.GetHmacSecretAsync();
-        }
-
-        if (string.IsNullOrWhiteSpace(secret))
-        {
-            _logger.LogError("HMAC secret not configured");
+            _logger.LogError("HMAC secret not configured in SecureStorage");
             return HmacValidationResult.Failure(
-                "SecretUnavailable: HMAC secret not configured");
+                "SecretUnavailable: HMAC secret not configured. Please run device setup.");
         }
 
         // Decode base64 HMAC from payload
