@@ -1,10 +1,11 @@
 # US0006: Implement Local HMAC-SHA256 QR Validation
 
-> **Status:** Draft
+> **Status:** Done
 > **Epic:** [EP0002: QR Code Scanning and Validation](../epics/EP0002-qr-code-scanning-and-validation.md)
-> **Owner:** Unassigned
+> **Owner:** AI Assistant
 > **Reviewer:** Unassigned
 > **Created:** 2026-02-13
+> **Completed:** 2026-02-16
 
 ## User Story
 

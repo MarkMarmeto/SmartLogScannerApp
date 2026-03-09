@@ -1,10 +1,11 @@
 # US0009: Implement Scan Type Toggle (ENTRY/EXIT)
 
-> **Status:** Draft
+> **Status:** Done
 > **Epic:** [EP0003: Scan Processing and Feedback](../epics/EP0003-scan-processing-and-feedback.md)
-> **Owner:** Unassigned
-> **Reviewer:** Unassigned
+> **Owner:** AI Assistant
+> **Reviewer:** SDLC Studio
 > **Created:** 2026-02-13
+> **Completed:** 2026-02-16
 
 ## User Story
 

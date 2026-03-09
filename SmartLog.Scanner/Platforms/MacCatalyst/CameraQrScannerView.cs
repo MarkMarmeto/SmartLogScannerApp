@@ -162,6 +162,20 @@ public class CameraQrScannerView : UIView
     {
         _logger?.LogInformation("QR code detected in native view: {Value}", value);
         System.Diagnostics.Debug.WriteLine($"[CameraQrScannerView] QR code detected: {value}");
+
+        // DEBUGGING: Flash the screen briefly to show detection is working
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            BackgroundColor = UIKit.UIColor.Green;
+            Task.Delay(100).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    BackgroundColor = UIKit.UIColor.Black;
+                });
+            });
+        });
+
         QrCodeDetected?.Invoke(this, value);
     }
 

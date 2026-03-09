@@ -55,4 +55,10 @@ public interface IOfflineQueueService
     /// <param name="scanType">The scan type ("ENTRY" or "EXIT")</param>
     /// <returns>True if a PENDING scan exists for this student+scanType, false otherwise</returns>
     Task<bool> HasPendingForStudentAsync(string studentId, string scanType);
+
+    /// <summary>
+    /// Clears all pending scans from the queue.
+    /// Used for troubleshooting or resetting failed/stuck scans.
+    /// </summary>
+    Task ClearPendingScansAsync();
 }

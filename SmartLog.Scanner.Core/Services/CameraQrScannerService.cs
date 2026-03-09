@@ -132,110 +132,15 @@ public class CameraQrScannerService : IQrScannerService
                     break;
             }
 
-            // US0017 AC1/AC2: Check online/offline status for routing decision
-            if (_healthCheck.IsOnline == true)
-            {
-                // US0017 AC1: Online path - submit to server
-                _logger.LogDebug("Server online - submitting scan to API");
-                scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
+            // ALWAYS ONLINE MODE: Offline queue disabled, always submit to server
+            _logger.LogInformation("Always-online mode: submitting scan to server");
+            System.Diagnostics.Debug.WriteLine("[CameraScanner] Always-online mode enabled");
 
-                // US0017 AC3: Mid-request failure fallback to queue
-                if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error)
-                {
-                    _logger.LogWarning("Server submission failed, falling back to offline queue");
+            // Submit to server regardless of health check status
+            scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
 
-                    try
-                    {
-                        // Check if already queued before enqueuing
-                        var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                            validationResult.StudentId!, scanType);
-
-                        if (!alreadyQueued)
-                        {
-                            await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
-                        }
-                        else
-                        {
-                            _logger.LogDebug("Scan already queued for student {StudentId}, skipping duplicate enqueue",
-                                validationResult.StudentId);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to enqueue scan to offline queue");
-                    }
-
-                    scanResult = new ScanResult
-                    {
-                        RawPayload = payload,
-                        ValidationResult = validationResult,
-                        Status = ScanStatus.Queued,
-                        Message = "Scan queued (offline)",
-                        ScannedAt = scannedAt
-                    };
-                }
-                else
-                {
-                    // Preserve validation result for compatibility
-                    scanResult = scanResult with { ValidationResult = validationResult };
-                }
-            }
-            else
-            {
-                // US0017 AC2: Offline path - queue directly without attempting server submission
-                _logger.LogDebug("Server offline - queueing scan locally");
-
-                try
-                {
-                    // Check if already queued for this student+scanType
-                    var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                        validationResult.StudentId!, scanType);
-
-                    if (alreadyQueued)
-                    {
-                        // Already in queue - show amber feedback instead of blue
-                        _logger.LogDebug("Scan already queued for student {StudentId}, scan type {ScanType}",
-                            validationResult.StudentId, scanType);
-
-                        scanResult = new ScanResult
-                        {
-                            RawPayload = payload,
-                            ValidationResult = validationResult,
-                            Status = ScanStatus.DebouncedLocally,
-                            Message = "Already queued. Please proceed.",
-                            StudentId = validationResult.StudentId,
-                            ScannedAt = scannedAt
-                        };
-                    }
-                    else
-                    {
-                        // Not queued yet - enqueue it
-                        await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
-
-                        scanResult = new ScanResult
-                        {
-                            RawPayload = payload,
-                            ValidationResult = validationResult,
-                            Status = ScanStatus.Queued,
-                            Message = "Scan queued (offline)",
-                            ScannedAt = scannedAt
-                        };
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to enqueue scan to offline queue");
-
-                    scanResult = new ScanResult
-                    {
-                        RawPayload = payload,
-                        ValidationResult = validationResult,
-                        Status = ScanStatus.Error,
-                        Message = "Failed to save scan",
-                        ScannedAt = scannedAt
-                    };
-                }
-            }
+            // Preserve validation result for compatibility
+            scanResult = scanResult with { ValidationResult = validationResult };
         }
         else
         {

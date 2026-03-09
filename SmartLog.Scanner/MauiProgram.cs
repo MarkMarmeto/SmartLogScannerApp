@@ -112,6 +112,24 @@ public static class MauiProgram
 				"User can override this in setup wizard.");
 		}
 
+		// Register dedicated HttpClient for health checks (NO retry/circuit breaker to prevent flapping)
+		builder.Services.AddHttpClient("HealthCheck")
+			.ConfigurePrimaryHttpMessageHandler(() =>
+			{
+				var handler = new HttpClientHandler();
+				if (acceptSelfSigned)
+				{
+					handler.ServerCertificateCustomValidationCallback =
+						HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+				}
+				return handler;
+			})
+			.ConfigureHttpClient(client =>
+			{
+				client.Timeout = TimeSpan.FromSeconds(5); // Shorter timeout for health checks
+			});
+		// NOTE: No Polly policies for health checks - we want fast, deterministic failures
+
 		// US0002: Register named HttpClient "SmartLogApi" with resilience policies (AC1-AC8)
 		builder.Services.AddHttpClient("SmartLogApi")
 			.ConfigurePrimaryHttpMessageHandler(() =>

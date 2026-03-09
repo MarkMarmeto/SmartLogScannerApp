@@ -238,4 +238,37 @@ public class OfflineQueueService : IOfflineQueueService
             return false; // On error, allow enqueue to proceed (fail-open)
         }
     }
+
+    /// <summary>
+    /// Clears all pending scans from the queue.
+    /// Used for troubleshooting or resetting failed/stuck scans.
+    /// </summary>
+    public async Task ClearPendingScansAsync()
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+
+            var pendingScans = await context.QueuedScans
+                .Where(q => q.SyncStatus == "PENDING")
+                .ToListAsync();
+
+            if (pendingScans.Any())
+            {
+                context.QueuedScans.RemoveRange(pendingScans);
+                await context.SaveChangesAsync();
+
+                _logger.LogInformation("Cleared {Count} pending scans from queue", pendingScans.Count);
+            }
+            else
+            {
+                _logger.LogInformation("No pending scans to clear");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear pending scans");
+            throw;
+        }
+    }
 }

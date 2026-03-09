@@ -54,19 +54,12 @@ public class ScanApiService : IScanApiService
     {
         try
         {
-            // AC10: Check client-side rate limit before submitting
+            // ALWAYS ONLINE MODE: Rate limit check disabled, no queueing
+            // Just continue to submit (server will enforce rate limits)
             if (IsRateLimitExceeded())
             {
-                _logger.LogWarning("Client-side rate limit approached - queuing scan offline");
-                await _offlineQueue.EnqueueScanAsync(qrPayload, scannedAt, scanType);
-                return new ScanResult
-                {
-                    RawPayload = qrPayload,
-                    Status = ScanStatus.Queued,
-                    Message = "Rate limit approached - scan queued",
-                    ScannedAt = scannedAt,
-                    ScanType = scanType
-                };
+                _logger.LogWarning("Client-side rate limit approached - submitting anyway (always-online mode)");
+                // Continue to submit instead of queueing
             }
 
             // AC9: Retrieve API key from secure config
@@ -325,15 +318,13 @@ public class ScanApiService : IScanApiService
 
         _logger.LogWarning("Rate limited by server (429) - Retry after {Seconds}s", retryAfterSeconds);
 
-        // Queue the scan offline rather than waiting
-        await _offlineQueue.EnqueueScanAsync(qrPayload, scannedAt, scanType);
-
+        // ALWAYS ONLINE MODE: No queueing, return error
         return new ScanResult
         {
             RawPayload = qrPayload,
             Status = ScanStatus.RateLimited,
             RetryAfterSeconds = retryAfterSeconds,
-            Message = $"Rate limit exceeded. Scan queued for retry.",
+            Message = $"Rate limit exceeded. Please wait {retryAfterSeconds}s.",
             ScannedAt = scannedAt,
             ScanType = scanType
         };
@@ -350,14 +341,12 @@ public class ScanApiService : IScanApiService
     {
         _logger.LogWarning("Unexpected server response: {StatusCode}", response.StatusCode);
 
-        // Treat as network error - queue offline
-        await _offlineQueue.EnqueueScanAsync(qrPayload, scannedAt, scanType);
-
+        // ALWAYS ONLINE MODE: No queueing, return error
         return new ScanResult
         {
             RawPayload = qrPayload,
-            Status = ScanStatus.Queued,
-            Message = "Server error - scan queued (offline)",
+            Status = ScanStatus.Error,
+            Message = $"Server error ({response.StatusCode}). Please try again.",
             ScannedAt = scannedAt,
             ScanType = scanType
         };
@@ -387,34 +376,17 @@ public class ScanApiService : IScanApiService
             };
         }
 
-        // Network error or timeout - queue offline
-        _logger.LogWarning(ex, "Network error during scan submission - queuing offline");
+        // ALWAYS ONLINE MODE: Network error - return error, no queueing
+        _logger.LogWarning(ex, "Network error during scan submission");
 
-        try
+        return new ScanResult
         {
-            await _offlineQueue.EnqueueScanAsync(qrPayload, scannedAt, scanType);
-
-            return new ScanResult
-            {
-                RawPayload = qrPayload,
-                Status = ScanStatus.Queued,
-                Message = "Scan queued (offline)",
-                ScannedAt = scannedAt,
-                ScanType = scanType
-            };
-        }
-        catch (Exception queueEx)
-        {
-            _logger.LogError(queueEx, "Failed to queue scan offline - critical failure");
-            return new ScanResult
-            {
-                RawPayload = qrPayload,
-                Status = ScanStatus.Error,
-                Message = "Failed to queue scan offline. Please contact IT administrator.",
-                ScannedAt = scannedAt,
-                ScanType = scanType
-            };
-        }
+            RawPayload = qrPayload,
+            Status = ScanStatus.Error,
+            Message = "Network error. Check connection and try again.",
+            ScannedAt = scannedAt,
+            ScanType = scanType
+        };
     }
 
     /// <summary>
