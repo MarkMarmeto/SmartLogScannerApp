@@ -22,6 +22,11 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
     // US0016 AC3: Configurable batch size (default 50)
     private const int DefaultBatchSize = 50;
 
+    /// <summary>
+    /// US0016: Event raised when sync cycle completes (allows UI to refresh queue count).
+    /// </summary>
+    public event EventHandler<SyncCompletedEventArgs>? SyncCompleted;
+
     public BackgroundSyncService(
         IHealthCheckService healthCheck,
         IOfflineQueueService offlineQueue,
@@ -56,9 +61,18 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
         _logger.LogInformation("Background sync service started");
 
         // US0016 AC8: If already online, trigger immediate sync
-        if (_healthCheck.IsOnline == true)
+        var currentStatus = _healthCheck.IsOnline;
+        _logger.LogInformation("BackgroundSync: Current health check status = {Status}",
+            currentStatus == null ? "null (connecting)" : (currentStatus.Value ? "ONLINE" : "OFFLINE"));
+
+        if (currentStatus == true)
         {
+            _logger.LogInformation("BackgroundSync: Already online, triggering immediate sync");
             _ = Task.Run(async () => await TriggerSyncAsync(), _cts.Token);
+        }
+        else
+        {
+            _logger.LogInformation("BackgroundSync: Not online yet, will wait for ConnectivityChanged event");
         }
 
         return Task.CompletedTask;
@@ -108,6 +122,8 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
     /// </summary>
     public async Task TriggerSyncAsync()
     {
+        _logger.LogInformation("TriggerSyncAsync called");
+
         // US0016 AC10: Use semaphore to prevent concurrent sync cycles
         if (!await _syncLock.WaitAsync(0))
         {
@@ -157,6 +173,7 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
         int syncedCount = 0;
         int failedCount = 0;
         int skippedCount = 0;
+        string? firstError = null;
 
         foreach (var scan in pendingScans)
         {
@@ -202,6 +219,16 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
                     var errorMessage = result.Message ?? $"Server returned {result.Status}";
                     await _offlineQueue.MarkFailedAsync(scan.Id, errorMessage);
                     failedCount++;
+
+                    // Capture first error for user feedback
+                    if (firstError == null)
+                    {
+                        firstError = errorMessage;
+                    }
+
+                    _logger.LogWarning("Scan submission failed: Queue ID {QueueId}, Status: {Status}, Error: {Error}",
+                        scan.Id, result.Status, errorMessage);
+                    System.Diagnostics.Debug.WriteLine($"[BackgroundSync] Scan {scan.Id} failed: {errorMessage}");
                 }
             }
             catch (Exception ex)
@@ -210,11 +237,26 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
                 _logger.LogWarning(ex, "Failed to sync scan {QueueId}", scan.Id);
                 await _offlineQueue.MarkFailedAsync(scan.Id, ex.Message);
                 failedCount++;
+
+                // Capture first error for user feedback
+                if (firstError == null)
+                {
+                    firstError = ex.Message;
+                }
             }
         }
 
         _logger.LogInformation("Sync cycle complete: {Synced} synced, {Failed} failed, {Skipped} skipped (backoff)",
             syncedCount, failedCount, skippedCount);
+
+        // Raise event to notify UI that sync completed
+        SyncCompleted?.Invoke(this, new SyncCompletedEventArgs
+        {
+            SyncedCount = syncedCount,
+            FailedCount = failedCount,
+            SkippedCount = skippedCount,
+            FirstErrorMessage = firstError
+        });
     }
 
     /// <summary>

@@ -19,6 +19,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ISoundService _soundService;
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IHealthCheckService _healthCheck;
+    private readonly IBackgroundSyncService _backgroundSync;
     private readonly ISecureConfigService _secureConfig;
     private readonly ILogger<MainViewModel> _logger;
     private readonly string _scannerMode;
@@ -65,6 +66,7 @@ public partial class MainViewModel : ObservableObject
         ISoundService soundService,
         IOfflineQueueService offlineQueue,
         IHealthCheckService healthCheck,
+        IBackgroundSyncService backgroundSync,
         ISecureConfigService secureConfig,
         ILogger<MainViewModel> logger)
     {
@@ -74,6 +76,7 @@ public partial class MainViewModel : ObservableObject
         _soundService = soundService;
         _offlineQueue = offlineQueue;
         _healthCheck = healthCheck;
+        _backgroundSync = backgroundSync;
         _secureConfig = secureConfig;
         _logger = logger;
 
@@ -97,6 +100,9 @@ public partial class MainViewModel : ObservableObject
 
         // US0015: Subscribe to connectivity changes
         _healthCheck.ConnectivityChanged += OnConnectivityChanged;
+
+        // US0016: Subscribe to background sync completion to refresh queue count
+        _backgroundSync.SyncCompleted += OnSyncCompleted;
     }
 
     public async Task InitializeAsync()
@@ -109,6 +115,23 @@ public partial class MainViewModel : ObservableObject
 
         // US0015: Start health check monitoring
         await _healthCheck.StartAsync();
+
+        // BUGFIX: Initialize connectivity status from current health check state
+        // (event only fires on changes, not on initial state)
+        var currentStatus = _healthCheck.IsOnline;
+        if (currentStatus == true)
+        {
+            ConnectivityStatus = "Online";
+            ConnectivityIcon = "🟢";
+            ConnectivityColor = Color.FromArgb("#4CAF50"); // Material Green
+        }
+        else if (currentStatus == false)
+        {
+            ConnectivityStatus = "Offline";
+            ConnectivityIcon = "🔴";
+            ConnectivityColor = Color.FromArgb("#F44336"); // Material Red
+        }
+        // else: null (connecting) - keep default
 
         if (_scannerMode == "Camera")
         {
@@ -182,7 +205,7 @@ public partial class MainViewModel : ObservableObject
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = $"📥 {result.Message ?? "Scan queued (offline)"}";
-                    FeedbackColor = Color.FromArgb("#2196F3"); // Material Blue
+                    FeedbackColor = Color.FromArgb("#4D9B91"); // Teal
                     ShowFeedback = true;
                     StatusMessage = "Queued offline";
                     StatusIcon = "📥";
@@ -255,6 +278,118 @@ public partial class MainViewModel : ObservableObject
                 });
             });
         });
+    }
+
+    /// <summary>
+    /// Clear all pending scans from the queue (with confirmation).
+    /// </summary>
+    [RelayCommand]
+    private async Task ClearQueue()
+    {
+        _logger.LogInformation("Clear queue triggered by user");
+        System.Diagnostics.Debug.WriteLine("[MainViewModel] Clear queue button pressed");
+
+        // Show confirmation dialog
+        var count = QueuePendingCount;
+        if (count == 0)
+        {
+            LastScanMessage = "ℹ️ Queue is already empty";
+            FeedbackColor = Color.FromArgb("#4D9B91"); // Teal
+            ShowFeedback = true;
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+            });
+            return;
+        }
+
+        var confirmed = await Application.Current!.MainPage!.DisplayAlert(
+            "Clear Queue",
+            $"Delete {count} pending scan{(count == 1 ? "" : "s")} from queue?\n\nThis cannot be undone.",
+            "Clear",
+            "Cancel");
+
+        if (!confirmed)
+        {
+            _logger.LogInformation("Clear queue cancelled by user");
+            return;
+        }
+
+        // Show clearing feedback
+        LastScanMessage = "⏳ Clearing queue...";
+        FeedbackColor = Color.FromArgb("#FF9800"); // Amber
+        ShowFeedback = true;
+
+        try
+        {
+            await _offlineQueue.ClearPendingScansAsync();
+            QueuePendingCount = 0; // Update UI immediately
+
+            _logger.LogInformation("Queue cleared successfully");
+
+            // Show success feedback
+            LastScanMessage = "✓ Queue cleared successfully";
+            FeedbackColor = Color.FromArgb("#4CAF50"); // Green
+            ShowFeedback = true;
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear queue");
+            System.Diagnostics.Debug.WriteLine($"[MainViewModel] Clear queue failed: {ex.Message}");
+
+            // Show error feedback
+            LastScanMessage = $"✗ Failed to clear queue: {ex.Message}";
+            FeedbackColor = Color.FromArgb("#F44336"); // Red
+            ShowFeedback = true;
+
+            _ = Task.Delay(5000).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Manual sync command for testing - triggers background sync immediately.
+    /// </summary>
+    [RelayCommand]
+    private async Task ManualSync()
+    {
+        _logger.LogInformation("Manual sync triggered by user");
+        System.Diagnostics.Debug.WriteLine("[MainViewModel] Manual sync button pressed");
+
+        // Show syncing feedback
+        LastScanMessage = "⏳ Syncing queued scans...";
+        FeedbackColor = Color.FromArgb("#2196F3"); // Blue
+        ShowFeedback = true;
+
+        try
+        {
+            await _backgroundSync.TriggerSyncAsync();
+            _logger.LogInformation("Manual sync completed");
+            System.Diagnostics.Debug.WriteLine("[MainViewModel] Manual sync completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Manual sync failed");
+            System.Diagnostics.Debug.WriteLine($"[MainViewModel] Manual sync failed: {ex.Message}");
+
+            // Show error feedback
+            LastScanMessage = $"✗ Sync failed: {ex.Message}";
+            FeedbackColor = Color.FromArgb("#F44336"); // Red
+            ShowFeedback = true;
+
+            _ = Task.Delay(5000).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+            });
+        }
     }
 
     /// <summary>
@@ -434,6 +569,51 @@ public partial class MainViewModel : ObservableObject
                 ConnectivityIcon = "🔴";
                 ConnectivityColor = Color.FromArgb("#F44336"); // Material Red
                 _logger.LogInformation("UI updated: Server is OFFLINE");
+            }
+        });
+    }
+
+    /// <summary>
+    /// US0016: Handle background sync completion to refresh queue count.
+    /// Updates queue count on UI thread after scans are synced.
+    /// </summary>
+    private void OnSyncCompleted(object? sender, SyncCompletedEventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            // Refresh queue count from database
+            try
+            {
+                QueuePendingCount = await _offlineQueue.GetQueueCountAsync();
+                _logger.LogInformation("Queue count refreshed after sync: {Count} pending (synced: {Synced}, failed: {Failed})",
+                    QueuePendingCount, e.SyncedCount, e.FailedCount);
+
+                // Show sync result feedback
+                if (e.SyncedCount > 0 || e.FailedCount > 0 || e.SkippedCount > 0)
+                {
+                    var message = $"✓ Synced: {e.SyncedCount}";
+                    if (e.FailedCount > 0) message += $" | ✗ Failed: {e.FailedCount}";
+                    if (e.SkippedCount > 0) message += $" | ⏭ Skipped: {e.SkippedCount}";
+
+                    // Add first error message if available
+                    if (!string.IsNullOrEmpty(e.FirstErrorMessage))
+                    {
+                        message += $"\nError: {e.FirstErrorMessage}";
+                    }
+
+                    LastScanMessage = message;
+                    FeedbackColor = e.SyncedCount > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FF9800"); // Green or Amber
+                    ShowFeedback = true;
+
+                    _ = Task.Delay(8000).ContinueWith(_ =>
+                    {
+                        MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh queue count after sync");
             }
         });
     }

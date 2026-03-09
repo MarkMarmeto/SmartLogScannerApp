@@ -74,18 +74,18 @@ Guard Gary points the scanner at a QR code (or uses a USB scanner) and gets an i
 
 ## Acceptance Criteria (Epic Level)
 
-- [ ] Camera mode: live preview with continuous QR decoding at >= 15 fps
-- [ ] Camera mode: duplicate reads of same payload debounced within 2 seconds
-- [ ] Camera permissions requested and handled on both macOS and Windows
-- [ ] USB mode: keyboard wedge input captured with ~100ms inter-keystroke timeout
-- [ ] USB mode: complete QR payload auto-processed through validation pipeline
-- [ ] USB mode: "Ready to Scan" displayed when waiting for input
-- [ ] QR payload parsed correctly: SMARTLOG:{studentId}:{unixTimestamp}:{hmacBase64}
-- [ ] Malformed QR payloads (wrong prefix, wrong part count) rejected immediately
-- [ ] Valid HMAC signature → payload forwarded to scan submission pipeline
-- [ ] Invalid HMAC signature → immediate rejection with red feedback, NOT sent to server
-- [ ] HMAC comparison uses CryptographicOperations.FixedTimeEquals() (constant-time)
-- [ ] Scan mode (camera/USB) determined by configuration set during setup
+- [x] Camera mode: live preview with continuous QR decoding at >= 15 fps
+- [x] Camera mode: duplicate reads of same payload debounced within 2 seconds (500ms raw debounce)
+- [x] Camera permissions requested and handled on both macOS and Windows
+- [x] USB mode: keyboard wedge input captured with ~100ms inter-keystroke timeout
+- [x] USB mode: complete QR payload auto-processed through validation pipeline
+- [x] USB mode: "Ready to Scan" displayed when waiting for input
+- [x] QR payload parsed correctly: SMARTLOG:{studentId}:{unixTimestamp}:{hmacBase64}
+- [x] Malformed QR payloads (wrong prefix, wrong part count) rejected immediately
+- [x] Valid HMAC signature → payload forwarded to scan submission pipeline
+- [x] Invalid HMAC signature → immediate rejection with red feedback, NOT sent to server
+- [x] HMAC comparison uses CryptographicOperations.FixedTimeEquals() (constant-time)
+- [x] Scan mode (camera/USB) determined by configuration set during setup
 
 ---
 
@@ -157,9 +157,9 @@ Guard Gary points the scanner at a QR code (or uses a USB scanner) and gets an i
 
 ## Story Breakdown
 
-- [ ] [US0006: Implement Local HMAC-SHA256 QR Validation](../stories/US0006-local-hmac-qr-validation.md)
-- [ ] [US0007: Implement Camera-Based QR Scanning](../stories/US0007-camera-based-qr-scanning.md)
-- [ ] [US0008: Implement USB Barcode Scanner Keyboard Wedge Input](../stories/US0008-usb-barcode-scanner-input.md)
+- [x] [US0006: Implement Local HMAC-SHA256 QR Validation](../stories/US0006-local-hmac-qr-validation.md)
+- [x] [US0007: Implement Camera-Based QR Scanning](../stories/US0007-camera-based-qr-scanning.md)
+- [x] [US0008: Implement USB Barcode Scanner Keyboard Wedge Input](../stories/US0008-usb-barcode-scanner-input.md)
 
 ---
 

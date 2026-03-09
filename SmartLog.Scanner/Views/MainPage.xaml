@@ -6,7 +6,7 @@
              x:Class="SmartLog.Scanner.Views.MainPage"
              x:DataType="vm:MainViewModel"
              Title="SmartLog Scanner"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F8F9FA">
 
     <!-- Modern Grid Layout -->
     <Grid RowDefinitions="Auto,*,Auto,Auto">
@@ -26,7 +26,7 @@
                        Text="SmartLog Scanner"
                        FontSize="20"
                        FontAttributes="Bold"
-                       TextColor="#1976D2"
+                       TextColor="#2C5F5D"
                        VerticalOptions="Center" />
 
                 <!-- US0015: Enhanced Connectivity Status with Glass Effect -->
@@ -61,7 +61,7 @@
 
                 <!-- US0009: Modern Scan Type Toggle with Icon -->
                 <Border Grid.Column="3"
-                        BackgroundColor="#1976D2"
+                        BackgroundColor="#4D9B91"
                         Padding="18,10"
                         StrokeThickness="0"
                         VerticalOptions="Center"
@@ -70,7 +70,7 @@
                         <RoundRectangle CornerRadius="10" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#1976D2" Opacity="0.4" Radius="8" Offset="0,3" />
+                        <Shadow Brush="#4D9B91" Opacity="0.4" Radius="8" Offset="0,3" />
                     </Border.Shadow>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding ToggleScanTypeCommand}" />
@@ -92,7 +92,7 @@
                         Text="⚙️"
                         FontSize="18"
                         BackgroundColor="Transparent"
-                        TextColor="#1976D2"
+                        TextColor="#4D9B91"
                         Clicked="OnSettingsClicked"
                         VerticalOptions="Center"
                         Padding="8,4"
@@ -111,7 +111,7 @@
                            VerticalOptions="Center" />
                     <ActivityIndicator IsRunning="{Binding IsScanning}"
                                        IsVisible="{Binding IsScanning}"
-                                       Color="#1976D2"
+                                       Color="#4D9B91"
                                        WidthRequest="16"
                                        HeightRequest="16" />
                 </HorizontalStackLayout>
@@ -133,33 +133,33 @@
 
                 <!-- Top-Left Corner -->
                 <Grid HorizontalOptions="Start" VerticalOptions="Start">
-                    <BoxView Color="#1976D2" WidthRequest="60" HeightRequest="4"
+                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
                              HorizontalOptions="Start" VerticalOptions="Start" />
-                    <BoxView Color="#1976D2" WidthRequest="4" HeightRequest="60"
+                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
                              HorizontalOptions="Start" VerticalOptions="Start" />
                 </Grid>
 
                 <!-- Top-Right Corner -->
                 <Grid HorizontalOptions="End" VerticalOptions="Start">
-                    <BoxView Color="#1976D2" WidthRequest="60" HeightRequest="4"
+                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
                              HorizontalOptions="End" VerticalOptions="Start" />
-                    <BoxView Color="#1976D2" WidthRequest="4" HeightRequest="60"
+                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
                              HorizontalOptions="End" VerticalOptions="Start" />
                 </Grid>
 
                 <!-- Bottom-Left Corner -->
                 <Grid HorizontalOptions="Start" VerticalOptions="End">
-                    <BoxView Color="#1976D2" WidthRequest="60" HeightRequest="4"
+                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
                              HorizontalOptions="Start" VerticalOptions="End" />
-                    <BoxView Color="#1976D2" WidthRequest="4" HeightRequest="60"
+                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
                              HorizontalOptions="Start" VerticalOptions="End" />
                 </Grid>
 
                 <!-- Bottom-Right Corner -->
                 <Grid HorizontalOptions="End" VerticalOptions="End">
-                    <BoxView Color="#1976D2" WidthRequest="60" HeightRequest="4"
+                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
                              HorizontalOptions="End" VerticalOptions="End" />
-                    <BoxView Color="#1976D2" WidthRequest="4" HeightRequest="60"
+                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
                              HorizontalOptions="End" VerticalOptions="End" />
                 </Grid>
 
@@ -275,14 +275,14 @@
                 <!-- Animated Ready Icon -->
                 <Border WidthRequest="48"
                         HeightRequest="48"
-                        BackgroundColor="#E3F2FD"
+                        BackgroundColor="#E0F2F1"
                         VerticalOptions="Center">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="24" />
                     </Border.StrokeShape>
                     <Label Text="{Binding StatusIcon}"
                            FontSize="24"
-                           TextColor="#1976D2"
+                           TextColor="#4D9B91"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
                 </Border>
@@ -304,7 +304,7 @@
 
         <!-- US0013: Modern Statistics Footer with Card Design -->
         <Border Grid.Row="3"
-                BackgroundColor="#263238"
+                BackgroundColor="#2C5F5D"
                 Padding="24,16"
                 StrokeThickness="0">
             <Border.Shadow>
@@ -312,10 +312,11 @@
             </Border.Shadow>
 
             <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
-                <!-- Queue Count Card -->
+                <!-- Queue Count Card (HIDDEN - Offline mode disabled) -->
                 <Border BackgroundColor="#33FFFFFF"
                         Padding="16,10"
-                        StrokeThickness="0">
+                        StrokeThickness="0"
+                        IsVisible="False">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
@@ -388,6 +389,82 @@
                                        TextColor="#B0BEC5"
                                        VerticalOptions="Center" />
                             </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Manual Sync Button Card (HIDDEN - Offline mode disabled) -->
+                <Border BackgroundColor="#33FFFFFF"
+                        Padding="16,10"
+                        StrokeThickness="0"
+                        IsVisible="False">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ManualSyncCommand}" />
+                    </Border.GestureRecognizers>
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <HorizontalStackLayout Spacing="10">
+                        <Border WidthRequest="40"
+                                HeightRequest="40"
+                                BackgroundColor="#2196F3"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Label Text="🔄"
+                                   FontSize="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Sync"
+                                   FontSize="12"
+                                   TextColor="#B0BEC5"
+                                   VerticalOptions="End" />
+                            <Label Text="Tap to sync"
+                                   FontSize="12"
+                                   TextColor="#B0BEC5"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Clear Queue Button Card (HIDDEN - Offline mode disabled) -->
+                <Border BackgroundColor="#33FFFFFF"
+                        Padding="16,10"
+                        StrokeThickness="0"
+                        IsVisible="False">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ClearQueueCommand}" />
+                    </Border.GestureRecognizers>
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <HorizontalStackLayout Spacing="10">
+                        <Border WidthRequest="40"
+                                HeightRequest="40"
+                                BackgroundColor="#F44336"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Label Text="🗑️"
+                                   FontSize="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Clear"
+                                   FontSize="12"
+                                   TextColor="#B0BEC5"
+                                   VerticalOptions="End" />
+                            <Label Text="Clear queue"
+                                   FontSize="12"
+                                   TextColor="#B0BEC5"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </Border>

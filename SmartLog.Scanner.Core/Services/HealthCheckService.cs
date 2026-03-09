@@ -11,6 +11,7 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
+    private readonly FileConfigService _fileConfig;
     private readonly ILogger<HealthCheckService> _logger;
     private readonly SemaphoreSlim _pollLock = new(1, 1);
 
@@ -18,7 +19,11 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
     private CancellationTokenSource? _pollingCts;
     private Task? _pollingTask;
 
-    private bool? _isOnline = null; // null = initial state ("Connecting...")
+    private bool? _isOnline = true; // OPTIMISTIC: Assume online until proven offline (prevents queueing on startup)
+    private string? _cachedServerUrl = null; // Cache to avoid disk I/O on every poll
+    private int _consecutiveSuccesses = 0; // Stability window: consecutive successful checks
+    private int _consecutiveFailures = 0; // Stability window: consecutive failed checks
+    private const int StabilityThreshold = 2; // Require 2 consecutive results before changing status
 
     /// <summary>
     /// US0015 AC3/AC4: Current connectivity state.
@@ -60,10 +65,12 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
     public HealthCheckService(
         IHttpClientFactory httpClientFactory,
         IConfiguration config,
+        FileConfigService fileConfig,
         ILogger<HealthCheckService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _config = config;
+        _fileConfig = fileConfig;
         _logger = logger;
     }
 
@@ -150,51 +157,103 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
 
         try
         {
-            // US0015 AC8: Use configured HttpClient with TLS settings
-            var httpClient = _httpClientFactory.CreateClient("SmartLogApi");
-            var baseUrl = _config.GetValue<string>("Server:BaseUrl") ?? string.Empty;
+            // US0015 AC8: Use dedicated HealthCheck client (no Polly retry/circuit breaker)
+            var httpClient = _httpClientFactory.CreateClient("HealthCheck");
 
-            if (string.IsNullOrEmpty(baseUrl))
+            // BUGFIX: Cache server URL to avoid disk I/O on every poll (prevents flapping)
+            if (_cachedServerUrl == null)
             {
-                _logger.LogError("Server:BaseUrl not configured");
+                var appConfig = await _fileConfig.LoadConfigAsync();
+                _cachedServerUrl = appConfig.ServerUrl;
+            }
+
+            if (string.IsNullOrEmpty(_cachedServerUrl))
+            {
+                _logger.LogDebug("Server URL not configured yet (setup incomplete)");
                 IsOnline = false;
                 return;
             }
 
-            var healthUrl = $"{baseUrl.TrimEnd('/')}/api/v1/health";
+            var healthUrl = $"{_cachedServerUrl.TrimEnd('/')}/api/v1/health";
 
             // US0015 AC2: GET /api/v1/health (no X-API-Key header)
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // 10s timeout
             var response = await httpClient.GetAsync(healthUrl, cts.Token);
 
-            // US0015 AC3: 200 = online
+            // US0015 AC3: 200 = online (with stability window)
             if (response.IsSuccessStatusCode)
             {
-                IsOnline = true;
+                _consecutiveSuccesses++;
+                _consecutiveFailures = 0;
+
+                // Only mark online after StabilityThreshold consecutive successes
+                if (_consecutiveSuccesses >= StabilityThreshold || _isOnline == null)
+                {
+                    IsOnline = true;
+                }
+                else
+                {
+                    _logger.LogDebug("Health check success ({Consecutive}/{Threshold}), waiting for stability",
+                        _consecutiveSuccesses, StabilityThreshold);
+                }
             }
             else
             {
-                // Non-200 status = offline
-                _logger.LogWarning("Health check returned {StatusCode}", response.StatusCode);
-                IsOnline = false;
+                // Non-200 status = offline (with stability window)
+                _consecutiveFailures++;
+                _consecutiveSuccesses = 0;
+
+                _logger.LogWarning("Health check returned {StatusCode} ({Consecutive}/{Threshold})",
+                    response.StatusCode, _consecutiveFailures, StabilityThreshold);
+
+                // Only mark offline after StabilityThreshold consecutive failures
+                if (_consecutiveFailures >= StabilityThreshold)
+                {
+                    IsOnline = false;
+                }
             }
         }
         catch (HttpRequestException ex)
         {
             // US0015 AC4: Connection refused, DNS failure, etc.
-            _logger.LogDebug(ex, "Health check failed - connection error");
-            IsOnline = false;
+            _consecutiveFailures++;
+            _consecutiveSuccesses = 0;
+
+            _logger.LogDebug(ex, "Health check failed - connection error ({Consecutive}/{Threshold})",
+                _consecutiveFailures, StabilityThreshold);
+
+            if (_consecutiveFailures >= StabilityThreshold)
+            {
+                IsOnline = false;
+            }
         }
         catch (OperationCanceledException)
         {
             // Timeout
-            _logger.LogDebug("Health check timed out");
-            IsOnline = false;
+            _consecutiveFailures++;
+            _consecutiveSuccesses = 0;
+
+            _logger.LogDebug("Health check timed out ({Consecutive}/{Threshold})",
+                _consecutiveFailures, StabilityThreshold);
+
+            if (_consecutiveFailures >= StabilityThreshold)
+            {
+                IsOnline = false;
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Health check failed with unexpected error");
-            IsOnline = false;
+            // Unexpected error
+            _consecutiveFailures++;
+            _consecutiveSuccesses = 0;
+
+            _logger.LogError(ex, "Health check failed with unexpected error ({Consecutive}/{Threshold})",
+                _consecutiveFailures, StabilityThreshold);
+
+            if (_consecutiveFailures >= StabilityThreshold)
+            {
+                IsOnline = false;
+            }
         }
         finally
         {

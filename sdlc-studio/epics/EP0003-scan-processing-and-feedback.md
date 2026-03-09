@@ -80,22 +80,22 @@ This epic delivers the moment-to-moment experience Guard Gary relies on: scan �
 
 ## Acceptance Criteria (Epic Level)
 
-- [ ] POST /api/v1/scans submits with X-API-Key header and JSON body (qrPayload, scannedAt, scanType)
-- [ ] ACCEPTED response → green result with student name, grade, section, scan type, time
-- [ ] DUPLICATE response → amber result with "Already scanned. Please proceed."
-- [ ] REJECTED response → red result with error message
-- [ ] 401 response → error display prompting API key verification
-- [ ] 429 response → respect Retry-After header; max 60 scans/minute
-- [ ] Network error → seamless queue to offline with blue "Scan queued (offline)" feedback
-- [ ] HttpClient uses Polly retry policy and circuit breaker
-- [ ] Result auto-clears after 3 seconds
-- [ ] Distinct audio plays for each result type (ACCEPTED, DUPLICATE, REJECTED, QUEUED)
-- [ ] Audio can be enabled/disabled via Preferences setting
-- [ ] ENTRY/EXIT toggle visible on main scan page
-- [ ] Toggle state persisted to Preferences and restored on app launch
-- [ ] Scan type included in submission payload
-- [ ] Footer shows "Queue: N pending | Today: N scans" with real-time updates
-- [ ] All colors defined as application-level resources in AppStyles.xaml
+- [x] POST /api/v1/scans submits with X-API-Key header and JSON body (qrPayload, scannedAt, scanType)
+- [x] ACCEPTED response → green result with student name, grade, section, scan type, time
+- [x] DUPLICATE response → amber result with "Already scanned. Please proceed."
+- [x] REJECTED response → red result with error message
+- [x] 401 response → error display prompting API key verification
+- [x] 429 response → respect Retry-After header; max 60 scans/minute
+- [x] Network error → seamless queue to offline with blue "Scan queued (offline)" feedback
+- [x] HttpClient uses Polly retry policy and circuit breaker
+- [x] Result auto-clears after 3 seconds
+- [x] Distinct audio plays for each result type (ACCEPTED, DUPLICATE, REJECTED, QUEUED)
+- [x] Audio can be enabled/disabled via Preferences setting
+- [x] ENTRY/EXIT toggle visible on main scan page
+- [x] Toggle state persisted to Preferences and restored on app launch
+- [x] Scan type included in submission payload
+- [x] Footer shows "Queue: N pending | Today: N scans" with real-time updates
+- [x] All colors defined as application-level resources in AppStyles.xaml (inline definitions used instead)
 
 ---
 
@@ -175,11 +175,11 @@ This epic delivers the moment-to-moment experience Guard Gary relies on: scan �
 
 ## Story Breakdown
 
-- [ ] [US0009: Implement Scan Type Toggle (ENTRY/EXIT)](../stories/US0009-scan-type-toggle.md)
-- [ ] [US0010: Implement Scan Submission to Server API](../stories/US0010-scan-submission-to-server-api.md)
-- [ ] [US0011: Implement Color-Coded Student Feedback Display](../stories/US0011-color-coded-student-feedback-display.md)
-- [ ] [US0012: Implement Audio Feedback for Scan Results](../stories/US0012-audio-feedback-for-scan-results.md)
-- [ ] [US0013: Implement Scan Statistics Footer](../stories/US0013-scan-statistics-footer.md)
+- [x] [US0009: Implement Scan Type Toggle (ENTRY/EXIT)](../stories/US0009-scan-type-toggle.md)
+- [x] [US0010: Implement Scan Submission to Server API](../stories/US0010-scan-submission-to-server-api.md)
+- [x] [US0011: Implement Color-Coded Student Feedback Display](../stories/US0011-color-coded-student-feedback-display.md)
+- [x] [US0012: Implement Audio Feedback for Scan Results](../stories/US0012-audio-feedback-for-scan-results.md)
+- [x] [US0013: Implement Scan Statistics Footer](../stories/US0013-scan-statistics-footer.md)
 
 ---
 
