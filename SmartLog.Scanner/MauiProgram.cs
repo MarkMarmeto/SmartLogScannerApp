@@ -258,8 +258,15 @@ public static class MauiProgram
 		// SECURITY FIX (CRITICAL-01): Register security migration service
 		builder.Services.AddSingleton<Core.Services.SecurityMigrationService>();
 
-		// Device detection service (automatic camera/USB detection)
+		// Device detection service (automatic camera/USB detection) - Platform-specific
+#if MACCATALYST
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();
+#elif WINDOWS
+		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.Windows.DeviceDetectionService>();
+#else
+		// Fallback: Default to USB scanner only
+		builder.Services.AddSingleton<IDeviceDetectionService, Core.Services.DefaultDeviceDetectionService>();
+#endif
 
 		// US0004: Register navigation service and ViewModels
 		builder.Services.AddSingleton<INavigationService, Services.ShellNavigationService>();
