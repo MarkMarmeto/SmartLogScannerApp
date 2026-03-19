@@ -33,12 +33,12 @@ public class ConnectionTestService : IConnectionTestService
 
 		try
 		{
-			// Build request to GET /api/v1/health (public endpoint)
+			// Build request to GET /api/v1/health/details (authenticated endpoint)
 			var client = _httpClientFactory.CreateClient("SmartLogApi");
-			var requestUri = new Uri(new Uri(serverUrl), "/api/v1/health");
+			var requestUri = new Uri(new Uri(serverUrl), "/api/v1/health/details");
 
 			var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-			// Health endpoint is public, but we still send API key for logging purposes
+			// Authenticated endpoint — API key is required for access
 			request.Headers.Add("X-API-Key", apiKey);
 
 			var response = await client.SendAsync(request);
