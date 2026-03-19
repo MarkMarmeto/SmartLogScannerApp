@@ -93,6 +93,20 @@ public class HmacValidator : IHmacValidator
             return HmacValidationResult.Failure("InvalidSignature: HMAC verification failed");
         }
 
+        // Check QR code timestamp expiry (optional, default 2 years)
+        if (long.TryParse(timestamp, out var unixTimestamp))
+        {
+            var qrIssuedAt = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp);
+            var maxAge = TimeSpan.FromDays(730); // 2 years
+            if (DateTimeOffset.UtcNow - qrIssuedAt > maxAge)
+            {
+                _logger.LogWarning("Expired QR code - StudentId: {StudentId}, IssuedAt: {IssuedAt}",
+                    studentId, qrIssuedAt);
+                return HmacValidationResult.Failure(
+                    "Expired: QR code has expired. Student needs a new ID card.");
+            }
+        }
+
         // AC5: Return success with parsed data
         _logger.LogInformation("Valid QR code - StudentId: {StudentId}, Timestamp: {Timestamp}",
             studentId, timestamp);
