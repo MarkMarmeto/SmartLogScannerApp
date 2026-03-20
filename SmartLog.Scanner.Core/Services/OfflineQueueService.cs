@@ -271,4 +271,124 @@ public class OfflineQueueService : IOfflineQueueService
             throw;
         }
     }
+
+    /// <summary>
+    /// Gets all queued scans for display (newest first).
+    /// </summary>
+    public async Task<List<QueuedScan>> GetAllScansAsync(int limit = 200)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.QueuedScans
+                .OrderByDescending(q => q.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all scans");
+            return new List<QueuedScan>();
+        }
+    }
+
+    /// <summary>
+    /// Gets the count of permanently failed scans.
+    /// </summary>
+    public async Task<int> GetFailedCountAsync()
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.QueuedScans
+                .Where(q => q.SyncStatus == "FAILED")
+                .CountAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get failed count");
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Resets all FAILED scans back to PENDING for retry.
+    /// </summary>
+    public async Task<int> RetryFailedScansAsync()
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var failedScans = await context.QueuedScans
+                .Where(q => q.SyncStatus == "FAILED")
+                .ToListAsync();
+
+            foreach (var scan in failedScans)
+            {
+                scan.SyncStatus = "PENDING";
+                scan.SyncAttempts = 0;
+                scan.LastSyncError = null;
+                scan.LastAttemptAt = null;
+            }
+
+            await context.SaveChangesAsync();
+            _logger.LogInformation("Reset {Count} failed scans to PENDING for retry", failedScans.Count);
+            return failedScans.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retry failed scans");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a specific queued scan by ID.
+    /// </summary>
+    public async Task DeleteScanAsync(int queueId)
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var scan = await context.QueuedScans.FindAsync(queueId);
+
+            if (scan != null)
+            {
+                context.QueuedScans.Remove(scan);
+                await context.SaveChangesAsync();
+                _logger.LogInformation("Deleted queued scan: ID {QueueId}", queueId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete queued scan: {QueueId}", queueId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Clears all permanently failed scans from the queue.
+    /// </summary>
+    public async Task ClearFailedScansAsync()
+    {
+        try
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            var failedScans = await context.QueuedScans
+                .Where(q => q.SyncStatus == "FAILED")
+                .ToListAsync();
+
+            if (failedScans.Any())
+            {
+                context.QueuedScans.RemoveRange(failedScans);
+                await context.SaveChangesAsync();
+                _logger.LogInformation("Cleared {Count} failed scans from queue", failedScans.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear failed scans");
+            throw;
+        }
+    }
 }

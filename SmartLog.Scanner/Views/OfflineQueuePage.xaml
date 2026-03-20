@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartLog.Scanner.ViewModels"
+             x:Class="SmartLog.Scanner.Views.OfflineQueuePage"
+             x:DataType="vm:OfflineQueueViewModel"
+             Title="Offline Queue"
+             BackgroundColor="#F8F9FA">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20">
+
+        <!-- Header with connectivity and sync controls -->
+        <Border Grid.Row="0"
+                BackgroundColor="White"
+                Padding="20"
+                StrokeThickness="0"
+                Margin="0,0,0,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.08" Radius="8" Offset="0,2" />
+            </Border.Shadow>
+
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <!-- Title and connectivity -->
+                <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="12">
+                    <Label Text="Offline Scan Queue"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="#2C5F5D"
+                           VerticalOptions="Center" />
+                    <Border BackgroundColor="{Binding ConnectivityColorHex}"
+                            Padding="10,5"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6" />
+                        </Border.StrokeShape>
+                        <Label Text="{Binding ConnectivityText}"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="White" />
+                    </Border>
+                </HorizontalStackLayout>
+
+                <!-- Action buttons -->
+                <HorizontalStackLayout Grid.Column="1" Grid.Row="0" Spacing="8">
+                    <Button Text="Sync Now"
+                            Command="{Binding SyncNowCommand}"
+                            BackgroundColor="#2196F3"
+                            TextColor="White"
+                            FontSize="13"
+                            Padding="14,8"
+                            CornerRadius="8"
+                            IsEnabled="{Binding IsSyncing, Converter={StaticResource InvertedBoolConverter}}" />
+
+                    <Button Text="Retry Failed"
+                            Command="{Binding RetryFailedCommand}"
+                            BackgroundColor="#FF9800"
+                            TextColor="White"
+                            FontSize="13"
+                            Padding="14,8"
+                            CornerRadius="8" />
+
+                    <Button Text="Refresh"
+                            Command="{Binding LoadQueueCommand}"
+                            BackgroundColor="#4D9B91"
+                            TextColor="White"
+                            FontSize="13"
+                            Padding="14,8"
+                            CornerRadius="8" />
+                </HorizontalStackLayout>
+
+                <!-- Syncing indicator -->
+                <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                       Spacing="8"
+                                       IsVisible="{Binding IsSyncing}"
+                                       Margin="0,8,0,0">
+                    <ActivityIndicator IsRunning="{Binding IsSyncing}"
+                                       Color="#2196F3"
+                                       WidthRequest="16"
+                                       HeightRequest="16" />
+                    <Label Text="Syncing queued scans..."
+                           FontSize="13"
+                           TextColor="#2196F3" />
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+
+        <!-- Statistics cards -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,*"
+              ColumnSpacing="12"
+              Margin="0,0,0,12">
+
+            <!-- Pending -->
+            <Border Grid.Column="0"
+                    BackgroundColor="#FFF3E0"
+                    Padding="16,12"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="{Binding PendingCount}"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           TextColor="#E65100"
+                           HorizontalOptions="Center" />
+                    <Label Text="Pending"
+                           FontSize="12"
+                           TextColor="#BF360C"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Failed -->
+            <Border Grid.Column="1"
+                    BackgroundColor="#FFEBEE"
+                    Padding="16,12"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="{Binding FailedCount}"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           TextColor="#C62828"
+                           HorizontalOptions="Center" />
+                    <Label Text="Failed"
+                           FontSize="12"
+                           TextColor="#B71C1C"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Synced -->
+            <Border Grid.Column="2"
+                    BackgroundColor="#E8F5E9"
+                    Padding="16,12"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="{Binding SyncedCount}"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           TextColor="#2E7D32"
+                           HorizontalOptions="Center" />
+                    <Label Text="Synced"
+                           FontSize="12"
+                           TextColor="#1B5E20"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Total -->
+            <Border Grid.Column="3"
+                    BackgroundColor="#E3F2FD"
+                    Padding="16,12"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="{Binding TotalCount}"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           TextColor="#1565C0"
+                           HorizontalOptions="Center" />
+                    <Label Text="Total"
+                           FontSize="12"
+                           TextColor="#0D47A1"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Filter and bulk actions -->
+        <Grid Grid.Row="2"
+              ColumnDefinitions="Auto,*,Auto,Auto,Auto"
+              ColumnSpacing="10"
+              Margin="0,0,0,12">
+
+            <Label Grid.Column="0"
+                   Text="Filter:"
+                   FontSize="14"
+                   VerticalOptions="Center"
+                   TextColor="#666" />
+
+            <Picker Grid.Column="1"
+                    ItemsSource="{Binding FilterOptions}"
+                    SelectedItem="{Binding SelectedFilter}"
+                    WidthRequest="120"
+                    VerticalOptions="Center" />
+
+            <Button Grid.Column="2"
+                    Text="Clear Pending"
+                    Command="{Binding ClearPendingCommand}"
+                    BackgroundColor="#FF9800"
+                    TextColor="White"
+                    FontSize="12"
+                    Padding="10,6"
+                    CornerRadius="6" />
+
+            <Button Grid.Column="3"
+                    Text="Clear Failed"
+                    Command="{Binding ClearFailedCommand}"
+                    BackgroundColor="#F44336"
+                    TextColor="White"
+                    FontSize="12"
+                    Padding="10,6"
+                    CornerRadius="6" />
+
+            <Button Grid.Column="4"
+                    Text="Cleanup Synced"
+                    Command="{Binding CleanupSyncedCommand}"
+                    BackgroundColor="#78909C"
+                    TextColor="White"
+                    FontSize="12"
+                    Padding="10,6"
+                    CornerRadius="6" />
+        </Grid>
+
+        <!-- Queue list -->
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding QueuedScans}"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="10"
+                                     Padding="20">
+                    <Label Text="No queued scans"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#9E9E9E"
+                           HorizontalOptions="Center" />
+                    <Label Text="Scans are queued here when the server is unreachable. They sync automatically when connectivity is restored."
+                           FontSize="14"
+                           TextColor="#BDBDBD"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:QueuedScanDisplayItem">
+                    <Border BackgroundColor="White"
+                            StrokeThickness="0"
+                            Margin="0,0,0,8"
+                            Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Opacity="0.05" Radius="4" Offset="0,1" />
+                        </Border.Shadow>
+
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="4">
+                            <!-- Status indicator bar -->
+                            <BoxView Grid.Column="0"
+                                     Grid.RowSpan="3"
+                                     WidthRequest="4"
+                                     Color="{Binding StatusColorHex}"
+                                     VerticalOptions="Fill" />
+
+                            <!-- Student ID and scan type -->
+                            <HorizontalStackLayout Grid.Column="1" Grid.Row="0" Spacing="10">
+                                <Label Text="{Binding StudentId}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#37474F" />
+                                <Border BackgroundColor="{Binding StatusColorHex}"
+                                        Padding="8,3"
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding SyncStatus}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="White" />
+                                </Border>
+                                <Border BackgroundColor="#E0F2F1"
+                                        Padding="8,3"
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding ScanType}"
+                                           FontSize="11"
+                                           TextColor="#00695C" />
+                                </Border>
+                            </HorizontalStackLayout>
+
+                            <!-- Timestamps -->
+                            <HorizontalStackLayout Grid.Column="1" Grid.Row="1" Spacing="16">
+                                <Label Text="{Binding ScannedAtDisplay, StringFormat='Scanned: {0}'}"
+                                       FontSize="12"
+                                       TextColor="#78909C" />
+                                <Label Text="{Binding CreatedAtDisplay, StringFormat='Queued: {0}'}"
+                                       FontSize="12"
+                                       TextColor="#78909C" />
+                                <Label Text="{Binding SyncAttempts, StringFormat='Attempts: {0}'}"
+                                       FontSize="12"
+                                       TextColor="#78909C" />
+                            </HorizontalStackLayout>
+
+                            <!-- Error message (for failed scans) -->
+                            <Label Grid.Column="1" Grid.Row="2"
+                                   Text="{Binding LastError}"
+                                   FontSize="11"
+                                   TextColor="#F44336"
+                                   LineBreakMode="TailTruncation"
+                                   IsVisible="{Binding LastError, Converter={StaticResource IsNotNullConverter}}" />
+
+                            <!-- Delete button -->
+                            <Button Grid.Column="3"
+                                    Grid.RowSpan="3"
+                                    Text="Delete"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OfflineQueueViewModel}}, Path=DeleteScanCommand}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#F44336"
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Loading indicator -->
+        <ActivityIndicator Grid.Row="3"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="#4D9B91"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center" />
+
+        <!-- Status message bar -->
+        <Border Grid.Row="4"
+                IsVisible="{Binding ShowStatus}"
+                BackgroundColor="{Binding StatusColorHex}"
+                Padding="16,10"
+                StrokeThickness="0"
+                Margin="0,8,0,0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   TextColor="White"
+                   HorizontalOptions="Center" />
+        </Border>
+
+    </Grid>
+</ContentPage>

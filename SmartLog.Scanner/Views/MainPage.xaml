@@ -323,14 +323,17 @@
             </Border.Shadow>
 
             <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
-                <!-- Queue Count Card (HIDDEN - Offline mode disabled) -->
+                <!-- Queue Count Card (visible when scans are queued) -->
                 <Border BackgroundColor="#33FFFFFF"
                         Padding="16,10"
                         StrokeThickness="0"
-                        IsVisible="False">
+                        IsVisible="{Binding HasQueuedScans}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnViewQueueClicked" />
+                    </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="10">
                         <Border WidthRequest="40"
                                 HeightRequest="40"
@@ -404,11 +407,11 @@
                     </HorizontalStackLayout>
                 </Border>
 
-                <!-- Manual Sync Button Card (HIDDEN - Offline mode disabled) -->
+                <!-- Manual Sync Button Card (visible when queue has items) -->
                 <Border BackgroundColor="#33FFFFFF"
                         Padding="16,10"
                         StrokeThickness="0"
-                        IsVisible="False">
+                        IsVisible="{Binding HasQueuedScans}">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding ManualSyncCommand}" />
                     </Border.GestureRecognizers>
@@ -434,44 +437,6 @@
                                    TextColor="#B0BEC5"
                                    VerticalOptions="End" />
                             <Label Text="Tap to sync"
-                                   FontSize="12"
-                                   TextColor="#B0BEC5"
-                                   FontAttributes="Bold"
-                                   VerticalOptions="Center" />
-                        </VerticalStackLayout>
-                    </HorizontalStackLayout>
-                </Border>
-
-                <!-- Clear Queue Button Card (HIDDEN - Offline mode disabled) -->
-                <Border BackgroundColor="#33FFFFFF"
-                        Padding="16,10"
-                        StrokeThickness="0"
-                        IsVisible="False">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding ClearQueueCommand}" />
-                    </Border.GestureRecognizers>
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12" />
-                    </Border.StrokeShape>
-                    <HorizontalStackLayout Spacing="10">
-                        <Border WidthRequest="40"
-                                HeightRequest="40"
-                                BackgroundColor="#F44336"
-                                VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20" />
-                            </Border.StrokeShape>
-                            <Label Text="🗑️"
-                                   FontSize="20"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Border>
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Clear"
-                                   FontSize="12"
-                                   TextColor="#B0BEC5"
-                                   VerticalOptions="End" />
-                            <Label Text="Clear queue"
                                    FontSize="12"
                                    TextColor="#B0BEC5"
                                    FontAttributes="Bold"
