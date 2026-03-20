@@ -22,7 +22,14 @@ public class FileConfigService
         _logger.LogInformation("Config file path: {Path}", _configFilePath);
     }
 
-    public async Task<AppConfig> LoadConfigAsync()
+    /// <summary>Protected constructor for unit test mocking.</summary>
+    protected FileConfigService()
+    {
+        _logger = null!;
+        _configFilePath = string.Empty;
+    }
+
+    public virtual async Task<AppConfig> LoadConfigAsync()
     {
         if (_cachedConfig != null)
             return _cachedConfig;
@@ -50,7 +57,7 @@ public class FileConfigService
         return _cachedConfig;
     }
 
-    public async Task SaveConfigAsync(AppConfig config)
+    public virtual async Task SaveConfigAsync(AppConfig config)
     {
         try
         {
@@ -70,7 +77,7 @@ public class FileConfigService
         }
     }
 
-    public async Task ClearConfigAsync()
+    public virtual async Task ClearConfigAsync()
     {
         try
         {
