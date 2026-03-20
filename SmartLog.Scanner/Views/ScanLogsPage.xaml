@@ -8,10 +8,24 @@
              Title="Scan Logs"
              BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20">
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" />
+    </Shell.BackButtonBehavior>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20">
+
+        <!-- Back navigation -->
+        <HorizontalStackLayout Grid.Row="0" Margin="0,0,0,8">
+            <Button Text="← Back to Scanner"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="#2C5F5D"
+                    FontSize="14"
+                    Padding="0" />
+        </HorizontalStackLayout>
 
         <!-- Statistics Header -->
-        <Border Grid.Row="0"
+        <Border Grid.Row="1"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
                 Padding="15"
@@ -97,7 +111,7 @@
         </Border>
 
         <!-- Search and Filters -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10" ColumnSpacing="10">
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10" ColumnSpacing="10">
             <SearchBar Grid.Column="0"
                        Placeholder="Search by student ID or name..."
                        Text="{Binding SearchText}"
@@ -117,7 +131,7 @@
         </Grid>
 
         <!-- Logs List -->
-        <CollectionView Grid.Row="2"
+        <CollectionView Grid.Row="3"
                         ItemsSource="{Binding Logs}"
                         SelectedItem="{Binding SelectedLog}"
                         SelectionMode="Single">
@@ -202,7 +216,7 @@
         </CollectionView>
 
         <!-- Loading Indicator -->
-        <ActivityIndicator Grid.Row="2"
+        <ActivityIndicator Grid.Row="3"
                           IsRunning="{Binding IsLoading}"
                           IsVisible="{Binding IsLoading}"
                           Color="{DynamicResource Primary}"
@@ -210,7 +224,7 @@
                           HorizontalOptions="Center"/>
 
         <!-- Error Message -->
-        <Label Grid.Row="3"
+        <Label Grid.Row="4"
                Text="{Binding ErrorMessage}"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}"
                TextColor="#F44336"

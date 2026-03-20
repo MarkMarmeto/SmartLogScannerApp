@@ -368,7 +368,7 @@ public class SetupViewModelTests
 		_viewModel.ApiKey = "test-key";
 
 		_mockConnectionTest
-			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>()))
+			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
 			.ReturnsAsync(new ConnectionTestResultDto(
 				ConnectionTestResult.Success,
 				"Connection successful"));
@@ -388,7 +388,7 @@ public class SetupViewModelTests
 		_viewModel.ApiKey = "test-key";
 
 		_mockConnectionTest
-			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>()))
+			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
 			.ReturnsAsync(new ConnectionTestResultDto(
 				ConnectionTestResult.Success,
 				"Connection successful"));
@@ -409,7 +409,7 @@ public class SetupViewModelTests
 		_viewModel.ApiKey = "bad-key";
 
 		_mockConnectionTest
-			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>()))
+			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
 			.ReturnsAsync(new ConnectionTestResultDto(
 				ConnectionTestResult.AuthError,
 				"Invalid API key"));
@@ -429,7 +429,7 @@ public class SetupViewModelTests
 		_viewModel.ApiKey = "bad-key";
 
 		_mockConnectionTest
-			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>()))
+			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
 			.ReturnsAsync(new ConnectionTestResultDto(
 				ConnectionTestResult.AuthError,
 				"Invalid API key"));
@@ -451,7 +451,7 @@ public class SetupViewModelTests
 
 		bool isTestingDuringTest = false;
 		_mockConnectionTest
-			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>()))
+			.Setup(s => s.TestConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
 			.Callback(() => isTestingDuringTest = _viewModel.IsTestingConnection)
 			.ReturnsAsync(new ConnectionTestResultDto(
 				ConnectionTestResult.Success,

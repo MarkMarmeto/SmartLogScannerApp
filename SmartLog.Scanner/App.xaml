@@ -2,6 +2,7 @@
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:converters="clr-namespace:SmartLog.Scanner.Converters"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="SmartLog.Scanner.App">
     <Application.Resources>
         <ResourceDictionary>
@@ -13,6 +14,9 @@
             <!-- US0004: Value Converters -->
             <converters:StringNotNullOrEmptyConverter x:Key="StringNotNullOrEmptyConverter" />
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+
+            <!-- IsNotNullConverter (CommunityToolkit.Maui) -->
+            <toolkit:IsNotNullConverter x:Key="IsNotNullConverter" />
 
             <!-- US0005: Connection Test Converters -->
             <converters:TestingTextConverter x:Key="TestingTextConverter" />

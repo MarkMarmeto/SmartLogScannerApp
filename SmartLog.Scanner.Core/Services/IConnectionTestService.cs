@@ -13,6 +13,7 @@ public interface IConnectionTestService
 	/// </summary>
 	/// <param name="serverUrl">Base URL (e.g., "https://192.168.1.100:8443")</param>
 	/// <param name="apiKey">API key to test (sent in X-API-Key header)</param>
+	/// <param name="acceptSelfSignedCerts">Whether to accept self-signed TLS certificates during this test</param>
 	/// <returns>Result with status and user-facing message</returns>
-	Task<ConnectionTestResultDto> TestConnectionAsync(string serverUrl, string apiKey);
+	Task<ConnectionTestResultDto> TestConnectionAsync(string serverUrl, string apiKey, bool acceptSelfSignedCerts = false);
 }

@@ -23,7 +23,7 @@ public class ConnectionTestService : IConnectionTestService
 		_logger = logger;
 	}
 
-	public async Task<ConnectionTestResultDto> TestConnectionAsync(string serverUrl, string apiKey)
+	public async Task<ConnectionTestResultDto> TestConnectionAsync(string serverUrl, string apiKey, bool acceptSelfSignedCerts = false)
 	{
 		if (string.IsNullOrWhiteSpace(serverUrl))
 			throw new ArgumentException("Server URL cannot be empty", nameof(serverUrl));
@@ -31,14 +31,30 @@ public class ConnectionTestService : IConnectionTestService
 		if (string.IsNullOrWhiteSpace(apiKey))
 			throw new ArgumentException("API key cannot be empty", nameof(apiKey));
 
+		// When acceptSelfSignedCerts is enabled, create a temporary HttpClient
+		// that bypasses cert validation for this one-off connection test.
+		// Otherwise, use the factory-configured client with standard validation.
+		HttpClient client;
+		HttpClientHandler? tempHandler = null;
+
+		if (acceptSelfSignedCerts)
+		{
+			tempHandler = new HttpClientHandler
+			{
+				ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+			};
+			client = new HttpClient(tempHandler) { Timeout = TimeSpan.FromSeconds(10) };
+		}
+		else
+		{
+			client = _httpClientFactory.CreateClient("SmartLogApi");
+		}
+
 		try
 		{
-			// Build request to GET /api/v1/health/details (authenticated endpoint)
-			var client = _httpClientFactory.CreateClient("SmartLogApi");
 			var requestUri = new Uri(new Uri(serverUrl), "/api/v1/health/details");
 
 			var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-			// Authenticated endpoint — API key is required for access
 			request.Headers.Add("X-API-Key", apiKey);
 
 			var response = await client.SendAsync(request);
@@ -106,6 +122,15 @@ public class ConnectionTestService : IConnectionTestService
 				ConnectionTestResult.UnexpectedError,
 				"Unexpected error occurred. Check logs.",
 				ex.Message);
+		}
+		finally
+		{
+			// Dispose temporary resources (don't dispose factory-created clients)
+			if (tempHandler != null)
+			{
+				client.Dispose();
+				tempHandler.Dispose();
+			}
 		}
 	}
 }

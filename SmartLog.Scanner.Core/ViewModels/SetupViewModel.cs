@@ -260,7 +260,7 @@ public partial class SetupViewModel : ObservableObject
 
 		try
 		{
-			var result = await _connectionTestService.TestConnectionAsync(ServerUrl, ApiKey);
+			var result = await _connectionTestService.TestConnectionAsync(ServerUrl, ApiKey, AcceptSelfSignedCerts);
 			TestResult = result.Status;
 			TestResultMessage = result.Message;
 			IsConnectionValid = result.Status == ConnectionTestResult.Success;
