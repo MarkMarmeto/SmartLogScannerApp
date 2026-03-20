@@ -47,6 +47,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _queuePendingCount;
     [ObservableProperty] private int _todayScanCount;
 
+    // Offline queue visibility
+    [ObservableProperty] private bool _hasQueuedScans;
+
     // US0015: Connectivity status indicator
     [ObservableProperty] private string _connectivityStatus = "Connecting...";
     [ObservableProperty] private string _connectivityIcon = "⚪";
@@ -498,11 +501,13 @@ public partial class MainViewModel : ObservableObject
         try
         {
             QueuePendingCount = await _offlineQueue.GetQueueCountAsync();
+            HasQueuedScans = QueuePendingCount > 0;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get queue count");
             QueuePendingCount = 0;
+            HasQueuedScans = false;
         }
 
         // AC6: Check if we need to reset today's count (midnight rollover)
@@ -545,6 +550,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             QueuePendingCount = await _offlineQueue.GetQueueCountAsync();
+            HasQueuedScans = QueuePendingCount > 0;
         }
         catch (Exception ex)
         {
@@ -591,6 +597,7 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 QueuePendingCount = await _offlineQueue.GetQueueCountAsync();
+                HasQueuedScans = QueuePendingCount > 0;
                 _logger.LogInformation("Queue count refreshed after sync: {Count} pending (synced: {Synced}, failed: {Failed})",
                     QueuePendingCount, e.SyncedCount, e.FailedCount);
 

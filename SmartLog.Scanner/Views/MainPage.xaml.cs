@@ -74,6 +74,14 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
+    /// Navigate to offline queue management page.
+    /// </summary>
+    private async void OnViewQueueClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//queue");
+    }
+
+    /// <summary>
     /// US0007: Handle QR code detection from camera.
     /// </summary>
     private void OnBarcodeDetected(object? sender, string value)

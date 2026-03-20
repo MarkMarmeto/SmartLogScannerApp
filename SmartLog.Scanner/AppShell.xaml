@@ -21,4 +21,9 @@
         Route="logs"
         ContentTemplate="{DataTemplate local:ScanLogsPage}" />
 
+    <ShellContent
+        Title="Offline Queue"
+        Route="queue"
+        ContentTemplate="{DataTemplate local:OfflineQueuePage}" />
+
 </Shell>

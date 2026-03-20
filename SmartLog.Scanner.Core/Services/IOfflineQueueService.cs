@@ -61,4 +61,31 @@ public interface IOfflineQueueService
     /// Used for troubleshooting or resetting failed/stuck scans.
     /// </summary>
     Task ClearPendingScansAsync();
+
+    /// <summary>
+    /// Gets all queued scans (pending, synced, and failed) for display.
+    /// Ordered by creation time descending (newest first).
+    /// </summary>
+    Task<List<QueuedScan>> GetAllScansAsync(int limit = 200);
+
+    /// <summary>
+    /// Gets the count of failed scans.
+    /// </summary>
+    Task<int> GetFailedCountAsync();
+
+    /// <summary>
+    /// Resets all FAILED scans back to PENDING for retry.
+    /// Clears error messages and resets attempt counters.
+    /// </summary>
+    Task<int> RetryFailedScansAsync();
+
+    /// <summary>
+    /// Deletes a specific queued scan by ID.
+    /// </summary>
+    Task DeleteScanAsync(int queueId);
+
+    /// <summary>
+    /// Clears all failed scans from the queue.
+    /// </summary>
+    Task ClearFailedScansAsync();
 }

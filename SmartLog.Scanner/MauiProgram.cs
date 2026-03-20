@@ -322,6 +322,10 @@ public static class MauiProgram
 		builder.Services.AddTransient<Core.ViewModels.ScanLogsViewModel>();
 		builder.Services.AddTransient<Views.ScanLogsPage>();
 
+		// Register Offline Queue management page
+		builder.Services.AddTransient<ViewModels.OfflineQueueViewModel>();
+		builder.Services.AddTransient<Views.OfflineQueuePage>();
+
 		return builder.Build();
 	}
 }
