@@ -129,77 +129,243 @@
             </Grid>
         </Border>
 
-        <!-- Camera Preview Area with Modern Scanning Frame -->
-        <Grid Grid.Row="1">
-            <!-- Live Camera View -->
-            <controls:CameraQrView x:Name="cameraView"
-                                   IsDetecting="{Binding IsScanning}"
-                                   BarcodeDetected="OnBarcodeDetected" />
+        <!-- Student ID Card Area -->
+        <Grid Grid.Row="1" BackgroundColor="#F8F9FA">
 
-            <!-- Modern Corner Bracket Scanning Frame -->
-            <Grid WidthRequest="320"
-                  HeightRequest="320"
-                  HorizontalOptions="Center"
-                  VerticalOptions="Center">
-
-                <!-- Top-Left Corner -->
-                <Grid HorizontalOptions="Start" VerticalOptions="Start">
-                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
-                             HorizontalOptions="Start" VerticalOptions="Start" />
-                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
-                             HorizontalOptions="Start" VerticalOptions="Start" />
-                </Grid>
-
-                <!-- Top-Right Corner -->
-                <Grid HorizontalOptions="End" VerticalOptions="Start">
-                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
-                             HorizontalOptions="End" VerticalOptions="Start" />
-                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
-                             HorizontalOptions="End" VerticalOptions="Start" />
-                </Grid>
-
-                <!-- Bottom-Left Corner -->
-                <Grid HorizontalOptions="Start" VerticalOptions="End">
-                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
-                             HorizontalOptions="Start" VerticalOptions="End" />
-                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
-                             HorizontalOptions="Start" VerticalOptions="End" />
-                </Grid>
-
-                <!-- Bottom-Right Corner -->
-                <Grid HorizontalOptions="End" VerticalOptions="End">
-                    <BoxView Color="#4D9B91" WidthRequest="60" HeightRequest="4"
-                             HorizontalOptions="End" VerticalOptions="End" />
-                    <BoxView Color="#4D9B91" WidthRequest="4" HeightRequest="60"
-                             HorizontalOptions="End" VerticalOptions="End" />
-                </Grid>
-
-                <!-- Glass morphism Scan Hint -->
-                <Border BackgroundColor="#CC000000"
-                        Padding="20,12"
-                        HorizontalOptions="Center"
-                        VerticalOptions="End"
-                        Margin="0,0,0,30"
-                        StrokeThickness="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="24" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="Black" Opacity="0.3" Radius="8" Offset="0,4" />
-                    </Border.Shadow>
-
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="📷"
-                               FontSize="16"
-                               VerticalOptions="Center" />
-                        <Label Text="Position QR code within brackets"
-                               FontSize="14"
-                               FontAttributes="Bold"
+            <!-- Small Camera Preview Window -->
+            <Border WidthRequest="200"
+                    HeightRequest="150"
+                    StrokeThickness="2"
+                    Stroke="#4D9B91"
+                    HorizontalOptions="End"
+                    VerticalOptions="End"
+                    Margin="0,0,24,24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.2" Radius="10" Offset="0,4" />
+                </Border.Shadow>
+                <Grid>
+                    <controls:CameraQrView x:Name="cameraView"
+                                           IsDetecting="{Binding IsScanning}"
+                                           BarcodeDetected="OnBarcodeDetected" />
+                    <!-- Camera label overlay -->
+                    <Border BackgroundColor="#99000000"
+                            Padding="8,4"
+                            StrokeThickness="0"
+                            HorizontalOptions="Center"
+                            VerticalOptions="End"
+                            Margin="0,0,0,6">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Label Text="📷 Scanner"
+                               FontSize="10"
                                TextColor="White"
-                               VerticalOptions="Center" />
-                    </HorizontalStackLayout>
-                </Border>
-            </Grid>
+                               HorizontalOptions="Center" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Centered Student ID Card -->
+            <Border x:Name="studentCard"
+                    WidthRequest="380"
+                    HeightRequest="480"
+                    BackgroundColor="White"
+                    Stroke="{Binding CardBorderColor}"
+                    StrokeThickness="3"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="20" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="{Binding CardBorderColor}"
+                            Opacity="0.3"
+                            Radius="20"
+                            Offset="0,6" />
+                </Border.Shadow>
+
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+                    <!-- Card Header (school teal banner) -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#2C5F5D"
+                            Padding="20,16"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="17,17,0,0" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="STUDENT IDENTIFICATION"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   CharacterSpacing="2"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="SmartLog Attendance System"
+                                   FontSize="11"
+                                   TextColor="#A0D5CF"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Avatar -->
+                    <Grid Grid.Row="1"
+                          HorizontalOptions="Center"
+                          Margin="0,24,0,8">
+                        <!-- Skeleton avatar (no data) -->
+                        <Border WidthRequest="100"
+                                HeightRequest="100"
+                                BackgroundColor="#EEEEEE"
+                                Stroke="#D0D0D0"
+                                StrokeThickness="2"
+                                IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="50" />
+                            </Border.StrokeShape>
+                            <Label Text="👤"
+                                   FontSize="44"
+                                   Opacity="0.3"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <!-- Active avatar (has data) -->
+                        <Border WidthRequest="100"
+                                HeightRequest="100"
+                                BackgroundColor="#E0F2F1"
+                                Stroke="#4D9B91"
+                                StrokeThickness="2"
+                                IsVisible="{Binding HasScannedStudent}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="50" />
+                            </Border.StrokeShape>
+                            <Label Text="👤"
+                                   FontSize="44"
+                                   Opacity="0.85"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Card Fields -->
+                    <VerticalStackLayout Grid.Row="2"
+                                         Spacing="18"
+                                         Padding="32,12,32,0"
+                                         VerticalOptions="Start">
+
+                        <!-- Student Number -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="STUDENT NUMBER"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#9E9E9E"
+                                   CharacterSpacing="1.5" />
+                            <!-- Skeleton -->
+                            <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
+                                    BackgroundColor="#EEEEEE"
+                                    HeightRequest="28"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <!-- Data -->
+                            <Label IsVisible="{Binding HasScannedStudent}"
+                                   Text="{Binding LastStudentId}"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="#2C5F5D" />
+                        </VerticalStackLayout>
+
+                        <!-- Student Name -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="STUDENT NAME"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#9E9E9E"
+                                   CharacterSpacing="1.5" />
+                            <!-- Skeleton -->
+                            <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
+                                    BackgroundColor="#EEEEEE"
+                                    HeightRequest="24"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <!-- Data -->
+                            <Label IsVisible="{Binding HasScannedStudent}"
+                                   Text="{Binding LastStudentName}"
+                                   FontSize="18"
+                                   TextColor="#37474F" />
+                        </VerticalStackLayout>
+
+                        <!-- Grade & Section -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="GRADE &amp; SECTION"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#9E9E9E"
+                                   CharacterSpacing="1.5" />
+                            <!-- Skeleton -->
+                            <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
+                                    BackgroundColor="#EEEEEE"
+                                    HeightRequest="24"
+                                    WidthRequest="180"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <!-- Data -->
+                            <Label IsVisible="{Binding HasScannedStudent}"
+                                   Text="{Binding LastGradeSection}"
+                                   FontSize="18"
+                                   TextColor="#37474F" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Card Footer -->
+                    <Border Grid.Row="3"
+                            BackgroundColor="#FAFAFA"
+                            Padding="16,14"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="0,0,17,17" />
+                        </Border.StrokeShape>
+                        <Grid>
+                            <!-- Scan hint (skeleton state) -->
+                            <HorizontalStackLayout Spacing="8"
+                                                   HorizontalOptions="Center"
+                                                   IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
+                                <Label Text="📷"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                                <Label Text="Scan a student QR code"
+                                       FontSize="13"
+                                       TextColor="#9E9E9E"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <!-- Scan time (data state) -->
+                            <HorizontalStackLayout Spacing="8"
+                                                   HorizontalOptions="Center"
+                                                   IsVisible="{Binding HasScannedStudent}">
+                                <Label Text="🕒"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                                <Label Text="{Binding LastScanTime, StringFormat='Scanned at {0}'}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#4D9B91"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Enhanced Bottom Feedback Panel with Modern Design -->
