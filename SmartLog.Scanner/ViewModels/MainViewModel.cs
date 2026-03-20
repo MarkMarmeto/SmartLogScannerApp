@@ -39,6 +39,22 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _lastScanValid;
     [ObservableProperty] private string? _lastScanMessage;
 
+    // Student ID card data (populated on successful scan)
+    [ObservableProperty] private string? _lastStudentName;
+    [ObservableProperty] private string? _lastGrade;
+    [ObservableProperty] private string? _lastSection;
+    [ObservableProperty] private bool _hasScannedStudent;
+    [ObservableProperty] private Color _cardBorderColor = Color.FromArgb("#E0E0E0");
+
+    // Computed: Grade & Section combined display
+    public string? LastGradeSection =>
+        !string.IsNullOrEmpty(LastGrade) && !string.IsNullOrEmpty(LastSection)
+            ? $"{LastGrade} - {LastSection}"
+            : LastGrade ?? LastSection;
+
+    partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+
     // Visual feedback colors
     [ObservableProperty] private Color _feedbackColor = Colors.Transparent;
     [ObservableProperty] private bool _showFeedback;
@@ -169,6 +185,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Accepted:
                     // AC1: ACCEPTED - green feedback with student info
                     LastStudentId = result.StudentId;
+                    LastStudentName = result.StudentName;
+                    LastGrade = result.Grade;
+                    LastSection = result.Section;
+                    HasScannedStudent = true;
+                    CardBorderColor = Color.FromArgb("#4CAF50"); // Green
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = $"✓ {result.StudentName ?? result.StudentId} - {result.Grade} {result.Section}";
@@ -183,6 +204,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Duplicate:
                     // AC2: DUPLICATE - amber feedback
                     LastStudentId = result.StudentId;
+                    LastStudentName = result.StudentName;
+                    LastGrade = result.Grade;
+                    LastSection = result.Section;
+                    HasScannedStudent = !string.IsNullOrEmpty(result.StudentId);
+                    CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = $"⚠ {result.Message ?? "Already scanned. Please proceed."}";
@@ -197,6 +223,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Rejected:
                     // AC3: REJECTED - red feedback
                     LastStudentId = result.StudentId;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#F44336"); // Red
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
                     LastScanMessage = $"✗ {result.Message ?? result.ValidationResult?.RejectionReason ?? "Rejected"}";
@@ -210,7 +241,12 @@ public partial class MainViewModel : ObservableObject
 
                 case ScanStatus.Queued:
                     // AC6: QUEUED - blue feedback (offline)
-                    LastStudentId = null;
+                    LastStudentId = result.StudentId;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#4D9B91"); // Teal
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = $"📥 {result.Message ?? "Scan queued (offline)"}";
@@ -225,6 +261,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Error:
                     // AC4: ERROR - red feedback
                     LastStudentId = null;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#F44336"); // Red
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
                     LastScanMessage = $"✗ {result.Message ?? "Error"}";
@@ -239,6 +280,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.RateLimited:
                     // AC5: RATE LIMITED - amber feedback
                     LastStudentId = null;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
                     LastScanMessage = $"⏱ {result.Message ?? "Rate limit exceeded"}";
@@ -253,6 +299,11 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.DebouncedLocally:
                     // DEBOUNCED LOCALLY - amber feedback (duplicate within warn window or already queued)
                     LastStudentId = result.StudentId;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = $"⚠ {result.Message ?? "Already scanned. Please proceed."}";
@@ -268,12 +319,18 @@ public partial class MainViewModel : ObservableObject
             // US0013: Update statistics counters
             _ = UpdateStatisticsAsync(result.Status);
 
-            // Hide feedback after 3 seconds
+            // Hide feedback after 3 seconds and reset card to skeleton
             Task.Delay(3000).ContinueWith(_ =>
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     ShowFeedback = false;
+                    HasScannedStudent = false;
+                    LastStudentId = null;
+                    LastStudentName = null;
+                    LastGrade = null;
+                    LastSection = null;
+                    CardBorderColor = Color.FromArgb("#E0E0E0");
                     if (_scannerMode == "Camera")
                     {
                         StatusMessage = "Ready to scan QR codes";
@@ -468,15 +525,16 @@ public partial class MainViewModel : ObservableObject
 
     public async ValueTask DisposeAsync()
     {
+        // Only stop the scanner, don't unsubscribe events.
+        // Events stay subscribed because this ViewModel is a Singleton
+        // and InitializeAsync/DisposeAsync are called on page appear/disappear.
         if (_scannerMode == "Camera")
         {
-            _cameraScanner!.ScanCompleted -= OnScanCompleted;
-            await _cameraScanner.StopAsync();
+            await _cameraScanner!.StopAsync();
         }
         else // USB
         {
-            _usbScanner!.ScanCompleted -= OnScanCompleted;
-            await _usbScanner.StopAsync();
+            await _usbScanner!.StopAsync();
         }
     }
 

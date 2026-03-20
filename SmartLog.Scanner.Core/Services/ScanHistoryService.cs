@@ -46,10 +46,12 @@ public class ScanHistoryService : IScanHistoryService
         try
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.ScanLogs
+            // SQLite doesn't support DateTimeOffset in ORDER BY, so sort client-side
+            var logs = await context.ScanLogs.ToListAsync();
+            return logs
                 .OrderByDescending(log => log.Timestamp)
                 .Take(count)
-                .ToListAsync();
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -66,10 +68,11 @@ public class ScanHistoryService : IScanHistoryService
             var endOfDay = startOfDay.AddDays(1);
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.ScanLogs
+            var logs = await context.ScanLogs.ToListAsync();
+            return logs
                 .Where(log => log.Timestamp >= startOfDay && log.Timestamp < endOfDay)
                 .OrderByDescending(log => log.Timestamp)
-                .ToListAsync();
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -83,11 +86,12 @@ public class ScanHistoryService : IScanHistoryService
         try
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.ScanLogs
+            var logs = await context.ScanLogs.ToListAsync();
+            return logs
                 .Where(log => log.Status == status)
                 .OrderByDescending(log => log.Timestamp)
                 .Take(100)
-                .ToListAsync();
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -108,14 +112,15 @@ public class ScanHistoryService : IScanHistoryService
             var term = searchTerm.ToLowerInvariant();
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.ScanLogs
+            var logs = await context.ScanLogs.ToListAsync();
+            return logs
                 .Where(log =>
-                    (log.StudentId != null && log.StudentId.ToLower().Contains(term)) ||
-                    (log.StudentName != null && log.StudentName.ToLower().Contains(term)) ||
-                    (log.ScanId != null && log.ScanId.ToLower().Contains(term)))
+                    (log.StudentId != null && log.StudentId.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (log.StudentName != null && log.StudentName.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (log.ScanId != null && log.ScanId.Contains(term, StringComparison.OrdinalIgnoreCase)))
                 .OrderByDescending(log => log.Timestamp)
                 .Take(100)
-                .ToListAsync();
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -132,9 +137,10 @@ public class ScanHistoryService : IScanHistoryService
             var tomorrow = today.AddDays(1);
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            var todayLogs = await context.ScanLogs
+            var allLogs = await context.ScanLogs.ToListAsync();
+            var todayLogs = allLogs
                 .Where(log => log.Timestamp >= today && log.Timestamp < tomorrow)
-                .ToListAsync();
+                .ToList();
 
             return new ScanStatistics
             {
@@ -165,9 +171,10 @@ public class ScanHistoryService : IScanHistoryService
             var cutoffDate = DateTimeOffset.Now.AddDays(-olderThanDays);
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            var oldLogs = await context.ScanLogs
+            var allLogs = await context.ScanLogs.ToListAsync();
+            var oldLogs = allLogs
                 .Where(log => log.Timestamp < cutoffDate)
-                .ToListAsync();
+                .ToList();
 
             if (oldLogs.Any())
             {
@@ -192,10 +199,11 @@ public class ScanHistoryService : IScanHistoryService
             var end = endDate ?? DateTimeOffset.Now;
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            var logs = await context.ScanLogs
+            var allLogs = await context.ScanLogs.ToListAsync();
+            var logs = allLogs
                 .Where(log => log.Timestamp >= start && log.Timestamp <= end)
                 .OrderBy(log => log.Timestamp)
-                .ToListAsync();
+                .ToList();
 
             // Build CSV
             var csv = new StringBuilder();

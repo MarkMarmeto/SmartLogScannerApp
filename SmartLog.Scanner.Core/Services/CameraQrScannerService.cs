@@ -21,6 +21,8 @@ public class CameraQrScannerService : IQrScannerService
     private string? _lastPayload;
     private DateTime _lastScanTime = DateTime.MinValue;
     private readonly TimeSpan _debounceWindow = DeduplicationConfig.CameraRawDebounce;
+    private DateTime _lastProcessedTime = DateTime.MinValue;
+    private string? _lastProcessedPayload;
 
     public event EventHandler<ScanResult>? ScanCompleted;
     public bool IsScanning { get; private set; }
@@ -74,6 +76,15 @@ public class CameraQrScannerService : IQrScannerService
         {
             _logger.LogDebug("Duplicate QR payload within {Ms}ms debounce window, ignoring",
                 _debounceWindow.TotalMilliseconds);
+            return;
+        }
+
+        // Post-scan lockout: same payload within warn window is silently ignored
+        // Prevents re-processing while the QR code is still visible to the camera
+        if (payload == _lastProcessedPayload && (now - _lastProcessedTime) < DeduplicationConfig.WarnWindow)
+        {
+            _logger.LogDebug("Same QR code still in view, ignoring (lockout {Sec}s remaining)",
+                (DeduplicationConfig.WarnWindow - (now - _lastProcessedTime)).TotalSeconds);
             return;
         }
 
@@ -156,6 +167,10 @@ public class CameraQrScannerService : IQrScannerService
                 ScannedAt = DateTimeOffset.UtcNow
             };
         }
+
+        // Lock out this payload so the camera doesn't re-process while QR is still visible
+        _lastProcessedPayload = payload;
+        _lastProcessedTime = DateTime.UtcNow;
 
         // Raise event for UI
         ScanCompleted?.Invoke(this, scanResult);

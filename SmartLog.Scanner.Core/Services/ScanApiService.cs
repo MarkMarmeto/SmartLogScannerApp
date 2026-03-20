@@ -99,8 +99,24 @@ public class ScanApiService : IScanApiService
                 };
             }
 
-            // AC7/AC8: Create HTTP client with 10-second timeout
-            var httpClient = _httpClientFactory.CreateClient("SmartLogApi");
+            // AC7/AC8: Create HTTP client respecting current self-signed cert preference
+            HttpClient httpClient;
+            HttpClientHandler? tempHandler = null;
+            var acceptSelfSigned = _preferences.GetAcceptSelfSignedCerts();
+
+            if (acceptSelfSigned)
+            {
+                tempHandler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                };
+                httpClient = new HttpClient(tempHandler) { Timeout = TimeSpan.FromSeconds(10) };
+            }
+            else
+            {
+                httpClient = _httpClientFactory.CreateClient("SmartLogApi");
+            }
+
             httpClient.BaseAddress = new Uri(serverUrl);
 
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));

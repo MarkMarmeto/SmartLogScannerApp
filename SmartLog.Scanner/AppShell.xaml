@@ -4,26 +4,30 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:SmartLog.Scanner.Views"
-    Shell.FlyoutBehavior="Disabled">
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False">
 
-    <ShellContent
-        Title="Setup"
-        Route="setup"
-        ContentTemplate="{DataTemplate local:SetupPage}" />
+    <TabBar>
+        <ShellContent
+            Title="Setup"
+            Route="setup"
+            ContentTemplate="{DataTemplate local:SetupPage}" />
 
-    <ShellContent
-        Title="Main"
-        Route="main"
-        ContentTemplate="{DataTemplate local:MainPage}" />
+        <ShellContent
+            Title="Main"
+            Route="main"
+            ContentTemplate="{DataTemplate local:MainPage}" />
 
-    <ShellContent
-        Title="Scan Logs"
-        Route="logs"
-        ContentTemplate="{DataTemplate local:ScanLogsPage}" />
+        <ShellContent
+            Title="Scan Logs"
+            Route="logs"
+            ContentTemplate="{DataTemplate local:ScanLogsPage}" />
 
-    <ShellContent
-        Title="Offline Queue"
-        Route="queue"
-        ContentTemplate="{DataTemplate local:OfflineQueuePage}" />
+        <ShellContent
+            Title="Offline Queue"
+            Route="queue"
+            ContentTemplate="{DataTemplate local:OfflineQueuePage}" />
+    </TabBar>
 
 </Shell>
