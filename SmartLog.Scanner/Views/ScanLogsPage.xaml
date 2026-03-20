@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartLog.Scanner.Core.ViewModels;assembly=SmartLog.Scanner.Core"
+             xmlns:models="clr-namespace:SmartLog.Scanner.Core.Models;assembly=SmartLog.Scanner.Core"
+             x:Class="SmartLog.Scanner.Views.ScanLogsPage"
+             x:DataType="vm:ScanLogsViewModel"
+             Title="Scan Logs"
+             BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20">
+
+        <!-- Statistics Header -->
+        <Border Grid.Row="0"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
+                StrokeThickness="0"
+                Padding="15"
+                Margin="0,0,0,10">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10"/>
+            </Border.StrokeShape>
+
+            <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="Auto,Auto">
+                <!-- Total Scans -->
+                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                    <Label Text="{Binding TotalScans}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Total Today"
+                           FontSize="12"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Accepted -->
+                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                    <Label Text="{Binding AcceptedCount}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#4CAF50"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Accepted"
+                           FontSize="12"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Duplicates -->
+                <VerticalStackLayout Grid.Column="2" Spacing="5">
+                    <Label Text="{Binding DuplicateCount}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#FF9800"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Duplicates"
+                           FontSize="12"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Rejected -->
+                <VerticalStackLayout Grid.Column="3" Spacing="5">
+                    <Label Text="{Binding RejectedCount}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#F44336"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Rejected"
+                           FontSize="12"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Errors -->
+                <VerticalStackLayout Grid.Column="4" Spacing="5">
+                    <Label Text="{Binding ErrorCount}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#F44336"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Errors"
+                           FontSize="12"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Unique Students (spans all columns in row 2) -->
+                <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="5" Spacing="5" Margin="0,15,0,0">
+                    <Label Text="{Binding UniqueStudents, StringFormat='{0} unique students scanned today'}"
+                           FontSize="14"
+                           FontAttributes="Italic"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <!-- Search and Filters -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10" ColumnSpacing="10">
+            <SearchBar Grid.Column="0"
+                       Placeholder="Search by student ID or name..."
+                       Text="{Binding SearchText}"
+                       SearchCommand="{Binding SearchCommand}"/>
+
+            <Button Grid.Column="1"
+                    Text="Refresh"
+                    Command="{Binding RefreshCommand}"
+                    BackgroundColor="{DynamicResource Primary}"
+                    TextColor="White"/>
+
+            <Button Grid.Column="2"
+                    Text="Export CSV"
+                    Command="{Binding ExportLogsCommand}"
+                    BackgroundColor="{DynamicResource Secondary}"
+                    TextColor="White"/>
+        </Grid>
+
+        <!-- Logs List -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Logs}"
+                        SelectedItem="{Binding SelectedLog}"
+                        SelectionMode="Single">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                    <Label Text="📊" FontSize="48" HorizontalOptions="Center"/>
+                    <Label Text="No scan logs yet" FontSize="18" HorizontalOptions="Center"/>
+                    <Label Text="Scans will appear here automatically"
+                           FontSize="14"
+                           TextColor="{DynamicResource SecondaryTextColor}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ScanLogEntry">
+                    <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
+                            StrokeThickness="0"
+                            Margin="0,0,0,10"
+                            Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8"/>
+                        </Border.StrokeShape>
+
+                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15">
+                            <!-- Status Indicator -->
+                            <BoxView Grid.Row="0"
+                                     Grid.RowSpan="3"
+                                     Grid.Column="0"
+                                     WidthRequest="4"
+                                     Color="{Binding StatusColor}"
+                                     VerticalOptions="Fill"/>
+
+                            <!-- Main Content -->
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="5">
+                                <Label Text="{Binding StatusDisplay}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding StatusColor}"/>
+
+                                <Label Text="{Binding StudentName, StringFormat='Student: {0}'}"
+                                       FontSize="14"
+                                       IsVisible="{Binding StudentName, Converter={StaticResource IsNotNullConverter}}"/>
+
+                                <Label Text="{Binding StudentId, StringFormat='ID: {0}'}"
+                                       FontSize="12"
+                                       TextColor="{DynamicResource SecondaryTextColor}"
+                                       IsVisible="{Binding StudentId, Converter={StaticResource IsNotNullConverter}}"/>
+                            </VerticalStackLayout>
+
+                            <!-- Timestamp -->
+                            <Label Grid.Row="0" Grid.Column="2"
+                                   Text="{Binding TimestampDisplay}"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource SecondaryTextColor}"
+                                   VerticalOptions="Start"/>
+
+                            <!-- Details -->
+                            <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                   Text="{Binding Message}"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource SecondaryTextColor}"
+                                   LineBreakMode="WordWrap"
+                                   IsVisible="{Binding Message, Converter={StaticResource IsNotNullConverter}}"/>
+
+                            <!-- Metadata -->
+                            <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Spacing="15">
+                                <Label Text="{Binding ScanType, StringFormat='Type: {0}'}"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource SecondaryTextColor}"/>
+                                <Label Text="{Binding ScanMethod, StringFormat='Method: {0}'}"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource SecondaryTextColor}"/>
+                                <Label Text="{Binding ProcessingTimeMs, StringFormat='Time: {0}ms'}"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource SecondaryTextColor}"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Loading Indicator -->
+        <ActivityIndicator Grid.Row="2"
+                          IsRunning="{Binding IsLoading}"
+                          IsVisible="{Binding IsLoading}"
+                          Color="{DynamicResource Primary}"
+                          VerticalOptions="Center"
+                          HorizontalOptions="Center"/>
+
+        <!-- Error Message -->
+        <Label Grid.Row="3"
+               Text="{Binding ErrorMessage}"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}"
+               TextColor="#F44336"
+               FontSize="12"
+               Margin="0,10,0,0"/>
+    </Grid>
+</ContentPage>

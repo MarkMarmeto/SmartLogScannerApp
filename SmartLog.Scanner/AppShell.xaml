@@ -16,4 +16,9 @@
         Route="main"
         ContentTemplate="{DataTemplate local:MainPage}" />
 
+    <ShellContent
+        Title="Scan Logs"
+        Route="logs"
+        ContentTemplate="{DataTemplate local:ScanLogsPage}" />
+
 </Shell>

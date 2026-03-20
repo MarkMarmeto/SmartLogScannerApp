@@ -302,6 +302,9 @@ public static class MauiProgram
 		// US0014: Register database initialization service
 		builder.Services.AddSingleton<DatabaseInitializationService>();
 
+		// Register scan history/logging service for diagnostics
+		builder.Services.AddSingleton<IScanHistoryService, ScanHistoryService>();
+
 		// US0015: Register health check monitoring service
 		builder.Services.AddSingleton<IHealthCheckService, HealthCheckService>();
 
@@ -312,9 +315,13 @@ public static class MauiProgram
 		builder.Services.AddSingleton(AudioManager.Current);
 		builder.Services.AddSingleton<ISoundService, Services.SoundService>();
 
-		// Register ViewModel and Page
+		// Register ViewModels and Pages
 		builder.Services.AddSingleton<MainViewModel>();
-		builder.Services.AddTransient<Views.MainPage>(); // Register page after ViewModel
+		builder.Services.AddTransient<Views.MainPage>();
+
+		// Register Scan Logs viewer
+		builder.Services.AddTransient<Core.ViewModels.ScanLogsViewModel>();
+		builder.Services.AddTransient<Views.ScanLogsPage>();
 
 		return builder.Build();
 	}
