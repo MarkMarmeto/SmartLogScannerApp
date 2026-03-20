@@ -15,7 +15,7 @@ public class ScanApiService : IScanApiService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISecureConfigService _secureConfig;
-    private readonly FileConfigService _fileConfig;
+    private readonly IPreferencesService _preferences;
     private readonly IOfflineQueueService _offlineQueue;
     private readonly ILogger<ScanApiService> _logger;
 
@@ -33,13 +33,13 @@ public class ScanApiService : IScanApiService
     public ScanApiService(
         IHttpClientFactory httpClientFactory,
         ISecureConfigService secureConfig,
-        FileConfigService fileConfig,
+        IPreferencesService preferences,
         IOfflineQueueService offlineQueue,
         ILogger<ScanApiService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _secureConfig = secureConfig;
-        _fileConfig = fileConfig;
+        _preferences = preferences;
         _offlineQueue = offlineQueue;
         _logger = logger;
     }
@@ -81,11 +81,11 @@ public class ScanApiService : IScanApiService
                 };
             }
 
-            // Load server URL from file config (non-sensitive data)
-            var config = await _fileConfig.LoadConfigAsync();
+            // Load server URL from preferences (non-sensitive data)
+            var serverUrl = _preferences.GetServerBaseUrl();
 
             // Check server URL is configured
-            if (string.IsNullOrWhiteSpace(config.ServerUrl))
+            if (string.IsNullOrWhiteSpace(serverUrl))
             {
                 _logger.LogError("Server URL not configured");
                 return new ScanResult
@@ -101,7 +101,7 @@ public class ScanApiService : IScanApiService
 
             // AC7/AC8: Create HTTP client with 10-second timeout
             var httpClient = _httpClientFactory.CreateClient("SmartLogApi");
-            httpClient.BaseAddress = new Uri(config.ServerUrl);
+            httpClient.BaseAddress = new Uri(serverUrl);
 
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);

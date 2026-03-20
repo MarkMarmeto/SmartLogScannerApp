@@ -84,6 +84,44 @@ public class PreferencesService : IPreferencesService
 
     #endregion
 
+    #region Device Identity
+
+    public string GetDeviceId()
+    {
+        return Preferences.Default.Get(ConfigKeys.DeviceId, string.Empty);
+    }
+
+    public void SetDeviceId(string deviceId)
+    {
+        Preferences.Default.Set(ConfigKeys.DeviceId, deviceId);
+    }
+
+    public string GetDeviceName()
+    {
+        return Preferences.Default.Get(ConfigKeys.DeviceName, string.Empty);
+    }
+
+    public void SetDeviceName(string deviceName)
+    {
+        Preferences.Default.Set(ConfigKeys.DeviceName, deviceName);
+    }
+
+    #endregion
+
+    #region Accept Self-Signed Certs
+
+    public bool GetAcceptSelfSignedCerts()
+    {
+        return Preferences.Default.Get(ConfigKeys.AcceptSelfSignedCerts, false);
+    }
+
+    public void SetAcceptSelfSignedCerts(bool accept)
+    {
+        Preferences.Default.Set(ConfigKeys.AcceptSelfSignedCerts, accept);
+    }
+
+    #endregion
+
     #region Clear All
 
     public void ClearAll()

@@ -52,5 +52,23 @@ public static class ConfigKeys
     /// </summary>
     public const string SetupCompleted = "Setup.Completed";
 
+    /// <summary>
+    /// Unique device identifier (e.g., "SCANNER-MACBOOK-A1B2C3D4")
+    /// Default: "" (generated on first setup)
+    /// </summary>
+    public const string DeviceId = "Device.Id";
+
+    /// <summary>
+    /// Human-readable device name (e.g., "Scanner-MacBook")
+    /// Default: "" (generated on first setup)
+    /// </summary>
+    public const string DeviceName = "Device.Name";
+
+    /// <summary>
+    /// Accept self-signed TLS certificates for LAN deployments
+    /// Default: false (production-safe)
+    /// </summary>
+    public const string AcceptSelfSignedCerts = "Security.AcceptSelfSignedCerts";
+
     #endregion
 }

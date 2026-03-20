@@ -11,7 +11,7 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
-    private readonly FileConfigService _fileConfig;
+    private readonly IPreferencesService _preferences;
     private readonly ILogger<HealthCheckService> _logger;
     private readonly SemaphoreSlim _pollLock = new(1, 1);
 
@@ -65,12 +65,12 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
     public HealthCheckService(
         IHttpClientFactory httpClientFactory,
         IConfiguration config,
-        FileConfigService fileConfig,
+        IPreferencesService preferences,
         ILogger<HealthCheckService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _config = config;
-        _fileConfig = fileConfig;
+        _preferences = preferences;
         _logger = logger;
     }
 
@@ -160,11 +160,10 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             // US0015 AC8: Use dedicated HealthCheck client (no Polly retry/circuit breaker)
             var httpClient = _httpClientFactory.CreateClient("HealthCheck");
 
-            // BUGFIX: Cache server URL to avoid disk I/O on every poll (prevents flapping)
+            // Cache server URL to avoid repeated lookups on every poll
             if (_cachedServerUrl == null)
             {
-                var appConfig = await _fileConfig.LoadConfigAsync();
-                _cachedServerUrl = appConfig.ServerUrl;
+                _cachedServerUrl = _preferences.GetServerBaseUrl();
             }
 
             if (string.IsNullOrEmpty(_cachedServerUrl))

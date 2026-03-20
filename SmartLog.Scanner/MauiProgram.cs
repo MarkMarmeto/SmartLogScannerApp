@@ -102,8 +102,8 @@ public static class MauiProgram
 
 		// SECURITY: Certificate validation setting from appsettings.json
 		// Defaults to false (production-safe). User explicitly enables via setup UI.
-		// Note: This reads from appsettings.json; actual runtime value comes from config.json
-		// via user's setup choices (saved in FileConfigService).
+		// Note: This reads from appsettings.json; actual runtime value comes from
+		// user's setup choices (saved in Preferences).
 		var acceptSelfSigned = config.GetValue<bool>("Server:AcceptSelfSignedCerts", false);
 		var certificateThumbprint = config.GetValue<string>("Server:CertificateThumbprint", string.Empty);
 		var timeoutSeconds = config.GetValue<int>("Server:TimeoutSeconds", 30);
@@ -253,7 +253,6 @@ public static class MauiProgram
 		// US0001: Register configuration services (AC4)
 		builder.Services.AddSingleton<ISecureConfigService, SecureConfigService>();
 		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
-		builder.Services.AddSingleton<Core.Services.FileConfigService>();
 
 		// SECURITY FIX (CRITICAL-01): Register security migration service
 		builder.Services.AddSingleton<Core.Services.SecurityMigrationService>();
