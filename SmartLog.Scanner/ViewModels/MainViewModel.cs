@@ -21,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IHealthCheckService _healthCheck;
     private readonly IBackgroundSyncService _backgroundSync;
     private readonly ISecureConfigService _secureConfig;
+    private readonly IScanHistoryService _scanHistory;
     private readonly ILogger<MainViewModel> _logger;
     private readonly string _scannerMode;
 
@@ -68,6 +69,7 @@ public partial class MainViewModel : ObservableObject
         IHealthCheckService healthCheck,
         IBackgroundSyncService backgroundSync,
         ISecureConfigService secureConfig,
+        IScanHistoryService scanHistory,
         ILogger<MainViewModel> logger)
     {
         _cameraScanner = cameraScanner;
@@ -78,6 +80,7 @@ public partial class MainViewModel : ObservableObject
         _healthCheck = healthCheck;
         _backgroundSync = backgroundSync;
         _secureConfig = secureConfig;
+        _scanHistory = scanHistory;
         _logger = logger;
 
         // Read scanner mode from preferences (set during setup)
@@ -151,6 +154,9 @@ public partial class MainViewModel : ObservableObject
 
     private void OnScanCompleted(object? sender, ScanResult result)
     {
+        // Log scan to history (async, don't block UI)
+        _ = LogScanToHistoryAsync(result);
+
         // Update UI on main thread
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -651,6 +657,41 @@ public partial class MainViewModel : ObservableObject
         if (_scannerMode == "Camera")
         {
             await _cameraScanner!.ProcessQrCodeAsync(payload);
+        }
+    }
+
+    /// <summary>
+    /// Log scan to history for diagnostics and troubleshooting
+    /// </summary>
+    private async Task LogScanToHistoryAsync(ScanResult result)
+    {
+        try
+        {
+            var logEntry = new ScanLogEntry
+            {
+                Timestamp = result.ScannedAt,
+                RawPayload = result.RawPayload ?? string.Empty,
+                StudentId = result.StudentId,
+                StudentName = result.StudentName,
+                ScanType = result.ScanType ?? CurrentScanType,
+                Status = result.Status,
+                Message = result.Message,
+                ScanId = result.ScanId,
+                NetworkAvailable = _healthCheck.IsOnline ?? false,
+                ProcessingTimeMs = 0, // TODO: Track processing time if needed
+                GradeSection = !string.IsNullOrEmpty(result.Grade) && !string.IsNullOrEmpty(result.Section)
+                    ? $"{result.Grade} - {result.Section}"
+                    : null,
+                ErrorDetails = result.ErrorReason,
+                ScanMethod = _scannerMode
+            };
+
+            await _scanHistory.LogScanAsync(logEntry);
+        }
+        catch (Exception ex)
+        {
+            // Don't let logging errors break scanning
+            _logger.LogError(ex, "Failed to log scan to history");
         }
     }
 }

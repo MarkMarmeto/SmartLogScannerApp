@@ -66,6 +66,14 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
+    /// Navigate to scan logs viewer page.
+    /// </summary>
+    private async void OnViewLogsClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//logs");
+    }
+
+    /// <summary>
     /// US0007: Handle QR code detection from camera.
     /// </summary>
     private void OnBarcodeDetected(object? sender, string value)
