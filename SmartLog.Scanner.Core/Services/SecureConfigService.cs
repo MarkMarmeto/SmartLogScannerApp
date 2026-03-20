@@ -31,7 +31,24 @@ public class SecureConfigService : ISecureConfigService
     {
         try
         {
-            return await SecureStorage.Default.GetAsync(ConfigKeys.ApiKey);
+            var value = await SecureStorage.Default.GetAsync(ConfigKeys.ApiKey);
+#if DEBUG
+            // If SecureStorage returned null, also check Preferences fallback
+            // (key may have been saved to Preferences when SecureStorage threw on Set)
+            if (value == null)
+            {
+                value = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _logger.LogDebug("API key retrieved from Preferences fallback (DEBUG mode)");
+                }
+                else
+                {
+                    value = null;
+                }
+            }
+#endif
+            return value;
         }
         catch (Exception ex)
         {
@@ -41,7 +58,8 @@ public class SecureConfigService : ISecureConfigService
             _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetApiKey");
             try
             {
-                return Preferences.Default.Get<string?>(ConfigKeys.ApiKey, null);
+                var fallback = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
+                return string.IsNullOrEmpty(fallback) ? null : fallback;
             }
             catch
             {
@@ -120,7 +138,24 @@ public class SecureConfigService : ISecureConfigService
     {
         try
         {
-            return await SecureStorage.Default.GetAsync(ConfigKeys.HmacSecretKey);
+            var value = await SecureStorage.Default.GetAsync(ConfigKeys.HmacSecretKey);
+#if DEBUG
+            // If SecureStorage returned null, also check Preferences fallback
+            // (key may have been saved to Preferences when SecureStorage threw on Set)
+            if (value == null)
+            {
+                value = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _logger.LogDebug("HMAC secret retrieved from Preferences fallback (DEBUG mode)");
+                }
+                else
+                {
+                    value = null;
+                }
+            }
+#endif
+            return value;
         }
         catch (Exception ex)
         {
@@ -130,7 +165,8 @@ public class SecureConfigService : ISecureConfigService
             _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetHmacSecret");
             try
             {
-                return Preferences.Default.Get<string?>(ConfigKeys.HmacSecretKey, null);
+                var fallback = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
+                return string.IsNullOrEmpty(fallback) ? null : fallback;
             }
             catch
             {

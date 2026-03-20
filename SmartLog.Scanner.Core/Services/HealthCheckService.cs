@@ -155,11 +155,27 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             return;
         }
 
+        // US0015 AC8: Create HttpClient respecting current self-signed cert preference
+        // Cannot use factory-created client because cert config is baked in at startup
+        var acceptSelfSigned = _preferences.GetAcceptSelfSignedCerts();
+        HttpClient httpClient;
+        HttpClientHandler? handler = null;
+
+        if (acceptSelfSigned)
+        {
+            handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+            };
+            httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        }
+        else
+        {
+            httpClient = _httpClientFactory.CreateClient("HealthCheck");
+        }
+
         try
         {
-            // US0015 AC8: Use dedicated HealthCheck client (no Polly retry/circuit breaker)
-            var httpClient = _httpClientFactory.CreateClient("HealthCheck");
-
             // Cache server URL to avoid repeated lookups on every poll
             if (_cachedServerUrl == null)
             {
@@ -256,6 +272,13 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
         }
         finally
         {
+            // Dispose temporary HttpClient/handler (don't dispose factory-created ones)
+            if (handler != null)
+            {
+                httpClient.Dispose();
+                handler.Dispose();
+            }
+
             _pollLock.Release();
         }
     }

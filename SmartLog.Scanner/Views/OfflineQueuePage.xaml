@@ -7,10 +7,24 @@
              Title="Offline Queue"
              BackgroundColor="#F8F9FA">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20">
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" />
+    </Shell.BackButtonBehavior>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="20">
+
+        <!-- Back navigation -->
+        <HorizontalStackLayout Grid.Row="0" Margin="0,0,0,8">
+            <Button Text="← Back to Scanner"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="#2C5F5D"
+                    FontSize="14"
+                    Padding="0" />
+        </HorizontalStackLayout>
 
         <!-- Header with connectivity and sync controls -->
-        <Border Grid.Row="0"
+        <Border Grid.Row="1"
                 BackgroundColor="White"
                 Padding="20"
                 StrokeThickness="0"
@@ -89,7 +103,7 @@
         </Border>
 
         <!-- Statistics cards -->
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="2"
               ColumnDefinitions="*,*,*,*"
               ColumnSpacing="12"
               Margin="0,0,0,12">
@@ -180,7 +194,7 @@
         </Grid>
 
         <!-- Filter and bulk actions -->
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="3"
               ColumnDefinitions="Auto,*,Auto,Auto,Auto"
               ColumnSpacing="10"
               Margin="0,0,0,12">
@@ -226,7 +240,7 @@
         </Grid>
 
         <!-- Queue list -->
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding QueuedScans}"
                         SelectionMode="None">
             <CollectionView.EmptyView>
@@ -336,7 +350,7 @@
         </CollectionView>
 
         <!-- Loading indicator -->
-        <ActivityIndicator Grid.Row="3"
+        <ActivityIndicator Grid.Row="4"
                            IsRunning="{Binding IsLoading}"
                            IsVisible="{Binding IsLoading}"
                            Color="#4D9B91"
@@ -344,7 +358,7 @@
                            HorizontalOptions="Center" />
 
         <!-- Status message bar -->
-        <Border Grid.Row="4"
+        <Border Grid.Row="5"
                 IsVisible="{Binding ShowStatus}"
                 BackgroundColor="{Binding StatusColorHex}"
                 Padding="16,10"

@@ -21,4 +21,9 @@ public partial class ScanLogsPage : ContentPage
         // Load logs when page appears
         await _viewModel.InitializeAsync();
     }
+
+    private async void OnBackClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//main");
+    }
 }
