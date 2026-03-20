@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLog Scanner App — Technical Documentation</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --secondary: #64748b;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --sidebar-w: 280px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+        .sidebar {
+            position: fixed; top: 0; left: 0;
+            width: var(--sidebar-w); height: 100vh;
+            background: var(--text); color: #cbd5e1;
+            overflow-y: auto; padding: 1.5rem 0;
+            z-index: 100;
+        }
+        .sidebar h2 { color: #fff; font-size: 1.1rem; padding: 0 1.25rem; margin-bottom: 0.25rem; }
+        .sidebar .subtitle { font-size: 0.75rem; color: #94a3b8; padding: 0 1.25rem; margin-bottom: 1.5rem; }
+        .sidebar nav a {
+            display: block; padding: 0.4rem 1.25rem; color: #94a3b8;
+            text-decoration: none; font-size: 0.85rem; transition: all 0.15s;
+        }
+        .sidebar nav a:hover, .sidebar nav a.active { color: #fff; background: rgba(255,255,255,0.08); }
+        .sidebar nav .section-title {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+            color: #475569; padding: 1rem 1.25rem 0.3rem; font-weight: 600;
+        }
+        .main { margin-left: var(--sidebar-w); padding: 2rem 3rem 4rem; max-width: 960px; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; color: var(--primary-dark); }
+        h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); color: var(--text); }
+        h3 { font-size: 1.15rem; margin: 1.5rem 0 0.75rem; color: var(--text); }
+        h4 { font-size: 1rem; margin: 1.2rem 0 0.5rem; color: var(--secondary); }
+        p { margin-bottom: 0.75rem; }
+        ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+        li { margin-bottom: 0.3rem; }
+        a { color: var(--primary); }
+        code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px;
+            font-size: 0.88em;
+        }
+        pre {
+            background: #0f172a; color: #e2e8f0; padding: 1rem 1.25rem;
+            border-radius: 8px; overflow-x: auto; margin: 0.75rem 0 1.25rem;
+            font-size: 0.85rem; line-height: 1.5;
+        }
+        pre code { background: none; padding: 0; color: inherit; }
+        table {
+            width: 100%; border-collapse: collapse; margin: 0.75rem 0 1.25rem;
+            font-size: 0.9rem;
+        }
+        th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+        th { background: var(--code-bg); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--secondary); }
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.25rem; margin: 1rem 0;
+        }
+        .card-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .flow-diagram {
+            background: #0f172a; color: #e2e8f0; padding: 1.25rem;
+            border-radius: 8px; font-family: monospace; font-size: 0.82rem;
+            line-height: 1.6; overflow-x: auto; margin: 0.75rem 0 1.25rem;
+            white-space: pre;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+        .tag { display: inline-block; background: #ede9fe; color: #6d28d9; padding: 0.1em 0.5em; border-radius: 3px; font-size: 0.78rem; margin-right: 0.25rem; }
+        .warn { background: #fef3c7; border-left: 4px solid var(--warning); padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem; }
+        .info { background: #ede9fe; border-left: 4px solid var(--primary); padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem; }
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+        .dot-green { background: var(--success); }
+        .dot-amber { background: var(--warning); }
+        .dot-red { background: var(--danger); }
+        .dot-blue { background: #2563eb; }
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 1.5rem; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <h2>SmartLog Scanner</h2>
+    <div class="subtitle">Technical Documentation</div>
+    <nav>
+        <div class="section-title">Overview</div>
+        <a href="#overview">Project Overview</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#stack">Technology Stack</a>
+
+        <div class="section-title">Scanning</div>
+        <a href="#qr-flow">QR Scanning Flow</a>
+        <a href="#camera">Camera Scanner</a>
+        <a href="#usb">USB Keyboard Wedge</a>
+        <a href="#hmac">HMAC Validation</a>
+        <a href="#dedup">Deduplication</a>
+
+        <div class="section-title">Resilience</div>
+        <a href="#offline">Offline Queue</a>
+        <a href="#sync">Background Sync</a>
+        <a href="#health">Health Monitoring</a>
+        <a href="#polly">HTTP Resilience</a>
+
+        <div class="section-title">Services</div>
+        <a href="#services">Service Reference</a>
+        <a href="#di">DI Registration</a>
+        <a href="#viewmodels">ViewModels</a>
+
+        <div class="section-title">Setup &amp; Config</div>
+        <a href="#setup">Setup Wizard</a>
+        <a href="#config">Configuration</a>
+        <a href="#storage">Secure Storage</a>
+
+        <div class="section-title">Platform</div>
+        <a href="#platforms">Platform Code</a>
+        <a href="#sound">Audio Feedback</a>
+        <a href="#data">Local Database</a>
+
+        <div class="section-title">Security</div>
+        <a href="#security">Security Features</a>
+        <a href="#certs">Certificate Pinning</a>
+
+        <div class="section-title">Testing</div>
+        <a href="#tests">Test Suite</a>
+        <a href="#dev">Development</a>
+    </nav>
+</aside>
+
+<main class="main">
+
+<!-- OVERVIEW -->
+<h1 id="overview">SmartLog Scanner App</h1>
+<p>A .NET MAUI desktop application that reads student QR codes (via camera or USB keyboard wedge scanner) and submits attendance scans to the <strong>SmartLog Web Application</strong>. Designed for offline-first resilience with automatic background sync.</p>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-title">Target Platforms</div>
+        <ul>
+            <li><strong>macOS</strong> (Mac Catalyst) &mdash; camera + USB</li>
+            <li><strong>Windows</strong> &mdash; camera + USB</li>
+        </ul>
+    </div>
+    <div class="card">
+        <div class="card-title">Key Capabilities</div>
+        <ul>
+            <li>Dual scanner support (camera &amp; USB)</li>
+            <li>HMAC-SHA256 QR validation</li>
+            <li>Offline scan queuing with SQLite</li>
+            <li>Audio/visual feedback</li>
+        </ul>
+    </div>
+</div>
+
+<h2 id="architecture">Architecture</h2>
+<pre><code>SmartLogScannerApp/
+├── SmartLog.Scanner/                 # MAUI UI Application
+│   ├── Views/                        # XAML pages (MainPage, SetupPage, ScanLogsPage)
+│   ├── ViewModels/                   # MainViewModel (scan state, UI feedback)
+│   ├── Services/                     # Platform-agnostic service implementations
+│   ├── Controls/                     # Custom XAML controls (CameraQrView)
+│   ├── Platforms/
+│   │   ├── MacCatalyst/              # macOS device detection, camera handler
+│   │   └── Windows/                  # Windows device detection
+│   ├── Resources/Sounds/             # Audio feedback files (WAV)
+│   ├── MauiProgram.cs                # DI, HTTP clients, Serilog, Polly
+│   └── appsettings.json              # Default configuration
+│
+├── SmartLog.Scanner.Core/            # Core Business Logic Library
+│   ├── Services/                     # All service interfaces &amp; implementations
+│   ├── ViewModels/                   # SetupViewModel, ScanLogsViewModel
+│   ├── Models/                       # DTOs: ScanResult, QueuedScan, etc.
+│   ├── Data/                         # ScannerDbContext (SQLite EF Core)
+│   ├── Constants/                    # DeduplicationConfig
+│   ├── Infrastructure/               # ConfigKeys constants
+│   └── Exceptions/                   # Custom exception types
+│
+└── SmartLog.Scanner.Tests/           # Unit Tests (xUnit + Moq)
+    ├── Services/                     # Service-level tests
+    └── ViewModels/                   # ViewModel tests</code></pre>
+
+<h2 id="stack">Technology Stack</h2>
+<table>
+    <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+    <tr><td>Framework</td><td>.NET MAUI 8.0</td><td>Cross-platform desktop UI</td></tr>
+    <tr><td>MVVM</td><td>CommunityToolkit.Mvvm</td><td>ObservableProperty, RelayCommand source generators</td></tr>
+    <tr><td>QR Scanning</td><td>ZXing.Net.Maui</td><td>Camera-based barcode detection</td></tr>
+    <tr><td>HTTP</td><td>HttpClientFactory + Polly</td><td>Resilient API calls with retry &amp; circuit breaker</td></tr>
+    <tr><td>Local DB</td><td>EF Core + SQLite</td><td>Offline scan queue persistence</td></tr>
+    <tr><td>Logging</td><td>Serilog</td><td>Structured file + console logging</td></tr>
+    <tr><td>Audio</td><td>Plugin.Maui.Audio</td><td>Cross-platform sound playback</td></tr>
+    <tr><td>Secure Storage</td><td>MAUI SecureStorage</td><td>Keychain (macOS) / DPAPI (Windows)</td></tr>
+    <tr><td>Settings</td><td>MAUI Preferences</td><td>Platform-native key-value storage</td></tr>
+</table>
+
+<!-- SCANNING -->
+<h2 id="qr-flow">QR Scanning Flow</h2>
+<div class="flow-diagram">User Action (QR presented to camera/scanner)
+        |
+        v
++-------------------+
+| Scanner Service   |  CameraQrScannerService or UsbQrScannerService
+| (raw payload)     |
++--------+----------+
+         |
+         v
++-------------------+
+| Raw Debounce      |  Camera: 500ms payload debounce
+| (prevent flood)   |  USB: 100ms inter-keystroke timeout
++--------+----------+
+         |
+         v
++-------------------+
+| HMAC Validation   |  HmacValidator.ValidateAsync()
+| (signature check) |  Constant-time comparison
++--------+----------+
+         |
+    valid?──── No ──&gt; ScanResult(Rejected) ──&gt; Red feedback + error sound
+         |
+         v
++-------------------+
+| Dedup Check       |  ScanDeduplicationService.CheckAndRecord()
+| (student-level)   |  2s suppress / 30s warn / 5min cache
++--------+----------+
+         |
+    proceed?── Suppress ──&gt; Silent ignore
+         |     Warn ──&gt; Amber feedback + duplicate sound
+         v
++-------------------+
+| Online Check      |  HealthCheckService.IsOnline
++--------+----------+
+         |
+    online?──── No ──&gt; OfflineQueueService.EnqueueScanAsync()
+         |              Blue feedback + queued sound
+         v
++-------------------+
+| API Submission    |  ScanApiService.SubmitScanAsync()
+| (with Polly)      |  Retry 3x, circuit breaker
++--------+----------+
+         |
+    success?── No ──&gt; Enqueue offline + blue feedback
+         |
+         v
++-------------------+
+| Result Display    |  Green feedback + success sound
+| + Sound Playback  |  Student name, grade, section
++-------------------+</div>
+
+<h2 id="camera">Camera QR Scanner</h2>
+<div class="card">
+    <div class="card-title">CameraQrScannerService</div>
+    <ul>
+        <li>Uses ZXing.Net.Maui for real-time camera barcode detection</li>
+        <li><strong>Debounce:</strong> 500ms raw payload debounce prevents processing the same QR frame multiple times</li>
+        <li>Supports 1D and 2D barcode formats</li>
+        <li>Platform-specific camera handler on macOS (AVFoundation via CameraQrViewHandler)</li>
+        <li>Fires <code>ScanCompleted</code> event with <code>ScanResult</code></li>
+    </ul>
+</div>
+
+<h2 id="usb">USB Keyboard Wedge Scanner</h2>
+<div class="card">
+    <div class="card-title">UsbQrScannerService</div>
+    <ul>
+        <li>USB barcode scanners emulate keyboard input (keystroke injection)</li>
+        <li><strong>Buffer:</strong> Accumulates rapid keystrokes (&lt;100ms inter-key) into a payload string</li>
+        <li><strong>Trigger:</strong> Enter key or 100ms timeout after last keystroke</li>
+        <li><strong>Prefix filter:</strong> Only processes payloads starting with <code>SMARTLOG:</code></li>
+        <li>Thread-safe buffer access via <code>lock</code></li>
+        <li>Fire-and-forget async processing after payload assembly</li>
+    </ul>
+</div>
+
+<h2 id="hmac">HMAC Validation</h2>
+<h3>QR Payload Format</h3>
+<pre><code>SMARTLOG:{studentId}:{unixTimestamp}:{base64HmacSha256}
+
+Example: SMARTLOG:2026-07-0001:1739512547:5Dkd9j2xQ8kL...</code></pre>
+
+<h3>Validation Steps (HmacValidator)</h3>
+<ol>
+    <li>Split payload on <code>:</code> &mdash; must have exactly 4 parts</li>
+    <li>Verify first part is <code>SMARTLOG</code> (case-sensitive)</li>
+    <li>Retrieve HMAC secret from SecureStorage via <code>ISecureConfigService</code></li>
+    <li>Compute HMAC-SHA256 over <code>{studentId}:{timestamp}</code></li>
+    <li>Compare signatures using <code>CryptographicOperations.FixedTimeEquals()</code> (constant-time)</li>
+    <li>Check QR expiry (default: 2 years from timestamp)</li>
+    <li>Return <code>HmacValidationResult</code> with StudentId or typed RejectionReason</li>
+</ol>
+
+<h3>Rejection Types</h3>
+<table>
+    <tr><th>Rejection</th><th>Cause</th></tr>
+    <tr><td><code>Malformed</code></td><td>Wrong number of colon-separated parts</td></tr>
+    <tr><td><code>InvalidPrefix</code></td><td>First part is not "SMARTLOG"</td></tr>
+    <tr><td><code>InvalidBase64</code></td><td>Signature part is not valid Base64</td></tr>
+    <tr><td><code>InvalidSignature</code></td><td>HMAC verification failed</td></tr>
+    <tr><td><code>SecretUnavailable</code></td><td>HMAC secret not configured in SecureStorage</td></tr>
+    <tr><td><code>Expired</code></td><td>QR timestamp older than 2 years</td></tr>
+</table>
+
+<div class="info">Rejection messages never include the HMAC secret or computed hash values to prevent information leakage.</div>
+
+<h2 id="dedup">Scan Deduplication</h2>
+<div class="card">
+    <div class="card-title">ScanDeduplicationService</div>
+    <p>Student-level duplicate detection with tiered time windows. Uses <code>ConcurrentDictionary</code> for thread safety.</p>
+    <table>
+        <tr><th>Window</th><th>Action</th><th>UI Effect</th></tr>
+        <tr><td>&lt; 2 seconds</td><td><code>Suppress</code></td><td>Silently ignored (no feedback)</td></tr>
+        <tr><td>2&ndash;30 seconds</td><td><code>Warn</code></td><td>Amber feedback + duplicate sound</td></tr>
+        <tr><td>&gt; 30 seconds</td><td><code>Proceed</code></td><td>Normal processing</td></tr>
+    </table>
+    <p><strong>Cache TTL:</strong> 5 minutes per student entry. Expired entries are cleaned up automatically.</p>
+</div>
+
+<!-- RESILIENCE -->
+<h2 id="offline">Offline Queue</h2>
+<div class="card">
+    <div class="card-title">OfflineQueueService (SQLite Persistence)</div>
+    <p>When the server is unreachable, scans are persisted to a local SQLite database for later synchronization.</p>
+    <table>
+        <tr><th>Status</th><th>Meaning</th></tr>
+        <tr><td><code>PENDING</code></td><td>Awaiting sync to server</td></tr>
+        <tr><td><code>SYNCED</code></td><td>Successfully submitted, ServerScanId recorded</td></tr>
+        <tr><td><code>FAILED</code></td><td>Permanently failed after 10 sync attempts</td></tr>
+    </table>
+    <h4>Key Operations</h4>
+    <ul>
+        <li><code>EnqueueScanAsync()</code> &mdash; Add scan with PENDING status</li>
+        <li><code>GetPendingScansAsync(limit)</code> &mdash; Fetch in FIFO order</li>
+        <li><code>MarkSyncedAsync(id, serverScanId)</code> &mdash; Mark successful</li>
+        <li><code>MarkFailedAsync(id)</code> &mdash; Increment SyncAttempts, mark FAILED after 10</li>
+        <li><code>HasPendingForStudentAsync(studentId, scanType)</code> &mdash; Prevent duplicate enqueue</li>
+        <li><code>DeleteSyncedScansAsync()</code> &mdash; Clean up records older than 7 days</li>
+    </ul>
+</div>
+
+<h2 id="sync">Background Sync</h2>
+<div class="card">
+    <div class="card-title">BackgroundSyncService</div>
+    <p>Automatically syncs queued scans when the server becomes reachable.</p>
+    <ul>
+        <li>Subscribes to <code>IHealthCheckService.ConnectivityChanged</code> event</li>
+        <li>Triggers sync when online status changes to <code>true</code></li>
+        <li><strong>Batch size:</strong> 50 scans per cycle (configurable via <code>OfflineQueue:SyncBatchSize</code>)</li>
+        <li><strong>FIFO ordering:</strong> Oldest scans synced first</li>
+        <li><strong>Exponential backoff:</strong> 2<sup>attempts</sup> seconds between retries, capped at 5 minutes</li>
+        <li><strong>Mid-batch failure:</strong> Stops immediately if server goes offline during sync</li>
+        <li>Emits <code>SyncCompleted</code> event with counts (synced, failed, skipped)</li>
+    </ul>
+</div>
+
+<h2 id="health">Health Check Monitoring</h2>
+<div class="card">
+    <div class="card-title">HealthCheckService</div>
+    <table>
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Endpoint</td><td><code>GET /api/v1/health</code> (unauthenticated)</td></tr>
+        <tr><td>Interval</td><td>15 seconds (configurable)</td></tr>
+        <tr><td>Timeout</td><td>5 seconds (dedicated HttpClient, no Polly)</td></tr>
+        <tr><td>Stability window</td><td>2 consecutive same results before state change</td></tr>
+        <tr><td>Startup behavior</td><td>Optimistic (assumes online until first check)</td></tr>
+    </table>
+    <p>Fires <code>ConnectivityChanged</code> event when <code>IsOnline</code> state transitions, triggering background sync.</p>
+</div>
+
+<h2 id="polly">HTTP Resilience (Polly)</h2>
+<p>The <code>SmartLogApi</code> named HttpClient has two Polly policies:</p>
+<div class="grid-2">
+    <div class="card">
+        <div class="card-title">Retry Policy</div>
+        <ul>
+            <li>3 retries with exponential backoff</li>
+            <li>Delays: 1s, 2s, 4s</li>
+            <li>Handles transient HTTP errors (5xx, network failures)</li>
+        </ul>
+    </div>
+    <div class="card">
+        <div class="card-title">Circuit Breaker</div>
+        <ul>
+            <li>Opens after 5 consecutive failures</li>
+            <li>Break duration: 30 seconds</li>
+            <li>Half-open: tests with single request</li>
+            <li>Logged at Error/Info levels</li>
+        </ul>
+    </div>
+</div>
+<div class="warn">The <code>HealthCheck</code> HttpClient intentionally has NO Polly policies to ensure fast, deterministic failure detection.</div>
+
+<!-- SERVICES -->
+<h2 id="services">Service Reference</h2>
+<table>
+    <tr><th>Service</th><th>Lifetime</th><th>Responsibility</th></tr>
+    <tr><td><code>ISecureConfigService</code></td><td>Singleton</td><td>Encrypted storage for API key &amp; HMAC secret (Keychain/DPAPI)</td></tr>
+    <tr><td><code>IPreferencesService</code></td><td>Singleton</td><td>App settings: server URL, scan mode, sound toggle, device info</td></tr>
+    <tr><td><code>IHmacValidator</code></td><td>Singleton</td><td>HMAC-SHA256 QR signature validation with constant-time comparison</td></tr>
+    <tr><td><code>CameraQrScannerService</code></td><td>Singleton</td><td>Camera-based QR detection with 500ms debounce</td></tr>
+    <tr><td><code>UsbQrScannerService</code></td><td>Singleton</td><td>USB keyboard wedge scanner with keystroke buffering</td></tr>
+    <tr><td><code>IScanApiService</code></td><td>Singleton</td><td>Server scan submission (POST /api/v1/scans)</td></tr>
+    <tr><td><code>IOfflineQueueService</code></td><td>Singleton</td><td>SQLite offline scan persistence</td></tr>
+    <tr><td><code>IHealthCheckService</code></td><td>Singleton</td><td>Periodic server connectivity monitoring</td></tr>
+    <tr><td><code>IBackgroundSyncService</code></td><td>Singleton</td><td>Automatic queued scan sync when online</td></tr>
+    <tr><td><code>IScanDeduplicationService</code></td><td>Singleton</td><td>Student-level duplicate detection (2s/30s/5min tiers)</td></tr>
+    <tr><td><code>IConnectionTestService</code></td><td>Singleton</td><td>Setup wizard server validation</td></tr>
+    <tr><td><code>IScanHistoryService</code></td><td>Singleton</td><td>Scan logging for diagnostics</td></tr>
+    <tr><td><code>ISoundService</code></td><td>Singleton</td><td>Audio feedback (success, duplicate, error, queued)</td></tr>
+    <tr><td><code>IDeviceDetectionService</code></td><td>Singleton</td><td>Platform-specific camera/USB hardware detection</td></tr>
+    <tr><td><code>INavigationService</code></td><td>Singleton</td><td>Shell navigation abstraction</td></tr>
+    <tr><td><code>SecurityMigrationService</code></td><td>Singleton</td><td>Legacy storage migration to SecureStorage</td></tr>
+    <tr><td><code>DatabaseInitializationService</code></td><td>Singleton</td><td>SQLite schema creation (EF Core migrations)</td></tr>
+</table>
+
+<h2 id="di">Dependency Injection (MauiProgram.cs)</h2>
+<pre><code>// Configuration
+builder.Configuration.AddJsonStream(appsettings);  // appsettings.json from app package
+
+// Logging
+Serilog: rolling daily files (31 retained, 100MB limit) + console
+
+// HTTP Clients
+"SmartLogApi"  → Polly retry (3x) + circuit breaker (5 failures, 30s)
+"HealthCheck"  → No Polly, 5s timeout (fast failure detection)
+
+// Certificate Validation
+ServerCertificateCustomValidationCallback → thumbprint pinning for self-signed
+
+// Services: All registered as Singleton (except ViewModels/Pages as Transient)
+// Database: DbContextFactory&lt;ScannerDbContext&gt; with SQLite
+
+// Platform-specific
+#if MACCATALYST → DeviceDetectionService (AVFoundation)
+#if WINDOWS    → DeviceDetectionService (Windows.Devices.Enumeration)</code></pre>
+
+<h2 id="viewmodels">ViewModels</h2>
+
+<h3>MainViewModel</h3>
+<div class="card">
+    <p>Primary scanning UI state management. Uses CommunityToolkit.Mvvm source generators.</p>
+    <table>
+        <tr><th>Property</th><th>Type</th><th>Purpose</th></tr>
+        <tr><td><code>IsScanning</code></td><td>bool</td><td>Scanner active state</td></tr>
+        <tr><td><code>StatusMessage</code></td><td>string</td><td>Current scan result message</td></tr>
+        <tr><td><code>FeedbackColor</code></td><td>Color</td><td>Visual indicator (green/amber/red/blue)</td></tr>
+        <tr><td><code>ScanType</code></td><td>string</td><td>ENTRY or EXIT toggle</td></tr>
+        <tr><td><code>QueuedCount</code></td><td>int</td><td>Pending offline scans</td></tr>
+        <tr><td><code>TodayScanCount</code></td><td>int</td><td>Scans submitted today</td></tr>
+        <tr><td><code>IsOnline</code></td><td>bool</td><td>Server connectivity indicator</td></tr>
+    </table>
+</div>
+
+<h3>SetupViewModel</h3>
+<div class="card">
+    <p>First-launch configuration wizard. Handles device detection, connection testing, and credential storage.</p>
+    <table>
+        <tr><th>Property</th><th>Type</th><th>Purpose</th></tr>
+        <tr><td><code>ServerUrl</code></td><td>string</td><td>SmartLog Web server base URL</td></tr>
+        <tr><td><code>ApiKey</code></td><td>string</td><td>Device API key (stored in SecureStorage)</td></tr>
+        <tr><td><code>HmacSecret</code></td><td>string</td><td>HMAC shared secret (stored in SecureStorage)</td></tr>
+        <tr><td><code>SelectedScanType</code></td><td>string</td><td>Default ENTRY or EXIT</td></tr>
+        <tr><td><code>AcceptSelfSignedCerts</code></td><td>bool</td><td>TLS override for dev environments</td></tr>
+        <tr><td><code>DetectedScanMethod</code></td><td>enum</td><td>Auto-detected: Camera, USB, Both, None</td></tr>
+    </table>
+</div>
+
+<!-- SETUP & CONFIG -->
+<h2 id="setup">Setup Wizard</h2>
+<h3>First-Launch Flow</h3>
+<ol>
+    <li><strong>Device Detection</strong> &mdash; Automatically identifies available camera and USB scanner hardware</li>
+    <li><strong>Server Configuration</strong> &mdash; Enter server base URL</li>
+    <li><strong>Credentials</strong> &mdash; Enter API key and HMAC secret (obtained from SmartLog Web admin)</li>
+    <li><strong>Options</strong> &mdash; Select default scan type (ENTRY/EXIT), self-signed cert toggle</li>
+    <li><strong>Connection Test</strong> &mdash; Validates server reachability (GET /api/v1/health/details with X-API-Key)</li>
+    <li><strong>Save</strong> &mdash; Stores credentials in SecureStorage, settings in Preferences, navigates to main scan page</li>
+</ol>
+<p>Setup can be re-entered later to modify configuration (edit mode).</p>
+
+<h2 id="config">Configuration</h2>
+<h3>appsettings.json (Bundled Defaults)</h3>
+<pre><code>{
+  "Logging": {
+    "MinimumLevel": "Information"
+  },
+  "Server": {
+    "BaseUrl": "",
+    "AcceptSelfSignedCerts": false,
+    "CertificateThumbprint": "",
+    "TimeoutSeconds": 30
+  },
+  "OfflineQueue": {
+    "HealthCheckIntervalSeconds": 15,
+    "SyncBatchSize": 50
+  }
+}</code></pre>
+
+<h3>ConfigKeys Reference</h3>
+<table>
+    <tr><th>Key</th><th>Storage</th><th>Description</th></tr>
+    <tr><td><code>Server.ApiKey</code></td><td>SecureStorage</td><td>X-API-Key header value for server auth</td></tr>
+    <tr><td><code>Security.HmacSecretKey</code></td><td>SecureStorage</td><td>HMAC-SHA256 shared secret for QR validation</td></tr>
+    <tr><td><code>Server.BaseUrl</code></td><td>Preferences</td><td>SmartLog Web server URL</td></tr>
+    <tr><td><code>Scanner.Mode</code></td><td>Preferences</td><td>"Camera" or "USB"</td></tr>
+    <tr><td><code>Scanner.DefaultScanType</code></td><td>Preferences</td><td>"ENTRY" or "EXIT"</td></tr>
+    <tr><td><code>Scanner.SoundEnabled</code></td><td>Preferences</td><td>Audio feedback toggle</td></tr>
+    <tr><td><code>Setup.Completed</code></td><td>Preferences</td><td>First-launch completion flag</td></tr>
+    <tr><td><code>Device.Id</code></td><td>Preferences</td><td>Unique device identifier (GUID)</td></tr>
+    <tr><td><code>Device.Name</code></td><td>Preferences</td><td>Human-readable device name</td></tr>
+    <tr><td><code>Security.AcceptSelfSignedCerts</code></td><td>Preferences</td><td>TLS override for dev environments</td></tr>
+</table>
+
+<h2 id="storage">Secure Storage</h2>
+<div class="grid-2">
+    <div class="card">
+        <div class="card-title">macOS (Keychain)</div>
+        <p>Credentials stored in the macOS Keychain via MAUI SecureStorage. Protected by the user's login keychain password.</p>
+    </div>
+    <div class="card">
+        <div class="card-title">Windows (DPAPI)</div>
+        <p>Credentials encrypted using Windows Data Protection API (DPAPI). Tied to the user account and machine.</p>
+    </div>
+</div>
+<div class="warn"><strong>DEBUG mode:</strong> Falls back to MAUI Preferences if SecureStorage is unavailable. <strong>PRODUCTION:</strong> Fails fast if SecureStorage is not available.</div>
+
+<!-- PLATFORM -->
+<h2 id="platforms">Platform-Specific Code</h2>
+
+<h3>macOS (Mac Catalyst)</h3>
+<ul>
+    <li><strong>DeviceDetectionService</strong> &mdash; Uses AVFoundation framework for camera discovery</li>
+    <li><code>AVCaptureDeviceDiscoverySession</code> for video device enumeration</li>
+    <li>Camera permission requests via <code>AVCaptureDevice.RequestAccessForMediaTypeAsync</code></li>
+    <li>Device position detection (front/back/external)</li>
+    <li><strong>CameraQrViewHandler</strong> &mdash; Custom MAUI handler wrapping native AVFoundation camera view</li>
+</ul>
+
+<h3>Windows</h3>
+<ul>
+    <li><strong>DeviceDetectionService</strong> &mdash; Uses <code>Windows.Devices.Enumeration</code> API</li>
+    <li>Enumerates <code>DeviceClass.VideoCapture</code> devices</li>
+    <li>Infers camera position from device name and <code>EnclosureLocation</code></li>
+</ul>
+
+<h2 id="sound">Audio Feedback</h2>
+<div class="card">
+    <div class="card-title">ISoundService</div>
+    <p>Provides immediate audio feedback on scan results. Pre-loads audio players on app startup for instant playback.</p>
+    <table>
+        <tr><th>Sound</th><th>Trigger</th><th>Visual</th></tr>
+        <tr><td><code>success.wav</code></td><td><span class="status-dot dot-green"></span>Scan accepted</td><td>Green feedback</td></tr>
+        <tr><td><code>duplicate.wav</code></td><td><span class="status-dot dot-amber"></span>Duplicate scan</td><td>Amber feedback</td></tr>
+        <tr><td><code>error.wav</code></td><td><span class="status-dot dot-red"></span>Rejected / error</td><td>Red feedback</td></tr>
+        <tr><td><code>queued.wav</code></td><td><span class="status-dot dot-blue"></span>Queued offline / rate limited</td><td>Blue feedback</td></tr>
+    </table>
+    <p>Sound can be toggled via <code>Scanner.SoundEnabled</code> preference. Audio failures are non-fatal (logged, never crash).</p>
+</div>
+
+<h2 id="data">Local Database (SQLite)</h2>
+<div class="card">
+    <div class="card-title">ScannerDbContext</div>
+    <p>Entity Framework Core with SQLite provider. Database file: <code>{AppDataDirectory}/smartlog-scanner.db</code></p>
+    <h4>Tables</h4>
+    <table>
+        <tr><th>Table</th><th>Purpose</th><th>Indexes</th></tr>
+        <tr><td><code>QueuedScans</code></td><td>Offline scan queue</td><td>SyncStatus, CreatedAt, (StudentId+ScanType+SyncStatus)</td></tr>
+        <tr><td><code>ScanLogEntries</code></td><td>Scan history &amp; diagnostics</td><td>Timestamp, Status, StudentId</td></tr>
+    </table>
+    <p>Schema managed via EF Core migrations run by <code>DatabaseInitializationService</code> on startup.</p>
+</div>
+
+<!-- SECURITY -->
+<h2 id="security">Security Features</h2>
+<ul>
+    <li><strong>Credential encryption:</strong> API key and HMAC secret in platform-native encrypted storage (never in config files or Preferences)</li>
+    <li><strong>Constant-time HMAC comparison:</strong> <code>CryptographicOperations.FixedTimeEquals()</code> prevents timing attacks</li>
+    <li><strong>Secret protection:</strong> Rejection messages and log entries never include the HMAC secret or computed hash values</li>
+    <li><strong>Response sanitization:</strong> All server response fields validated and length-limited to prevent XSS/injection</li>
+    <li><strong>StudentId format validation:</strong> Alphanumeric + hyphen only (whitelist)</li>
+    <li><strong>Certificate pinning:</strong> Self-signed certs require exact SHA-256 thumbprint match</li>
+    <li><strong>QR expiry:</strong> QR codes expire after 2 years (configurable)</li>
+    <li><strong>Security migration:</strong> <code>SecurityMigrationService</code> handles legacy insecure storage fallback</li>
+</ul>
+
+<h2 id="certs">Certificate Pinning</h2>
+<div class="card">
+    <p>Custom <code>ServerCertificateCustomValidationCallback</code> on both <code>SmartLogApi</code> and <code>HealthCheck</code> HttpClients.</p>
+    <h4>Validation Logic</h4>
+    <ol>
+        <li>Accept valid CA-signed certificates (standard TLS)</li>
+        <li>If <code>AcceptSelfSignedCerts = false</code>: reject all invalid certificates</li>
+        <li>If <code>AcceptSelfSignedCerts = true</code>:
+            <ul>
+                <li>Require <code>CertificateThumbprint</code> to be configured</li>
+                <li>Verify exact SHA-256 thumbprint match</li>
+                <li>Verify hostname matches certificate DNS name (IP addresses exempt)</li>
+            </ul>
+        </li>
+    </ol>
+    <div class="warn">Self-signed cert mode is disabled by default. Users explicitly enable it during setup for development/testing environments.</div>
+</div>
+
+<!-- TESTING -->
+<h2 id="tests">Test Suite</h2>
+<p>Uses xUnit with Moq for mocking. Located in <code>SmartLog.Scanner.Tests/</code>.</p>
+<table>
+    <tr><th>Test Class</th><th>Covers</th><th>Key Scenarios</th></tr>
+    <tr><td><code>HmacValidatorTests</code></td><td>HMAC validation</td><td>Malformed payload, invalid prefix, HMAC computation, constant-time comparison, secret unavailable, Base64 validation</td></tr>
+    <tr><td><code>UsbQrScannerServiceTests</code></td><td>USB scanner</td><td>Keystroke buffering, Enter key trigger, timeout trigger, SMARTLOG prefix filter, rapid keystroke assembly</td></tr>
+    <tr><td><code>SetupViewModelTests</code></td><td>Setup wizard</td><td>Field validation, connection testing, save flow, credential storage, navigation</td></tr>
+    <tr><td><code>PreferencesServiceTests</code></td><td>Preferences</td><td>Get/set for all config keys (requires MAUI runtime)</td></tr>
+    <tr><td><code>SecureConfigServiceTests</code></td><td>SecureStorage</td><td>API key and HMAC secret storage (requires MAUI runtime)</td></tr>
+</table>
+<div class="info"><strong>Note:</strong> PreferencesServiceTests and SecureConfigServiceTests require the MAUI runtime and will skip when run outside a MAUI host (e.g., CI).</div>
+
+<h2 id="dev">Development</h2>
+<h3>Build &amp; Run</h3>
+<pre><code># Build for macOS
+dotnet build -f net8.0-maccatalyst
+
+# Build for Windows
+dotnet build -f net8.0-windows10.0.19041.0
+
+# Run tests
+dotnet test SmartLog.Scanner.Tests/</code></pre>
+
+<h3>Logging</h3>
+<p>Serilog writes to:</p>
+<ul>
+    <li><strong>File:</strong> <code>{AppDataDirectory}/logs/smartlog-scanner-YYYYMMDD.log</code></li>
+    <li><strong>Console:</strong> Debug output (shorter format)</li>
+</ul>
+<p>Rolling daily, 31 files retained, 100 MB per file limit. Format:</p>
+<pre><code>2026-03-20 08:15:30.123 +08:00 [INF] [SmartLog.Scanner.Core.Services.ScanApiService] Scan submitted successfully</code></pre>
+
+<h3>Key NuGet Packages</h3>
+<table>
+    <tr><th>Package</th><th>Purpose</th></tr>
+    <tr><td>CommunityToolkit.Maui</td><td>MAUI toolkit (alerts, popups, behaviors)</td></tr>
+    <tr><td>CommunityToolkit.Mvvm</td><td>MVVM source generators</td></tr>
+    <tr><td>Microsoft.Extensions.Http.Polly</td><td>HTTP resilience (retry, circuit breaker)</td></tr>
+    <tr><td>Serilog.Sinks.File</td><td>File logging with rolling</td></tr>
+    <tr><td>Plugin.Maui.Audio</td><td>Cross-platform audio playback</td></tr>
+    <tr><td>Microsoft.EntityFrameworkCore.Sqlite</td><td>SQLite ORM for offline queue</td></tr>
+    <tr><td>Moq + xUnit</td><td>Testing framework</td></tr>
+</table>
+
+<hr style="margin-top: 3rem;">
+<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 1rem;">
+    SmartLog Scanner App &mdash; Technical Documentation &mdash; Generated March 2026
+</p>
+
+</main>
+</body>
+</html>
