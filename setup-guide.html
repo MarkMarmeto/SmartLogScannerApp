@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLog Scanner App — Windows Setup Guide</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --secondary: #64748b;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.7;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 3rem 4rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.25rem; color: var(--primary-dark); }
+        h1 + p { color: var(--text-muted); margin-bottom: 2rem; }
+        h2 {
+            font-size: 1.4rem; margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem; border-bottom: 2px solid var(--border);
+        }
+        h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; }
+        h4 { font-size: 1rem; margin: 1.2rem 0 0.5rem; color: var(--secondary); }
+        p { margin-bottom: 0.75rem; }
+        ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+        li { margin-bottom: 0.35rem; }
+        a { color: var(--primary); }
+        code {
+            font-family: 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+            background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px;
+            font-size: 0.88em;
+        }
+        pre {
+            background: #0f172a; color: #e2e8f0; padding: 1rem 1.25rem;
+            border-radius: 8px; overflow-x: auto; margin: 0.75rem 0 1.25rem;
+            font-size: 0.85rem; line-height: 1.5;
+        }
+        pre code { background: none; padding: 0; color: inherit; }
+        table {
+            width: 100%; border-collapse: collapse; margin: 0.75rem 0 1.25rem;
+            font-size: 0.9rem;
+        }
+        th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+        th { background: var(--code-bg); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--secondary); }
+        .step {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1rem 0;
+        }
+        .step-number {
+            display: inline-block; background: var(--primary); color: #fff;
+            width: 28px; height: 28px; border-radius: 50%; text-align: center;
+            line-height: 28px; font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem;
+        }
+        .step-title { font-weight: 600; font-size: 1.05rem; }
+        .warn {
+            background: #fef3c7; border-left: 4px solid var(--warning);
+            padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem;
+        }
+        .info {
+            background: #ede9fe; border-left: 4px solid var(--primary);
+            padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem;
+        }
+        .success {
+            background: #dcfce7; border-left: 4px solid var(--success);
+            padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem;
+        }
+        .danger {
+            background: #fee2e2; border-left: 4px solid var(--danger);
+            padding: 0.75rem 1rem; border-radius: 4px; margin: 0.75rem 0; font-size: 0.9rem;
+        }
+        .toc { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+        .toc h3 { margin-top: 0; }
+        .toc ol { margin-bottom: 0; }
+        .toc a { text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .checklist { list-style: none; margin-left: 0; }
+        .checklist li { padding: 0.25rem 0; }
+        .checklist li::before { content: "\2610 "; color: var(--secondary); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+        @media (max-width: 768px) {
+            .container { padding: 1.5rem; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>SmartLog Scanner App — Windows Setup Guide</h1>
+<p>Step-by-step guide to install and configure the SmartLog Scanner App on a Windows machine for QR-based attendance scanning.</p>
+
+<div class="success">
+    <strong>Automated Setup Available!</strong> For a faster installation, use the PowerShell setup script:
+    <pre style="background: #166534; margin: 0.5rem 0 0;"><code># Open PowerShell as Administrator, navigate to the project folder, then run:
+.\deploy\Setup-SmartLogScanner.ps1</code></pre>
+    The script automates building, publishing, shortcut creation, and optionally auto-launching on startup.
+</div>
+
+<div class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+        <li><a href="#before-you-begin">Before You Begin</a></li>
+        <li><a href="#prerequisites">Prerequisites &amp; Downloads</a></li>
+        <li><a href="#install-tools">Install Required Tools</a></li>
+        <li><a href="#clone">Clone the Repository</a></li>
+        <li><a href="#build">Build the Application</a></li>
+        <li><a href="#first-launch">First Launch &amp; Device Setup</a></li>
+        <li><a href="#configure">Configuration Details</a></li>
+        <li><a href="#camera">Camera Setup</a></li>
+        <li><a href="#usb">USB Scanner Setup</a></li>
+        <li><a href="#startup">Auto-Start on Boot</a></li>
+        <li><a href="#updating">Updating the App</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="before-you-begin">1. Before You Begin</h2>
+
+<p>Before setting up the Scanner App, make sure you have:</p>
+
+<ul class="checklist">
+    <li><strong>SmartLog Web App running</strong> on a server with a known IP address (e.g., <code>192.168.1.100:8080</code>)</li>
+    <li><strong>A registered scanner device</strong> — get the API key from the Web App admin (<em>Admin &rarr; Device Management &rarr; Register Device</em>)</li>
+    <li><strong>The HMAC secret key</strong> — same key configured on the Web App server (<code>SMARTLOG_HMAC_SECRET_KEY</code>)</li>
+</ul>
+
+<div class="danger">
+    <strong>You need these 3 values from the Web App administrator:</strong>
+    <ol>
+        <li><strong>Server URL</strong> — e.g., <code>http://192.168.1.100:8080</code></li>
+        <li><strong>API Key</strong> — e.g., <code>sk_live_abc123...</code> (from device registration)</li>
+        <li><strong>HMAC Secret</strong> — the shared secret used for QR code signing</li>
+    </ol>
+    Without these, the scanner cannot authenticate with the server or validate QR codes.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="prerequisites">2. Prerequisites &amp; Downloads</h2>
+
+<table>
+    <tr><th>Software</th><th>Version</th><th>Download</th></tr>
+    <tr>
+        <td><strong>.NET 8.0 SDK</strong></td>
+        <td>8.0 or later</td>
+        <td><a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank">dotnet.microsoft.com</a></td>
+    </tr>
+    <tr>
+        <td><strong>.NET MAUI Workload</strong></td>
+        <td>(included with SDK)</td>
+        <td>Installed via <code>dotnet workload install maui</code></td>
+    </tr>
+    <tr>
+        <td><strong>Git for Windows</strong></td>
+        <td>Latest</td>
+        <td><a href="https://git-scm.com/download/win" target="_blank">git-scm.com</a></td>
+    </tr>
+</table>
+
+<div class="info">
+    <strong>Hardware:</strong> Windows 10/11 (version 1903+), webcam (for camera scanning mode), or USB barcode scanner (keyboard wedge mode). At least 4 GB RAM recommended.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="install-tools">3. Install Required Tools</h2>
+
+<div class="step">
+    <p><span class="step-number">1</span> <span class="step-title">Install .NET 8.0 SDK</span></p>
+    <ol>
+        <li>Download the <strong>.NET 8.0 SDK</strong> installer for Windows x64</li>
+        <li>Run the installer and follow the prompts</li>
+        <li>Open <strong>Command Prompt</strong> or <strong>PowerShell</strong> and verify:</li>
+    </ol>
+    <pre><code>dotnet --version</code></pre>
+    <p>You should see a version starting with <code>8.0</code>.</p>
+</div>
+
+<div class="step">
+    <p><span class="step-number">2</span> <span class="step-title">Install the MAUI Workload</span></p>
+    <p>Open <strong>PowerShell as Administrator</strong> and run:</p>
+    <pre><code>dotnet workload install maui</code></pre>
+    <p>This installs the .NET MAUI development tools needed to build the app. It may take a few minutes.</p>
+    <p>Verify the installation:</p>
+    <pre><code>dotnet workload list</code></pre>
+    <p>You should see <code>maui</code> or <code>maui-windows</code> in the list.</p>
+</div>
+
+<div class="step">
+    <p><span class="step-number">3</span> <span class="step-title">Install Git for Windows</span></p>
+    <ol>
+        <li>Download and run the Git installer with default options</li>
+        <li>Verify: <code>git --version</code></li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="clone">4. Clone the Repository</h2>
+
+<pre><code>cd C:\
+git clone https://github.com/MarkMarmeto/SmartLogScannerApp.git
+cd SmartLogScannerApp</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="build">5. Build the Application</h2>
+
+<div class="step">
+    <p><span class="step-number">1</span> <span class="step-title">Build for Windows</span></p>
+    <pre><code>dotnet build SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release</code></pre>
+    <p>You should see <code>Build succeeded</code> with 0 errors.</p>
+</div>
+
+<div class="step">
+    <p><span class="step-number">2</span> <span class="step-title">Publish (Self-Contained)</span></p>
+    <p>For deployment to machines that may not have .NET installed:</p>
+    <pre><code>dotnet publish SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release -o C:\SmartLogScanner</code></pre>
+    <p>This creates a standalone app at <code>C:\SmartLogScanner</code>.</p>
+</div>
+
+<div class="step">
+    <p><span class="step-number">3</span> <span class="step-title">Launch the App</span></p>
+    <p>Run the published executable:</p>
+    <pre><code>C:\SmartLogScanner\SmartLog.Scanner.exe</code></pre>
+    <p>On first launch, you'll see the <strong>Device Setup</strong> wizard.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="first-launch">6. First Launch &amp; Device Setup</h2>
+
+<p>When the app starts for the first time, the setup wizard guides you through configuration:</p>
+
+<div class="step">
+    <p><span class="step-number">1</span> <span class="step-title">Device Detection</span></p>
+    <p>The app automatically detects available scanning hardware:</p>
+    <ul>
+        <li><strong>Camera</strong> — detects connected webcams</li>
+        <li><strong>USB Scanner</strong> — any keyboard-wedge barcode scanner</li>
+    </ul>
+    <p>The recommended scanner mode is auto-selected based on detected hardware.</p>
+</div>
+
+<div class="step">
+    <p><span class="step-number">2</span> <span class="step-title">Server Configuration</span></p>
+    <p>Enter the connection details for the SmartLog Web App:</p>
+    <table>
+        <tr><th>Field</th><th>Example</th><th>Notes</th></tr>
+        <tr>
+            <td><strong>Server URL</strong></td>
+            <td><code>http://192.168.1.100:8080</code></td>
+            <td>The static IP and port of the server on the school LAN</td>
+        </tr>
+        <tr>
+            <td><strong>API Key</strong></td>
+            <td><code>sk_live_abc123...</code></td>
+            <td>From device registration in the Web App</td>
+        </tr>
+        <tr>
+            <td><strong>HMAC Secret</strong></td>
+            <td><em>(Base64 string)</em></td>
+            <td>Must match the server's <code>SMARTLOG_HMAC_SECRET_KEY</code></td>
+        </tr>
+    </table>
+</div>
+
+<div class="step">
+    <p><span class="step-number">3</span> <span class="step-title">Options</span></p>
+    <table>
+        <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+        <tr>
+            <td>Default Scan Type</td>
+            <td>ENTRY</td>
+            <td>Whether scans default to ENTRY or EXIT mode</td>
+        </tr>
+        <tr>
+            <td>Accept Self-Signed Certs</td>
+            <td>Off</td>
+            <td>Enable if the server uses a self-signed HTTPS certificate</td>
+        </tr>
+        <tr>
+            <td>Sound Enabled</td>
+            <td>On</td>
+            <td>Audio feedback on scan results</td>
+        </tr>
+    </table>
+</div>
+
+<div class="step">
+    <p><span class="step-number">4</span> <span class="step-title">Test Connection</span></p>
+    <p>Click <strong>Test Connection</strong> to verify the scanner can reach the server. You should see a green success message. If it fails, check:</p>
+    <ul>
+        <li>Server URL is correct (include port number)</li>
+        <li>Server is running and accessible on the LAN</li>
+        <li>Firewall on the server allows incoming connections on the configured port</li>
+        <li>If using HTTPS with self-signed cert, enable "Accept Self-Signed Certs"</li>
+    </ul>
+</div>
+
+<div class="step">
+    <p><span class="step-number">5</span> <span class="step-title">Save &amp; Start Scanning</span></p>
+    <p>Click <strong>Save Configuration</strong>. The app navigates to the main scanning screen. You're ready to scan student QR codes!</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="configure">7. Configuration Details</h2>
+
+<h3>Where Settings Are Stored</h3>
+
+<div class="grid-2">
+    <div class="step">
+        <p class="step-title">Encrypted (SecureStorage / DPAPI)</p>
+        <ul>
+            <li>API Key</li>
+            <li>HMAC Secret Key</li>
+        </ul>
+        <p><small>Protected by Windows Data Protection API, tied to the user account.</small></p>
+    </div>
+    <div class="step">
+        <p class="step-title">Preferences (Plain Text)</p>
+        <ul>
+            <li>Server URL</li>
+            <li>Scanner Mode (Camera/USB)</li>
+            <li>Default Scan Type (ENTRY/EXIT)</li>
+            <li>Sound Enabled</li>
+            <li>Device ID &amp; Name</li>
+            <li>Accept Self-Signed Certs</li>
+        </ul>
+    </div>
+</div>
+
+<h3>Local Database</h3>
+<p>The app uses a local <strong>SQLite database</strong> for offline scan queuing and scan history. It is created automatically on first launch at:</p>
+<pre><code>%LOCALAPPDATA%\SmartLog.Scanner\smartlog-scanner.db</code></pre>
+<p>No SQL Server or external database is needed.</p>
+
+<h3>Log Files</h3>
+<p>Serilog writes daily rolling logs to:</p>
+<pre><code>%LOCALAPPDATA%\SmartLog.Scanner\logs\smartlog-scanner-YYYYMMDD.log</code></pre>
+<p>Logs are retained for 31 days, with a 100 MB per file limit.</p>
+
+<h3>Editing Configuration Later</h3>
+<p>To change settings after initial setup, navigate to the <strong>Setup</strong> page from within the app (gear icon or menu). All fields can be updated and re-tested.</p>
+
+<!-- ============================================================ -->
+<h2 id="camera">8. Camera Setup</h2>
+
+<p>If using a webcam for QR scanning:</p>
+
+<ol>
+    <li>Connect a USB webcam or use the built-in laptop camera</li>
+    <li>When prompted by Windows, <strong>allow camera access</strong> for the SmartLog Scanner app</li>
+    <li>The app shows a small camera preview in the bottom-right corner of the main screen</li>
+    <li>Hold the student's QR code in front of the camera — the app auto-detects and processes it</li>
+</ol>
+
+<div class="info">
+    <strong>Tips for reliable camera scanning:</strong>
+    <ul>
+        <li>Ensure good lighting — avoid glare and shadows on the QR code</li>
+        <li>Hold the QR code steady, 15–30 cm from the camera</li>
+        <li>External USB webcams generally perform better than built-in laptop cameras</li>
+        <li>A 1080p webcam with autofocus is recommended</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="usb">9. USB Scanner Setup</h2>
+
+<p>USB barcode scanners work in <strong>keyboard wedge mode</strong> — they emulate keystrokes, so no driver installation is needed.</p>
+
+<ol>
+    <li>Plug in the USB barcode scanner — Windows installs it as a keyboard device automatically</li>
+    <li>In the Scanner App setup, select <strong>USB</strong> as the scanner mode</li>
+    <li>The app listens for rapid keystroke sequences ending with Enter</li>
+    <li>Point the scanner at a student QR code — the scan is processed automatically</li>
+</ol>
+
+<div class="info">
+    <strong>How it works:</strong> USB barcode scanners type out the QR code content very fast (all characters within 100ms) and press Enter. The app detects this rapid keystroke pattern, assembles the payload, and only processes payloads starting with <code>SMARTLOG:</code>.
+</div>
+
+<div class="warn">
+    <strong>Important:</strong> The Scanner App window must be in focus (active/foreground) to receive keyboard input from the USB scanner. If another window is active, the keystrokes will go there instead.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="startup">10. Auto-Start on Boot</h2>
+
+<p>To have the Scanner App launch automatically when Windows starts:</p>
+
+<h4>Option A: Startup Folder Shortcut</h4>
+<ol>
+    <li>Press <code>Win + R</code>, type <code>shell:startup</code>, press Enter</li>
+    <li>Right-click in the folder &rarr; <strong>New &rarr; Shortcut</strong></li>
+    <li>Enter the path: <code>C:\SmartLogScanner\SmartLog.Scanner.exe</code></li>
+    <li>Name it "SmartLog Scanner"</li>
+</ol>
+
+<h4>Option B: Task Scheduler (More Control)</h4>
+<ol>
+    <li>Open <strong>Task Scheduler</strong> (<code>taskschd.msc</code>)</li>
+    <li>Click <strong>Create Basic Task</strong></li>
+    <li>Name: <code>SmartLog Scanner Auto-Start</code></li>
+    <li>Trigger: <strong>When the computer starts</strong> (or <strong>When I log on</strong>)</li>
+    <li>Action: <strong>Start a program</strong></li>
+    <li>Program: <code>C:\SmartLogScanner\SmartLog.Scanner.exe</code></li>
+    <li>Check <strong>"Run with highest privileges"</strong> if camera access requires elevation</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="updating">11. Updating the App</h2>
+
+<pre><code>:: 1. Close the Scanner App
+
+:: 2. Pull latest source code
+cd C:\SmartLogScannerApp
+git pull
+
+:: 3. Rebuild and publish
+dotnet publish SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release -o C:\SmartLogScanner
+
+:: 4. Relaunch the app
+C:\SmartLogScanner\SmartLog.Scanner.exe</code></pre>
+
+<div class="info">Your configuration (server URL, API key, HMAC secret) is preserved across updates — it's stored in Windows Preferences and SecureStorage, not in the app folder.</div>
+
+<!-- ============================================================ -->
+<h2 id="troubleshooting">12. Troubleshooting</h2>
+
+<h3>Connection Issues</h3>
+<table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr>
+        <td>Connection test fails</td>
+        <td>Verify server URL includes port (e.g., <code>http://192.168.1.100:8080</code>). Ping the server IP from this machine.</td>
+    </tr>
+    <tr>
+        <td>SSL/TLS error</td>
+        <td>Enable "Accept Self-Signed Certs" in setup if the server uses a self-signed certificate.</td>
+    </tr>
+    <tr>
+        <td>Shows "Offline" after setup</td>
+        <td>The health check runs every 15 seconds. Wait a moment. If it persists, re-check the server URL and firewall.</td>
+    </tr>
+    <tr>
+        <td>API key rejected</td>
+        <td>Re-enter the API key from device registration. Keys are case-sensitive and shown only once.</td>
+    </tr>
+</table>
+
+<h3>Scanning Issues</h3>
+<table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr>
+        <td>Camera not detected</td>
+        <td>Check Windows Settings &rarr; Privacy &rarr; Camera. Ensure the app has camera permission.</td>
+    </tr>
+    <tr>
+        <td>USB scanner not working</td>
+        <td>Make sure the app window is in focus. Try scanning into Notepad first to verify the scanner works.</td>
+    </tr>
+    <tr>
+        <td>QR code rejected (red)</td>
+        <td>The HMAC secret doesn't match the server. Re-enter the same key used in <code>SMARTLOG_HMAC_SECRET_KEY</code> on the server.</td>
+    </tr>
+    <tr>
+        <td>"Already scanned" message</td>
+        <td>Normal — the same student was scanned within the last 5 seconds. Wait and scan again, or it's a genuine duplicate.</td>
+    </tr>
+    <tr>
+        <td>Scanner stops after switching pages</td>
+        <td>This was fixed in a recent update. Pull the latest code and rebuild.</td>
+    </tr>
+</table>
+
+<h3>Build Issues</h3>
+<table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr>
+        <td><code>NETSDK1147: MAUI workload not installed</code></td>
+        <td>Run: <code>dotnet workload install maui</code> (as Administrator)</td>
+    </tr>
+    <tr>
+        <td><code>Platform not supported</code></td>
+        <td>Ensure you're building with the Windows target: <code>-f net8.0-windows10.0.19041.0</code></td>
+    </tr>
+    <tr>
+        <td>Build fails with NuGet errors</td>
+        <td>Run: <code>dotnet restore SmartLog.Scanner</code> first to restore packages</td>
+    </tr>
+</table>
+
+<h3>Diagnostic Commands</h3>
+<pre><code>:: Check if the app can reach the server
+curl http://192.168.1.100:8080/api/v1/health
+
+:: Find log files
+dir "%LOCALAPPDATA%\SmartLog.Scanner\logs\"
+
+:: Check the local database
+dir "%LOCALAPPDATA%\SmartLog.Scanner\smartlog-scanner.db"
+
+:: Verify .NET and MAUI
+dotnet --list-sdks
+dotnet workload list</code></pre>
+
+<hr style="margin-top: 3rem;">
+<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 1rem;">
+    SmartLog Scanner App — Windows Setup Guide — March 2026
+</p>
+
+</div>
+
+</body>
+</html>
