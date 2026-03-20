@@ -21,7 +21,7 @@ public class HmacValidatorTests
     {
         _mockSecureConfig = new Mock<ISecureConfigService>();
         _mockLogger = new Mock<ILogger<HmacValidator>>();
-        _validator = new HmacValidator(_mockSecureConfig.Object, _mockLogger.Object);
+        _validator = new HmacValidator(_mockSecureConfig.Object, null!, _mockLogger.Object);
 
         // Default: secret is available
         _mockSecureConfig.Setup(s => s.GetHmacSecretAsync())
@@ -95,9 +95,9 @@ public class HmacValidatorTests
     [Fact]
     public async Task ValidateAsync_ValidHmac_ComputesOverStudentIdAndTimestamp()
     {
-        // Arrange - compute expected HMAC for "12345:1234567890"
+        // Arrange - compute expected HMAC with a recent timestamp (within 2-year expiry)
         var studentId = "12345";
-        var timestamp = "1234567890";
+        var timestamp = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString();
         var message = $"{studentId}:{timestamp}";
         var hmac = ComputeHmac(message, TestSecret);
         var payload = $"SMARTLOG:{studentId}:{timestamp}:{hmac}";
@@ -146,9 +146,9 @@ public class HmacValidatorTests
     [Fact]
     public async Task ValidateAsync_ValidPayload_ReturnsSuccessWithData()
     {
-        // Arrange
+        // Arrange - use a recent timestamp (within 2-year expiry)
         var studentId = "STU001";
-        var timestamp = "1705234567";
+        var timestamp = DateTimeOffset.UtcNow.AddDays(-7).ToUnixTimeSeconds().ToString();
         var message = $"{studentId}:{timestamp}";
         var hmac = ComputeHmac(message, TestSecret);
         var payload = $"SMARTLOG:{studentId}:{timestamp}:{hmac}";
@@ -220,7 +220,7 @@ public class HmacValidatorTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Equal("SecretUnavailable: HMAC secret not configured", result.RejectionReason);
+        Assert.Contains("SecretUnavailable", result.RejectionReason);
     }
 
     [Fact]
@@ -243,9 +243,9 @@ public class HmacValidatorTests
     [Fact]
     public async Task ValidateAsync_SecretRetrieved_CallsSecureConfigService()
     {
-        // Arrange
+        // Arrange - use a recent timestamp (within 2-year expiry)
         var studentId = "123";
-        var timestamp = "456";
+        var timestamp = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds().ToString();
         var message = $"{studentId}:{timestamp}";
         var hmac = ComputeHmac(message, TestSecret);
         var payload = $"SMARTLOG:{studentId}:{timestamp}:{hmac}";

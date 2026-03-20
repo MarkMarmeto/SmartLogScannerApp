@@ -15,8 +15,10 @@ public class SetupViewModelTests
 {
 	private readonly Mock<ISecureConfigService> _mockSecureConfig;
 	private readonly Mock<IPreferencesService> _mockPreferences;
+	private readonly Mock<FileConfigService> _mockFileConfig;
 	private readonly Mock<INavigationService> _mockNavigation;
 	private readonly Mock<IConnectionTestService> _mockConnectionTest;
+	private readonly Mock<IDeviceDetectionService> _mockDeviceDetection;
 	private readonly Mock<ILogger<SetupViewModel>> _mockLogger;
 	private readonly SetupViewModel _viewModel;
 
@@ -24,14 +26,18 @@ public class SetupViewModelTests
 	{
 		_mockSecureConfig = new Mock<ISecureConfigService>();
 		_mockPreferences = new Mock<IPreferencesService>();
+		_mockFileConfig = new Mock<FileConfigService>();
 		_mockNavigation = new Mock<INavigationService>();
 		_mockConnectionTest = new Mock<IConnectionTestService>();
+		_mockDeviceDetection = new Mock<IDeviceDetectionService>();
 		_mockLogger = new Mock<ILogger<SetupViewModel>>();
 		_viewModel = new SetupViewModel(
 			_mockSecureConfig.Object,
 			_mockPreferences.Object,
+			_mockFileConfig.Object,
 			_mockNavigation.Object,
 			_mockConnectionTest.Object,
+			_mockDeviceDetection.Object,
 			_mockLogger.Object);
 	}
 
@@ -211,7 +217,6 @@ public class SetupViewModelTests
 		_viewModel.ServerUrl = "https://192.168.1.100:8443";
 		_viewModel.ApiKey = "test-key";
 		_viewModel.HmacSecret = "test-secret";
-		_viewModel.SelectedScanMode = "USB";
 		_viewModel.SelectedScanType = "ENTRY";
 
 		var callOrder = new List<string>();
@@ -221,26 +226,19 @@ public class SetupViewModelTests
 		_mockSecureConfig.Setup(s => s.SetHmacSecretAsync(It.IsAny<string>()))
 			.Callback(() => callOrder.Add("SetHmacSecret"))
 			.Returns(Task.CompletedTask);
-		_mockPreferences.Setup(p => p.SetServerBaseUrl(It.IsAny<string>()))
-			.Callback(() => callOrder.Add("SetServerBaseUrl"));
-		_mockPreferences.Setup(p => p.SetScanMode(It.IsAny<string>()))
-			.Callback(() => callOrder.Add("SetScanMode"));
-		_mockPreferences.Setup(p => p.SetDefaultScanType(It.IsAny<string>()))
-			.Callback(() => callOrder.Add("SetDefaultScanType"));
-		_mockPreferences.Setup(p => p.SetSetupCompleted(It.IsAny<bool>()))
-			.Callback(() => callOrder.Add("SetSetupCompleted"));
+		_mockFileConfig.Setup(f => f.SaveConfigAsync(It.IsAny<AppConfig>()))
+			.Callback(() => callOrder.Add("SaveConfig"))
+			.Returns(Task.CompletedTask);
 
 		// Act
 		await _viewModel.SaveCommand.ExecuteAsync(null);
 
-		// Assert
-		Assert.Equal(6, callOrder.Count);
+		// Assert - SecureStorage first, then file config, then navigation
+		Assert.Equal(3, callOrder.Count);
 		Assert.Equal("SetApiKey", callOrder[0]);
 		Assert.Equal("SetHmacSecret", callOrder[1]);
-		Assert.Equal("SetServerBaseUrl", callOrder[2]);
-		Assert.Equal("SetScanMode", callOrder[3]);
-		Assert.Equal("SetDefaultScanType", callOrder[4]);
-		Assert.Equal("SetSetupCompleted", callOrder[5]);
+		Assert.Equal("SaveConfig", callOrder[2]);
+		_mockNavigation.Verify(n => n.GoToAsync("//main"), Times.Once);
 	}
 
 	[Fact]
@@ -251,11 +249,17 @@ public class SetupViewModelTests
 		_viewModel.ApiKey = "test-key";
 		_viewModel.HmacSecret = "test-secret";
 
+		AppConfig? savedConfig = null;
+		_mockFileConfig.Setup(f => f.SaveConfigAsync(It.IsAny<AppConfig>()))
+			.Callback<AppConfig>(c => savedConfig = c)
+			.Returns(Task.CompletedTask);
+
 		// Act
 		await _viewModel.SaveCommand.ExecuteAsync(null);
 
-		// Assert
-		_mockPreferences.Verify(p => p.SetSetupCompleted(true), Times.Once);
+		// Assert - SetupCompleted is saved via FileConfigService
+		Assert.NotNull(savedConfig);
+		Assert.True(savedConfig.SetupCompleted);
 	}
 
 	[Fact]
@@ -289,8 +293,8 @@ public class SetupViewModelTests
 
 		// Assert
 		Assert.NotNull(_viewModel.SaveError);
-		Assert.Contains("Failed to save configuration", _viewModel.SaveError);
-		_mockPreferences.Verify(p => p.SetSetupCompleted(It.IsAny<bool>()), Times.Never);
+		Assert.Contains("SecureStorage", _viewModel.SaveError);
+		_mockFileConfig.Verify(f => f.SaveConfigAsync(It.IsAny<AppConfig>()), Times.Never);
 		_mockNavigation.Verify(n => n.GoToAsync(It.IsAny<string>()), Times.Never);
 	}
 
@@ -347,7 +351,6 @@ public class SetupViewModelTests
 		_viewModel.ServerUrl = "https://192.168.1.100:8443";
 		_viewModel.ApiKey = "test-key";
 		_viewModel.HmacSecret = string.Empty; // Not provided
-		_viewModel.SelectedScanMode = "USB";
 		_viewModel.SelectedScanType = "ENTRY";
 
 		// Act
@@ -356,8 +359,7 @@ public class SetupViewModelTests
 		// Assert - Should NOT call SetHmacSecretAsync when empty
 		_mockSecureConfig.Verify(s => s.SetApiKeyAsync("test-key"), Times.Once);
 		_mockSecureConfig.Verify(s => s.SetHmacSecretAsync(It.IsAny<string>()), Times.Never);
-		_mockPreferences.Verify(p => p.SetServerBaseUrl("https://192.168.1.100:8443"), Times.Once);
-		_mockPreferences.Verify(p => p.SetSetupCompleted(true), Times.Once);
+		_mockFileConfig.Verify(f => f.SaveConfigAsync(It.IsAny<AppConfig>()), Times.Once);
 		_mockNavigation.Verify(n => n.GoToAsync("//main"), Times.Once);
 	}
 

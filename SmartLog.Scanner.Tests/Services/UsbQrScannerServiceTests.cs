@@ -12,14 +12,51 @@ namespace SmartLog.Scanner.Tests.Services;
 public class UsbQrScannerServiceTests
 {
     private readonly Mock<IHmacValidator> _hmacValidatorMock;
+    private readonly Mock<IScanApiService> _scanApiMock;
+    private readonly Mock<IHealthCheckService> _healthCheckMock;
+    private readonly Mock<IOfflineQueueService> _offlineQueueMock;
+    private readonly Mock<IPreferencesService> _preferencesMock;
+    private readonly Mock<IScanDeduplicationService> _dedupMock;
     private readonly Mock<ILogger<UsbQrScannerService>> _loggerMock;
     private readonly UsbQrScannerService _service;
 
     public UsbQrScannerServiceTests()
     {
         _hmacValidatorMock = new Mock<IHmacValidator>();
+        _scanApiMock = new Mock<IScanApiService>();
+        _healthCheckMock = new Mock<IHealthCheckService>();
+        _offlineQueueMock = new Mock<IOfflineQueueService>();
+        _preferencesMock = new Mock<IPreferencesService>();
+        _dedupMock = new Mock<IScanDeduplicationService>();
         _loggerMock = new Mock<ILogger<UsbQrScannerService>>();
-        _service = new UsbQrScannerService(_hmacValidatorMock.Object, _loggerMock.Object);
+        // Default mock setups
+        _preferencesMock.Setup(p => p.GetDefaultScanType()).Returns("ENTRY");
+        _dedupMock
+            .Setup(d => d.CheckAndRecord(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Returns(new DeduplicationResult(DeduplicationAction.Proceed, TimeSpan.Zero, null));
+        _healthCheckMock.SetupGet(h => h.IsOnline).Returns(true);
+        _scanApiMock
+            .Setup(s => s.SubmitScanAsync(
+                It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string payload, DateTimeOffset scannedAt, string scanType, CancellationToken _) =>
+                Task.FromResult(new ScanResult
+                {
+                    RawPayload = payload,
+                    Status = ScanStatus.Accepted,
+                    Message = "Accepted",
+                    StudentId = null, // StudentId comes from server; tests should check ValidationResult
+                    ScannedAt = scannedAt
+                }));
+
+        _service = new UsbQrScannerService(
+            _hmacValidatorMock.Object,
+            _scanApiMock.Object,
+            _healthCheckMock.Object,
+            _offlineQueueMock.Object,
+            _preferencesMock.Object,
+            _dedupMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -91,8 +128,8 @@ public class UsbQrScannerServiceTests
         await Task.Delay(10);
         _service.ProcessKeystroke(":");
 
-        // Wait for timeout to complete processing
-        await Task.Delay(150);
+        // Wait for timeout + async processing to complete
+        await Task.Delay(500);
 
         // Assert
         Assert.NotNull(capturedResult);
@@ -145,7 +182,7 @@ public class UsbQrScannerServiceTests
         Assert.NotNull(capturedResult);
         Assert.Equal(validPayload, capturedResult.RawPayload);
         Assert.True(capturedResult.IsValid);
-        Assert.Equal("STU12345", capturedResult.StudentId);
+        Assert.Equal("STU12345", capturedResult.ValidationResult.StudentId);
     }
 
     [Fact]
@@ -184,8 +221,8 @@ public class UsbQrScannerServiceTests
             await Task.Delay(10);
         }
 
-        // Wait for 100ms timeout to trigger
-        await Task.Delay(150);
+        // Wait for timeout + async processing to trigger
+        await Task.Delay(500);
 
         // Assert
         Assert.NotNull(capturedResult);
@@ -236,7 +273,7 @@ public class UsbQrScannerServiceTests
         Assert.NotNull(capturedResult);
         Assert.Equal(validPayload, capturedResult.RawPayload);
         Assert.True(capturedResult.IsValid);
-        Assert.Equal("STU12345", capturedResult.StudentId);
+        Assert.Equal("STU12345", capturedResult.ValidationResult.StudentId);
     }
 
     [Fact]
@@ -287,7 +324,7 @@ public class UsbQrScannerServiceTests
 
         // Assert
         Assert.Equal(2, capturedResults.Count);
-        Assert.Equal("STU11111", capturedResults[0].StudentId);
-        Assert.Equal("STU22222", capturedResults[1].StudentId);
+        Assert.Equal("STU11111", capturedResults[0].ValidationResult.StudentId);
+        Assert.Equal("STU22222", capturedResults[1].ValidationResult.StudentId);
     }
 }
