@@ -14,7 +14,6 @@ public partial class SetupViewModel : ObservableObject
 {
 	private readonly ISecureConfigService _secureConfig;
 	private readonly IPreferencesService _preferences;
-	private readonly FileConfigService _fileConfig;
 	private readonly INavigationService _navigation;
 	private readonly IConnectionTestService _connectionTestService;
 	private readonly IDeviceDetectionService _deviceDetection;
@@ -63,7 +62,6 @@ public partial class SetupViewModel : ObservableObject
 	public SetupViewModel(
 		ISecureConfigService secureConfig,
 		IPreferencesService preferences,
-		FileConfigService fileConfig,
 		INavigationService navigation,
 		IConnectionTestService connectionTestService,
 		IDeviceDetectionService deviceDetection,
@@ -71,7 +69,6 @@ public partial class SetupViewModel : ObservableObject
 	{
 		_secureConfig = secureConfig;
 		_preferences = preferences;
-		_fileConfig = fileConfig;
 		_navigation = navigation;
 		_connectionTestService = connectionTestService;
 		_deviceDetection = deviceDetection;
@@ -83,39 +80,28 @@ public partial class SetupViewModel : ObservableObject
 	/// </summary>
 	public async Task InitializeAsync()
 	{
-		// Load existing configuration if available
-		try
+		// Load existing configuration from preferences
+		if (_preferences.GetSetupCompleted())
 		{
-			var existingConfig = await _fileConfig.LoadConfigAsync();
-			if (existingConfig.SetupCompleted)
-			{
-				// Edit mode - pre-fill form with existing values
-				IsEditMode = true;
-				PageTitle = "Edit Configuration";
-				SaveButtonText = "Save Changes";
+			// Edit mode - pre-fill form with existing values
+			IsEditMode = true;
+			PageTitle = "Edit Configuration";
+			SaveButtonText = "Save Changes";
 
-				ServerUrl = existingConfig.ServerUrl;
+			ServerUrl = _preferences.GetServerBaseUrl();
 
-				// SECURITY FIX (CRITICAL-01): Load secrets from SecureStorage ONLY
-				ApiKey = await _secureConfig.GetApiKeyAsync() ?? string.Empty;
-				HmacSecret = await _secureConfig.GetHmacSecretAsync() ?? string.Empty;
+			// Load secrets from SecureStorage ONLY
+			ApiKey = await _secureConfig.GetApiKeyAsync() ?? string.Empty;
+			HmacSecret = await _secureConfig.GetHmacSecretAsync() ?? string.Empty;
 
-				SelectedScanType = existingConfig.DefaultScanType;
-				AcceptSelfSignedCerts = existingConfig.AcceptSelfSignedCerts;
+			SelectedScanType = _preferences.GetDefaultScanType();
+			AcceptSelfSignedCerts = _preferences.GetAcceptSelfSignedCerts();
 
-				_logger.LogInformation("Loaded existing configuration for editing");
-			}
-			else
-			{
-				// Initial setup mode
-				IsEditMode = false;
-				PageTitle = "Device Configuration";
-				SaveButtonText = "Complete Setup";
-			}
+			_logger.LogInformation("Loaded existing configuration for editing");
 		}
-		catch (Exception ex)
+		else
 		{
-			_logger.LogWarning(ex, "Could not load existing configuration, starting fresh");
+			// Initial setup mode
 			IsEditMode = false;
 			PageTitle = "Device Configuration";
 			SaveButtonText = "Complete Setup";
@@ -179,29 +165,21 @@ public partial class SetupViewModel : ObservableObject
 				return;
 			}
 
-			// Save non-sensitive configuration to file
-			var config = new AppConfig
+			// Save non-sensitive configuration to preferences
+			_preferences.SetServerBaseUrl(ServerUrl);
+			_preferences.SetDeviceId(GenerateDeviceId());
+			_preferences.SetDeviceName($"Scanner-{Environment.MachineName}");
+			_preferences.SetScanMode(DetectedScanMethod switch
 			{
-				ServerUrl = ServerUrl,
-				// SECURITY FIX (CRITICAL-01): ApiKey and HmacSecret NOT saved to config file
-				// They are stored in SecureStorage (above)
-				DeviceId = GenerateDeviceId(),
-				DeviceName = $"Scanner-{Environment.MachineName}",
-				ScanMode = DetectedScanMethod switch
-				{
-					ScanningMethod.Camera => "Camera",
-					ScanningMethod.CameraWithUsbFallback => "Camera",
-					ScanningMethod.UsbScanner => "USB",
-					_ => "USB"
-				},
-				DefaultScanType = SelectedScanType,
-				SetupCompleted = true,
-				SoundEnabled = true,
-				AcceptSelfSignedCerts = AcceptSelfSignedCerts
-			};
-
-			await _fileConfig.SaveConfigAsync(config);
-			_logger.LogInformation("Configuration saved successfully");
+				ScanningMethod.Camera => "Camera",
+				ScanningMethod.CameraWithUsbFallback => "Camera",
+				ScanningMethod.UsbScanner => "USB",
+				_ => "USB"
+			});
+			_preferences.SetDefaultScanType(SelectedScanType);
+			_preferences.SetAcceptSelfSignedCerts(AcceptSelfSignedCerts);
+			_preferences.SetSetupCompleted(true);
+			_logger.LogInformation("Configuration saved to preferences");
 
 			// Navigate to main page
 			await _navigation.GoToAsync("//main");
@@ -327,23 +305,16 @@ public partial class SetupViewModel : ObservableObject
 	/// </summary>
 	private string GenerateDeviceId()
 	{
-		// Try to use existing DeviceId if available
-		try
+		// Reuse existing DeviceId if available
+		var existingId = _preferences.GetDeviceId();
+		if (!string.IsNullOrWhiteSpace(existingId))
 		{
-			var existingConfig = _fileConfig.LoadConfigAsync().Result;
-			if (!string.IsNullOrWhiteSpace(existingConfig.DeviceId))
-			{
-				return existingConfig.DeviceId;
-			}
-		}
-		catch
-		{
-			// Ignore - will generate new ID
+			return existingId;
 		}
 
 		// Generate new ID
 		var machineName = Environment.MachineName.Replace(" ", "-").ToUpperInvariant();
-		var shortGuid = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
+		var shortGuid = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 		return $"SCANNER-{machineName}-{shortGuid}";
 	}
 }

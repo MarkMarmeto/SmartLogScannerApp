@@ -86,6 +86,44 @@ public interface IPreferencesService
 
     #endregion
 
+    #region Device Identity
+
+    /// <summary>
+    /// Gets the unique device identifier
+    /// </summary>
+    string GetDeviceId();
+
+    /// <summary>
+    /// Sets the unique device identifier
+    /// </summary>
+    void SetDeviceId(string deviceId);
+
+    /// <summary>
+    /// Gets the human-readable device name
+    /// </summary>
+    string GetDeviceName();
+
+    /// <summary>
+    /// Sets the human-readable device name
+    /// </summary>
+    void SetDeviceName(string deviceName);
+
+    #endregion
+
+    #region Accept Self-Signed Certs
+
+    /// <summary>
+    /// Gets whether self-signed TLS certificates are accepted
+    /// </summary>
+    bool GetAcceptSelfSignedCerts();
+
+    /// <summary>
+    /// Sets whether self-signed TLS certificates are accepted
+    /// </summary>
+    void SetAcceptSelfSignedCerts(bool accept);
+
+    #endregion
+
     #region Clear All
 
     /// <summary>

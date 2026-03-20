@@ -12,25 +12,16 @@ public partial class AppShell : Shell
 	{
 		InitializeComponent();
 
-		// Navigation guard using file config
+		// Navigation guard using preferences
 		Loaded += async (s, e) =>
 		{
-			var fileConfig = Handler?.MauiContext?.Services.GetService<FileConfigService>();
-			if (fileConfig != null)
+			var preferences = Handler?.MauiContext?.Services.GetService<IPreferencesService>();
+			if (preferences != null && preferences.GetSetupCompleted())
 			{
-				var config = await fileConfig.LoadConfigAsync();
-				if (!config.SetupCompleted)
-				{
-					await GoToAsync("//setup");
-				}
-				else
-				{
-					await GoToAsync("//main");
-				}
+				await GoToAsync("//main");
 			}
 			else
 			{
-				// Fallback to setup if service not available
 				await GoToAsync("//setup");
 			}
 		};

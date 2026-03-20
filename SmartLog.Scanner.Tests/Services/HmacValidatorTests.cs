@@ -21,7 +21,7 @@ public class HmacValidatorTests
     {
         _mockSecureConfig = new Mock<ISecureConfigService>();
         _mockLogger = new Mock<ILogger<HmacValidator>>();
-        _validator = new HmacValidator(_mockSecureConfig.Object, null!, _mockLogger.Object);
+        _validator = new HmacValidator(_mockSecureConfig.Object, _mockLogger.Object);
 
         // Default: secret is available
         _mockSecureConfig.Setup(s => s.GetHmacSecretAsync())

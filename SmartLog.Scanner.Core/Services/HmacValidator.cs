@@ -12,16 +12,13 @@ namespace SmartLog.Scanner.Core.Services;
 public class HmacValidator : IHmacValidator
 {
     private readonly ISecureConfigService _secureConfig;
-    private readonly FileConfigService _fileConfig;
     private readonly ILogger<HmacValidator> _logger;
 
     public HmacValidator(
         ISecureConfigService secureConfig,
-        FileConfigService fileConfig,
         ILogger<HmacValidator> logger)
     {
         _secureConfig = secureConfig;
-        _fileConfig = fileConfig;
         _logger = logger;
     }
 
