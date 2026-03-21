@@ -1,0 +1,71 @@
+name: CD — Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Publish Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test SmartLog.Scanner.Tests --no-restore -c Release
+
+      - name: Publish Scanner App (Windows)
+        run: dotnet publish SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release -o ./publish/win-x64
+
+      - name: Copy deploy scripts and guide
+        run: |
+          Copy-Item deploy/* ./publish/win-x64/ -Recurse -ErrorAction SilentlyContinue
+          Copy-Item setup-guide.html ./publish/win-x64/ -ErrorAction SilentlyContinue
+
+      - name: Create release zip
+        run: Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./SmartLogScanner-${{ github.ref_name }}-win-x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SmartLog Scanner ${{ github.ref_name }}
+          body: |
+            ## SmartLog Scanner App ${{ github.ref_name }}
+
+            ### Installation
+            1. Download `SmartLogScanner-${{ github.ref_name }}-win-x64.zip`
+            2. Extract to `C:\SmartLogScanner` (or your preferred directory)
+            3. Run `Setup-SmartLogScanner.ps1` as Administrator for first-time setup
+            4. Or just replace the files and relaunch for updates
+
+            ### First Launch
+            Have these ready from the Web App administrator:
+            - **Server URL** (e.g., `http://192.168.1.100:8080`)
+            - **API Key** (from Device Management)
+            - **HMAC Secret** (shared QR signing key)
+
+            ### What's included
+            - Windows x64 build
+            - Setup script (`Setup-SmartLogScanner.ps1`)
+            - Setup guide (`setup-guide.html`)
+          files: |
+            ./SmartLogScanner-${{ github.ref_name }}-win-x64.zip
+          draft: false
+          prerelease: false
