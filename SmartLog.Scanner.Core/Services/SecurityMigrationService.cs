@@ -48,7 +48,7 @@ public class SecurityMigrationService
 
             var migrated = false;
 
-            // Migrate API Key if present in file
+            // Migrate API Key if present in file AND not already configured
             if (!string.IsNullOrWhiteSpace(config.ApiKey))
             {
                 var existing = await _secureConfig.GetApiKeyAsync();
@@ -58,9 +58,14 @@ public class SecurityMigrationService
                     await _secureConfig.SetApiKeyAsync(config.ApiKey);
                     migrated = true;
                 }
+                else
+                {
+                    _logger.LogInformation("API key already configured in SecureStorage, skipping migration");
+                    migrated = true; // Still clean up config.json
+                }
             }
 
-            // Migrate HMAC Secret if present in file
+            // Migrate HMAC Secret if present in file AND not already configured
             if (!string.IsNullOrWhiteSpace(config.HmacSecret))
             {
                 var existing = await _secureConfig.GetHmacSecretAsync();
@@ -69,6 +74,11 @@ public class SecurityMigrationService
                     _logger.LogInformation("Migrating HMAC secret from config.json to SecureStorage");
                     await _secureConfig.SetHmacSecretAsync(config.HmacSecret);
                     migrated = true;
+                }
+                else
+                {
+                    _logger.LogInformation("HMAC secret already configured in SecureStorage, skipping migration");
+                    migrated = true; // Still clean up config.json
                 }
             }
 
