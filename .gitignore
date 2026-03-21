@@ -1,3 +1,9 @@
+# Claude Code
+.claude/
+
+# Publish output
+publish/
+
 # .NET Core
 bin/
 obj/
