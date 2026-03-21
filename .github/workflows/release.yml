@@ -25,11 +25,17 @@ jobs:
       - name: Install MAUI workload
         run: dotnet workload install maui-windows
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore Core Library
+        run: dotnet restore SmartLog.Scanner.Core
+
+      - name: Restore Scanner App (Windows only)
+        run: dotnet restore SmartLog.Scanner -p:TargetFrameworks=net8.0-windows10.0.19041.0
+
+      - name: Restore Tests
+        run: dotnet restore SmartLog.Scanner.Tests
 
       - name: Run tests
-        run: dotnet test SmartLog.Scanner.Tests --no-restore -c Release
+        run: dotnet test SmartLog.Scanner.Tests -c Release
 
       - name: Publish Scanner App (Windows)
         run: dotnet publish SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release -o ./publish/win-x64

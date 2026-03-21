@@ -23,17 +23,23 @@ jobs:
       - name: Install MAUI workload
         run: dotnet workload install maui-windows
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore Core Library
+        run: dotnet restore SmartLog.Scanner.Core
 
-      - name: Build Scanner App (Windows)
-        run: dotnet build SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release --no-restore
+      - name: Restore Scanner App (Windows only)
+        run: dotnet restore SmartLog.Scanner -p:TargetFrameworks=net8.0-windows10.0.19041.0
+
+      - name: Restore Tests
+        run: dotnet restore SmartLog.Scanner.Tests
 
       - name: Build Core Library
         run: dotnet build SmartLog.Scanner.Core -c Release --no-restore
 
+      - name: Build Scanner App (Windows)
+        run: dotnet build SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release --no-restore
+
       - name: Run tests
-        run: dotnet test SmartLog.Scanner.Tests --no-restore -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
+        run: dotnet test SmartLog.Scanner.Tests --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
