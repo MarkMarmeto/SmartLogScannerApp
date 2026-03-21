@@ -65,6 +65,11 @@ public partial class MainPage : ContentPage
         await Shell.Current.GoToAsync("//setup");
     }
 
+    private async void OnAboutClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//about");
+    }
+
     /// <summary>
     /// Navigate to scan logs viewer page.
     /// </summary>
