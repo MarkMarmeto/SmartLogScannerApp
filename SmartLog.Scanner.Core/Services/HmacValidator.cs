@@ -59,6 +59,8 @@ public class HmacValidator : IHmacValidator
                 "SecretUnavailable: HMAC secret not configured. Please run device setup.");
         }
 
+        secret = secret.Trim();
+
         // Decode base64 HMAC from payload
         byte[] payloadHmac;
         try

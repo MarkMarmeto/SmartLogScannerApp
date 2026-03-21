@@ -191,6 +191,8 @@ public class SecureConfigService : ISecureConfigService
             throw new ArgumentException("HMAC secret cannot be null or empty", nameof(hmacSecret));
         }
 
+        hmacSecret = hmacSecret.Trim();
+
         try
         {
             await SecureStorage.Default.SetAsync(ConfigKeys.HmacSecretKey, hmacSecret);
