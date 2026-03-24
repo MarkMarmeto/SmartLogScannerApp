@@ -339,7 +339,46 @@ Setup Wizard
 
 <h2 id="update">Updating the App</h2>
 
-<p>To update the Scanner App to the latest version:</p>
+<h3>Automated Update (Recommended)</h3>
+
+<p>Use the update script to pull the latest code, backup, rebuild, and relaunch automatically:</p>
+
+<pre><code>Right-click Update-SmartLogScanner.bat &gt; Run as administrator</code></pre>
+
+<p>Or run directly in PowerShell (as Administrator):</p>
+<pre><code>cd C:\SmartLogScannerApp\deploy
+powershell -ExecutionPolicy Bypass -File .\Update-SmartLogScanner.ps1</code></pre>
+
+<p>The update script performs these steps:</p>
+
+<table>
+    <tr><th>Step</th><th>What It Does</th></tr>
+    <tr><td>1. Validate</td><td>Checks install directory and executable exist, locates repository</td></tr>
+    <tr><td>2. Check Updates</td><td>Fetches from remote and shows new commits (option to skip if already up to date)</td></tr>
+    <tr><td>3. Backup</td><td>Creates timestamped backup in <code>C:\SmartLogScannerBackups</code> (keeps last 5)</td></tr>
+    <tr><td>4. Update &amp; Rebuild</td><td>Closes the app, pulls latest code, builds and publishes to install directory</td></tr>
+    <tr><td>5. Relaunch</td><td>Restarts the app (auto-relaunches if it was running before update)</td></tr>
+</table>
+
+<p>Optional parameters:</p>
+<pre><code>.\Update-SmartLogScanner.ps1 -SkipBackup          # Skip backup step
+.\Update-SmartLogScanner.ps1 -Branch develop       # Pull from a different branch</code></pre>
+
+<h3>Rollback</h3>
+
+<p>If an update causes issues, restore from the latest backup:</p>
+
+<ol>
+    <li>Close the Scanner App</li>
+    <li>Copy the backup files back:
+        <pre><code>Copy-Item "C:\SmartLogScannerBackups\scanner-backup-YYYY-MM-DD_HHmmss\*" "C:\SmartLogScanner" -Recurse -Force</code></pre>
+    </li>
+    <li>Relaunch the app</li>
+</ol>
+
+<h3>Manual Update</h3>
+
+<p>If you prefer to update manually:</p>
 
 <div class="step-title"><span class="step-number">1</span>Pull latest code</div>
 <pre><code>cd C:\SmartLogScannerApp
