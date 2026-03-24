@@ -38,6 +38,9 @@ jobs:
       - name: Build Scanner App (Windows)
         run: dotnet build SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release --no-restore
 
+      - name: Build Tests
+        run: dotnet build SmartLog.Scanner.Tests -c Release --no-restore
+
       - name: Run tests
         run: dotnet test SmartLog.Scanner.Tests --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
 
