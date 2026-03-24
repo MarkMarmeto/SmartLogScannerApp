@@ -116,8 +116,14 @@ public class SetupViewModelTests
 		var result = InvokeValidateAll();
 
 		// Assert
+		// HTTP is only allowed in DEBUG builds; Release builds enforce HTTPS
+#if DEBUG
 		Assert.True(result);
 		Assert.Null(_viewModel.ServerUrlError);
+#else
+		Assert.False(result);
+		Assert.Equal("HTTPS is required for production. HTTP connections are not allowed.", _viewModel.ServerUrlError);
+#endif
 	}
 
 	[Fact]
