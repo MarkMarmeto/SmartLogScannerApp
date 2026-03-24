@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Services;
-using Windows.Devices.Enumeration;
-using Windows.Media.Capture;
+using WinDevices = global::Windows.Devices.Enumeration;
+using global::Windows.Media.Capture;
 
 namespace SmartLog.Scanner.Platforms.Windows;
 
@@ -50,7 +50,7 @@ public class DeviceDetectionService : IDeviceDetectionService
         try
         {
             // Find all video capture devices
-            var devices = await DeviceInformation.FindAllAsync(DeviceClass.VideoCapture);
+            var devices = await WinDevices.DeviceInformation.FindAllAsync(WinDevices.DeviceClass.VideoCapture);
 
             if (devices != null && devices.Count > 0)
             {
@@ -83,7 +83,7 @@ public class DeviceDetectionService : IDeviceDetectionService
         }
     }
 
-    private CameraPosition DetermineCameraPosition(DeviceInformation device)
+    private CameraPosition DetermineCameraPosition(WinDevices.DeviceInformation device)
     {
         var name = device.Name.ToLowerInvariant();
 
@@ -107,8 +107,8 @@ public class DeviceDetectionService : IDeviceDetectionService
             var panel = device.EnclosureLocation.Panel;
             return panel switch
             {
-                Windows.Devices.Enumeration.Panel.Front => CameraPosition.Front,
-                Windows.Devices.Enumeration.Panel.Back => CameraPosition.Back,
+                WinDevices.Panel.Front => CameraPosition.Front,
+                WinDevices.Panel.Back => CameraPosition.Back,
                 _ => CameraPosition.External
             };
         }
