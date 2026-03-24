@@ -8,7 +8,7 @@ public class Program
 	static void Main(string[] args)
 	{
 		WinRT.ComWrappersSupport.InitializeComWrappers();
-		Application.Start((p) => {
+		Microsoft.UI.Xaml.Application.Start((p) => {
 			var context = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(
 				Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
 			System.Threading.SynchronizationContext.SetSynchronizationContext(context);
