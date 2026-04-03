@@ -40,6 +40,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string? _lastScanMessage;
 
     // Student ID card data (populated on successful scan)
+    [ObservableProperty] private string? _lastLrn;
     [ObservableProperty] private string? _lastStudentName;
     [ObservableProperty] private string? _lastGrade;
     [ObservableProperty] private string? _lastSection;
@@ -185,6 +186,7 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Accepted:
                     // AC1: ACCEPTED - green feedback with student info
                     LastStudentId = result.StudentId;
+                    LastLrn = result.Lrn;
                     LastStudentName = result.StudentName;
                     LastGrade = result.Grade;
                     LastSection = result.Section;
@@ -204,6 +206,7 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Duplicate:
                     // AC2: DUPLICATE - amber feedback
                     LastStudentId = result.StudentId;
+                    LastLrn = result.Lrn;
                     LastStudentName = result.StudentName;
                     LastGrade = result.Grade;
                     LastSection = result.Section;
