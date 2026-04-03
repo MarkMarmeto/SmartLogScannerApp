@@ -455,6 +455,14 @@ public class ScanApiService : IScanApiService
             }
         }
 
+        // Validate LRN (12 digits, optional)
+        var lrn = response.Lrn;
+        if (!string.IsNullOrEmpty(lrn) && lrn.Length > 12)
+        {
+            _logger.LogWarning("LRN exceeds max length ({Length} > 12). Truncating.", lrn.Length);
+            lrn = lrn.Substring(0, 12);
+        }
+
         // Validate and truncate Grade
         var grade = response.Grade;
         if (grade?.Length > MaxGradeLength)
@@ -503,6 +511,7 @@ public class ScanApiService : IScanApiService
             Status = status,
             ScanId = scanId,
             StudentId = studentId,
+            Lrn = lrn,
             StudentName = studentName,
             Grade = grade,
             Section = section,
@@ -533,6 +542,7 @@ public class ScanApiService : IScanApiService
     {
         public string? ScanId { get; set; }
         public string? StudentId { get; set; }
+        public string? Lrn { get; set; }
         public string? StudentName { get; set; }
         public string? Grade { get; set; }
         public string? Section { get; set; }

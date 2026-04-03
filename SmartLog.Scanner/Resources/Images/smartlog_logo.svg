@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 52" width="216" height="52" role="img" aria-label="SmartLog">
+
+  <!-- Icon mark: rounded square -->
+  <rect x="0" y="4" width="44" height="44" rx="10" fill="#2C5F5D"/>
+
+  <!-- QR scan corner brackets — top-left -->
+  <path d="M8,24 L8,12 L20,12"
+        stroke="white" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- top-right -->
+  <path d="M24,12 L36,12 L36,24"
+        stroke="white" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- bottom-left -->
+  <path d="M8,28 L8,40 L20,40"
+        stroke="white" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Checkmark replaces bottom-right bracket -->
+  <path d="M26,35 L30,41 L38,27"
+        stroke="white" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Wordmark -->
+  <text x="54" y="33"
+        font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="24"
+        letter-spacing="-0.3">
+    <tspan font-weight="300" fill="#2C5F5D">Smart</tspan><tspan font-weight="700" fill="#4D9B91">Log</tspan>
+  </text>
+
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SmartLog">
+
+  <!-- Icon background -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#2C5F5D"/>
+
+  <!-- QR scan corner brackets — top-left -->
+  <path d="M12,26 L12,12 L26,12"
+        stroke="white" stroke-width="3" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- top-right -->
+  <path d="M38,12 L52,12 L52,26"
+        stroke="white" stroke-width="3" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- bottom-left -->
+  <path d="M12,38 L12,52 L26,52"
+        stroke="white" stroke-width="3" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Checkmark replaces bottom-right bracket -->
+  <path d="M33,43 L38,51 L52,33"
+        stroke="white" stroke-width="3" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

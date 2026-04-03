@@ -1,4 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Foreground layer: white icon mark on transparent background, centered in 456x456 -->
 <svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
-    <text x="228" y="280" font-family="Arial" font-size="200" fill="white" text-anchor="middle" font-weight="bold">S</text>
+
+    <!-- QR scan corner brackets + checkmark, scaled ~200x200, centered at 228,228 -->
+    <!-- Top-left bracket -->
+    <path d="M128,198 L128,128 L198,128"
+          stroke="white" stroke-width="15" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Top-right bracket -->
+    <path d="M258,128 L328,128 L328,198"
+          stroke="white" stroke-width="15" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Bottom-left bracket -->
+    <path d="M128,258 L128,328 L198,328"
+          stroke="white" stroke-width="15" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Checkmark replaces bottom-right bracket -->
+    <path d="M233,283 L258,323 L328,233"
+          stroke="white" stroke-width="15" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
 </svg>

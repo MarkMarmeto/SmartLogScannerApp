@@ -21,12 +21,12 @@
             </Border.Shadow>
 
             <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
-                <!-- App Title -->
-                <Label Grid.Column="0"
-                       Text="SmartLog Scanner"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       TextColor="#2C5F5D"
+                <!-- App Logo -->
+                <Image Grid.Column="0"
+                       Source="smartlog_logo.svg"
+                       HeightRequest="30"
+                       WidthRequest="154"
+                       Aspect="AspectFit"
                        VerticalOptions="Center" />
 
                 <!-- US0015: Enhanced Connectivity Status with Glass Effect -->
@@ -181,8 +181,8 @@
 
             <!-- Centered Student ID Card -->
             <Border x:Name="studentCard"
-                    WidthRequest="380"
-                    HeightRequest="480"
+                    WidthRequest="480"
+                    HeightRequest="580"
                     BackgroundColor="White"
                     Stroke="{Binding CardBorderColor}"
                     StrokeThickness="3"
@@ -210,13 +210,13 @@
                         </Border.StrokeShape>
                         <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
                             <Label Text="STUDENT IDENTIFICATION"
-                                   FontSize="16"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="White"
                                    CharacterSpacing="2"
                                    HorizontalTextAlignment="Center" />
                             <Label Text="SmartLog Attendance System"
-                                   FontSize="11"
+                                   FontSize="13"
                                    TextColor="#A0D5CF"
                                    HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
@@ -227,33 +227,33 @@
                           HorizontalOptions="Center"
                           Margin="0,24,0,8">
                         <!-- Skeleton avatar (no data) -->
-                        <Border WidthRequest="100"
-                                HeightRequest="100"
+                        <Border WidthRequest="120"
+                                HeightRequest="120"
                                 BackgroundColor="#EEEEEE"
                                 Stroke="#D0D0D0"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="50" />
+                                <RoundRectangle CornerRadius="60" />
                             </Border.StrokeShape>
                             <Label Text="👤"
-                                   FontSize="44"
+                                   FontSize="54"
                                    Opacity="0.3"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
                         <!-- Active avatar (has data) -->
-                        <Border WidthRequest="100"
-                                HeightRequest="100"
+                        <Border WidthRequest="120"
+                                HeightRequest="120"
                                 BackgroundColor="#E0F2F1"
                                 Stroke="#4D9B91"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="50" />
+                                <RoundRectangle CornerRadius="60" />
                             </Border.StrokeShape>
                             <Label Text="👤"
-                                   FontSize="44"
+                                   FontSize="54"
                                    Opacity="0.85"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
@@ -262,21 +262,21 @@
 
                     <!-- Card Fields -->
                     <VerticalStackLayout Grid.Row="2"
-                                         Spacing="18"
-                                         Padding="32,12,32,0"
+                                         Spacing="20"
+                                         Padding="40,16,40,0"
                                          VerticalOptions="Start">
 
                         <!-- Student Number -->
                         <VerticalStackLayout Spacing="6">
                             <Label Text="STUDENT NUMBER"
-                                   FontSize="10"
+                                   FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#9E9E9E"
                                    CharacterSpacing="1.5" />
                             <!-- Skeleton -->
                             <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
                                     BackgroundColor="#EEEEEE"
-                                    HeightRequest="28"
+                                    HeightRequest="34"
                                     StrokeThickness="0">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="6" />
@@ -285,22 +285,47 @@
                             <!-- Data -->
                             <Label IsVisible="{Binding HasScannedStudent}"
                                    Text="{Binding LastStudentId}"
-                                   FontSize="22"
+                                   FontSize="28"
                                    FontAttributes="Bold"
                                    TextColor="#2C5F5D" />
                         </VerticalStackLayout>
 
-                        <!-- Student Name -->
+                        <!-- LRN -->
                         <VerticalStackLayout Spacing="6">
-                            <Label Text="STUDENT NAME"
-                                   FontSize="10"
+                            <Label Text="LRN"
+                                   FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#9E9E9E"
                                    CharacterSpacing="1.5" />
                             <!-- Skeleton -->
                             <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
                                     BackgroundColor="#EEEEEE"
-                                    HeightRequest="24"
+                                    HeightRequest="26"
+                                    WidthRequest="160"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <!-- Data -->
+                            <Label IsVisible="{Binding HasScannedStudent}"
+                                   Text="{Binding LastLrn, TargetNullValue='N/A'}"
+                                   FontSize="20"
+                                   TextColor="#546E7A" />
+                        </VerticalStackLayout>
+
+                        <!-- Student Name -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="STUDENT NAME"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#9E9E9E"
+                                   CharacterSpacing="1.5" />
+                            <!-- Skeleton -->
+                            <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
+                                    BackgroundColor="#EEEEEE"
+                                    HeightRequest="30"
                                     StrokeThickness="0">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="6" />
@@ -309,22 +334,22 @@
                             <!-- Data -->
                             <Label IsVisible="{Binding HasScannedStudent}"
                                    Text="{Binding LastStudentName}"
-                                   FontSize="18"
+                                   FontSize="22"
                                    TextColor="#37474F" />
                         </VerticalStackLayout>
 
                         <!-- Grade & Section -->
                         <VerticalStackLayout Spacing="6">
                             <Label Text="GRADE &amp; SECTION"
-                                   FontSize="10"
+                                   FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#9E9E9E"
                                    CharacterSpacing="1.5" />
                             <!-- Skeleton -->
                             <Border IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}"
                                     BackgroundColor="#EEEEEE"
-                                    HeightRequest="24"
-                                    WidthRequest="180"
+                                    HeightRequest="30"
+                                    WidthRequest="200"
                                     StrokeThickness="0"
                                     HorizontalOptions="Start">
                                 <Border.StrokeShape>
@@ -334,7 +359,7 @@
                             <!-- Data -->
                             <Label IsVisible="{Binding HasScannedStudent}"
                                    Text="{Binding LastGradeSection}"
-                                   FontSize="18"
+                                   FontSize="22"
                                    TextColor="#37474F" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>

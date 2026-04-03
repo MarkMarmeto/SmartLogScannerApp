@@ -32,6 +32,11 @@ public record ScanResult
     public string? StudentId { get; init; }
 
     /// <summary>
+    /// Learner Reference Number (12-digit DepEd ID, optional).
+    /// </summary>
+    public string? Lrn { get; init; }
+
+    /// <summary>
     /// US0010: Student full name.
     /// </summary>
     public string? StudentName { get; init; }

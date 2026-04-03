@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Splash screen: white icon mark + wordmark, centered, on teal background (set via csproj Color) -->
 <svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="456" height="456" fill="#512BD4"/>
-    <text x="228" y="240" font-family="Arial" font-size="48" fill="white" text-anchor="middle">SmartLog</text>
+
+    <!-- Icon mark centered at (228, 190), ~140x140 -->
+    <!-- Top-left bracket -->
+    <path d="M158,213 L158,158 L213,158"
+          stroke="white" stroke-width="11" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Top-right bracket -->
+    <path d="M243,158 L298,158 L298,213"
+          stroke="white" stroke-width="11" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Bottom-left bracket -->
+    <path d="M158,243 L158,298 L213,298"
+          stroke="white" stroke-width="11" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Checkmark replaces bottom-right bracket -->
+    <path d="M248,270 L265,298 L304,243"
+          stroke="white" stroke-width="11" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- "SmartLog" wordmark below the mark -->
+    <text x="228" y="354"
+          font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+          font-size="42" text-anchor="middle" fill="white" font-weight="300"
+          letter-spacing="-1">SmartLog</text>
+
+    <!-- Tagline -->
+    <text x="228" y="386"
+          font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" text-anchor="middle" fill="white" opacity="0.65">
+        Attendance System
+    </text>
+
 </svg>
