@@ -200,7 +200,7 @@ public partial class SetupViewModel : ObservableObject
 	{
 		bool isValid = true;
 
-		// AC3: Validate Server URL
+		// Validate Server URL
 		if (string.IsNullOrWhiteSpace(ServerUrl))
 		{
 			ServerUrlError = "This field is required";
@@ -209,25 +209,9 @@ public partial class SetupViewModel : ObservableObject
 		else if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out var uri) ||
 		         (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
 		{
-			ServerUrlError = "Please enter a valid URL (e.g., https://192.168.1.100:8443)";
+			ServerUrlError = "Please enter a valid URL (e.g., http://192.168.1.100:8080)";
 			isValid = false;
 		}
-#if !DEBUG
-		// SECURITY FIX (HIGH-01): Enforce HTTPS-only in production builds
-		else if (uri.Scheme == Uri.UriSchemeHttp)
-		{
-			ServerUrlError = "HTTPS is required for production. HTTP connections are not allowed.";
-			_logger.LogError("HTTP URL rejected in production build: {ServerUrl}", ServerUrl);
-			isValid = false;
-		}
-#else
-		// DEBUG: Allow HTTP but warn
-		else if (uri.Scheme == Uri.UriSchemeHttp)
-		{
-			_logger.LogWarning("⚠️ Using HTTP connection - acceptable in development only. URL: {ServerUrl}", ServerUrl);
-			ServerUrlError = null;
-		}
-#endif
 		else
 		{
 			ServerUrlError = null;

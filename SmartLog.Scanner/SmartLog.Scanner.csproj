@@ -14,6 +14,9 @@
 		<!-- Enable Windows targeting on non-Windows platforms (for cross-platform builds) -->
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 
+		<!-- Suppress EOL warning raised by .NET 9 SDK for net8.0-maccatalyst -->
+		<NoWarn>$(NoWarn);NETSDK1202</NoWarn>
+
 		<!-- Display name -->
 		<ApplicationTitle>SmartLog Scanner</ApplicationTitle>
 
