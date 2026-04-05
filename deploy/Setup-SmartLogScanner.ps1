@@ -1,13 +1,13 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    SmartLog Scanner App — Automated Setup for Windows
+    SmartLog Scanner App - Automated Setup for Windows
 
 .DESCRIPTION
     Interactive setup script that automates the installation of SmartLog Scanner App:
-    - Checks prerequisites (.NET 8 SDK, MAUI workload)
+    - Checks prerequisites (.NET 8+ SDK, MAUI workload)
     - Installs MAUI workload if missing
-    - Builds and publishes the app for Windows
+    - Builds and publishes the app for Windows (or copies pre-built files)
     - Creates a desktop shortcut
     - Optionally adds to Windows startup (auto-launch on boot)
     - Optionally launches the app for initial configuration
@@ -29,11 +29,11 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 # Configuration
 # ============================================================
-$Script:AppName        = "SmartLog Scanner"
-$Script:InstallDir     = "C:\SmartLogScanner"
+$Script:AppName         = "SmartLog Scanner"
+$Script:InstallDir      = "C:\SmartLogScanner"
 $Script:TargetFramework = "net8.0-windows10.0.19041.0"
-$Script:Configuration  = "Release"
-$Script:ExeName        = "SmartLog.Scanner.exe"
+$Script:Configuration   = "Release"
+$Script:ExeName         = "SmartLog.Scanner.exe"
 
 # ============================================================
 # Helper Functions
@@ -114,13 +114,16 @@ try {
 }
 catch { }
 
-if ($dotnetVersion -and $dotnetVersion -match '^8\.') {
+$sdkMajor = 0
+if ($dotnetVersion) { [int]::TryParse(($dotnetVersion -split '\.')[0], [ref]$sdkMajor) | Out-Null }
+
+if ($sdkMajor -ge 8) {
     Write-Success ".NET SDK $dotnetVersion installed"
 }
 elseif ($dotnetVersion) {
     Write-Warn ".NET SDK $dotnetVersion found, but 8.0+ is required"
     Write-Host ""
-    Write-Host "  Download .NET 8.0 SDK from:" -ForegroundColor Yellow
+    Write-Host "  Download .NET 8 SDK from:" -ForegroundColor Yellow
     Write-Host "  https://dotnet.microsoft.com/download/dotnet/8.0" -ForegroundColor Cyan
     Write-Host ""
     if (-not (Read-YesNo "Continue anyway?" $false)) { exit 1 }
@@ -128,7 +131,7 @@ elseif ($dotnetVersion) {
 else {
     Write-Fail ".NET SDK not found"
     Write-Host ""
-    Write-Host "  Download .NET 8.0 SDK from:" -ForegroundColor Yellow
+    Write-Host "  Download .NET 8 SDK from:" -ForegroundColor Yellow
     Write-Host "  https://dotnet.microsoft.com/download/dotnet/8.0" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Install it and run this script again." -ForegroundColor Yellow
@@ -147,37 +150,53 @@ if ($gitVersion) {
     Write-Success "Git installed ($gitVersion)"
 }
 else {
-    Write-Warn "Git not found (optional — only needed for updates via git pull)"
+    Write-Warn "Git not found (optional - only needed for updates via git pull)"
 }
 
-# Check MAUI workload
-Write-Detail "Checking MAUI workload..."
-$workloads = dotnet workload list 2>$null
-$mauiInstalled = $workloads -match 'maui'
+# ============================================================
+# Pre-built detection
+# When the script ships inside a release ZIP, the compiled
+# SmartLog.Scanner.exe is already present alongside it.
+# In that case we skip the MAUI workload check, source-code
+# lookup, and build steps.
+# ============================================================
+$scriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
+$isPreBuilt = Test-Path (Join-Path $scriptDir $Script:ExeName)
 
-if ($mauiInstalled) {
-    Write-Success "MAUI workload installed"
+if ($isPreBuilt) {
+    Write-Host ""
+    Write-Host "  [INFO] Pre-built package detected - build step will be skipped." -ForegroundColor DarkCyan
 }
 else {
-    Write-Warn "MAUI workload not installed"
-    if (Read-YesNo "Install MAUI workload now? (required to build the app)" $true) {
-        Write-Detail "Installing MAUI workload (this may take several minutes)..."
-        dotnet workload install maui 2>&1 | ForEach-Object {
-            if ($_ -match 'Successfully|installed') { Write-Detail $_ }
-        }
-        $installResult = $LASTEXITCODE
-        if ($installResult -eq 0) {
-            Write-Success "MAUI workload installed"
-        }
-        else {
-            Write-Fail "MAUI workload installation failed"
-            Write-Host "  Try running manually: dotnet workload install maui" -ForegroundColor Yellow
-            if (-not (Read-YesNo "Continue anyway?" $false)) { exit 1 }
-        }
+    # Check MAUI workload (only needed when building from source)
+    Write-Detail "Checking MAUI workload..."
+    $workloads    = dotnet workload list 2>$null
+    $mauiInstalled = $workloads -match 'maui'
+
+    if ($mauiInstalled) {
+        Write-Success "MAUI workload installed"
     }
     else {
-        Write-Fail "MAUI workload is required. Install it and try again."
-        exit 1
+        Write-Warn "MAUI workload not installed"
+        if (Read-YesNo "Install MAUI workload now? (required to build the app)" $true) {
+            Write-Detail "Installing maui-windows workload (this may take several minutes)..."
+            dotnet workload install maui-windows 2>&1 | ForEach-Object {
+                if ($_ -match 'Successfully|installed') { Write-Detail $_ }
+            }
+            $installResult = $LASTEXITCODE
+            if ($installResult -eq 0) {
+                Write-Success "MAUI workload installed"
+            }
+            else {
+                Write-Fail "MAUI workload installation failed"
+                Write-Host "  Try running manually: dotnet workload install maui-windows" -ForegroundColor Yellow
+                if (-not (Read-YesNo "Continue anyway?" $false)) { exit 1 }
+            }
+        }
+        else {
+            Write-Fail "MAUI workload is required. Install it and try again."
+            exit 1
+        }
     }
 }
 
@@ -186,49 +205,56 @@ else {
 # ============================================================
 Write-StepHeader -Step 2 -Total $totalSteps -Title "Locating Source Code"
 
-# Try to find the project relative to the script
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Split-Path -Parent $scriptDir
-$projectDir = Join-Path $repoRoot "SmartLog.Scanner"
-$projectFile = Join-Path $projectDir "SmartLog.Scanner.csproj"
-
-if (Test-Path $projectFile) {
-    Write-Success "Found project at: $projectDir"
+if ($isPreBuilt) {
+    Write-Success "Running from pre-built release package: $scriptDir"
+    Write-Detail "Skipping source code lookup - will install from this folder."
+    $repoRoot    = $null
+    $projectDir  = $null
+    $projectFile = $null
 }
 else {
-    Write-Warn "Project not found at expected location"
-    $repoRoot = Read-Input "Enter the path to the SmartLogScannerApp folder" "C:\SmartLogScannerApp"
-    $projectDir = Join-Path $repoRoot "SmartLog.Scanner"
+    # Try to find the project relative to the script (script lives in deploy\ inside the repo)
+    $repoRoot    = Split-Path -Parent $scriptDir
+    $projectDir  = Join-Path $repoRoot "SmartLog.Scanner"
     $projectFile = Join-Path $projectDir "SmartLog.Scanner.csproj"
 
-    if (-not (Test-Path $projectFile)) {
-        Write-Fail "SmartLog.Scanner.csproj not found at $projectDir"
-        Write-Host ""
-        Write-Host "  Clone the repo first:" -ForegroundColor Yellow
-        Write-Host "  git clone https://github.com/MarkMarmeto/SmartLogScannerApp.git C:\SmartLogScannerApp" -ForegroundColor Cyan
-        Write-Host ""
-        Read-Host "  Press Enter to exit"
-        exit 1
+    if (Test-Path $projectFile) {
+        Write-Success "Found project at: $projectDir"
     }
-    Write-Success "Found project at: $projectDir"
-}
+    else {
+        Write-Warn "Project not found at expected location"
+        $repoRoot    = Read-Input "Enter the path to the SmartLogScannerApp folder" "C:\SmartLogScannerApp"
+        $projectDir  = Join-Path $repoRoot "SmartLog.Scanner"
+        $projectFile = Join-Path $projectDir "SmartLog.Scanner.csproj"
 
-Write-Detail "Repository root: $repoRoot"
+        if (-not (Test-Path $projectFile)) {
+            Write-Fail "SmartLog.Scanner.csproj not found at $projectDir"
+            Write-Host ""
+            Write-Host "  Clone the repo first:" -ForegroundColor Yellow
+            Write-Host "  git clone https://github.com/MarkMarmeto/SmartLogScannerApp.git C:\SmartLogScannerApp" -ForegroundColor Cyan
+            Write-Host ""
+            Read-Host "  Press Enter to exit"
+            exit 1
+        }
+        Write-Success "Found project at: $projectDir"
+    }
+
+    Write-Detail "Repository root: $repoRoot"
+}
 
 # ============================================================
 # Step 3: Configure Installation
 # ============================================================
 Write-StepHeader -Step 3 -Total $totalSteps -Title "Installation Options"
 
-$Script:InstallDir = Read-Input "Installation directory" $Script:InstallDir
-
+$Script:InstallDir     = Read-Input "Installation directory" $Script:InstallDir
 $createDesktopShortcut = Read-YesNo "Create a desktop shortcut?" $true
-$addToStartup = Read-YesNo "Auto-launch on Windows startup?" $false
+$addToStartup          = Read-YesNo "Auto-launch on Windows startup?" $false
 
 # ============================================================
-# Step 4: Build & Publish
+# Step 4: Install Application
 # ============================================================
-Write-StepHeader -Step 4 -Total $totalSteps -Title "Building & Publishing Application"
+Write-StepHeader -Step 4 -Total $totalSteps -Title "Installing Application"
 
 # Create install directory
 if (-not (Test-Path $Script:InstallDir)) {
@@ -236,87 +262,93 @@ if (-not (Test-Path $Script:InstallDir)) {
     Write-Detail "Created directory: $($Script:InstallDir)"
 }
 
-# Restore packages first
-Write-Detail "Restoring NuGet packages..."
-$restoreOutput = dotnet restore $projectFile 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Fail "Package restore failed"
-    Write-Host ($restoreOutput | Out-String) -ForegroundColor Red
-    exit 1
+if ($isPreBuilt) {
+    # Pre-built mode: copy files from the script's directory
+    Write-Detail "Copying pre-built files to $($Script:InstallDir)..."
+    Get-ChildItem -Path $scriptDir | Copy-Item -Destination $Script:InstallDir -Recurse -Force
+    Write-Success "Files copied to $($Script:InstallDir)"
 }
-Write-Success "Packages restored"
+else {
+    # Source mode: restore, build, publish
+    Write-Detail "Restoring NuGet packages..."
+    $restoreOutput = dotnet restore $projectFile 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "Package restore failed"
+        Write-Host ($restoreOutput | Out-String) -ForegroundColor Red
+        exit 1
+    }
+    Write-Success "Packages restored"
 
-# Build and publish
-Write-Detail "Building and publishing for Windows (this may take a minute)..."
-$publishOutput = dotnet publish $projectDir `
-    -f $Script:TargetFramework `
-    -c $Script:Configuration `
-    -o $Script:InstallDir `
-    --nologo 2>&1
+    Write-Detail "Building and publishing for Windows (this may take a minute)..."
+    $publishOutput = dotnet publish $projectDir `
+        -f $Script:TargetFramework `
+        -c $Script:Configuration `
+        -o $Script:InstallDir `
+        --nologo 2>&1
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Fail "Build failed!"
-    Write-Host ($publishOutput | Out-String) -ForegroundColor Red
-    Write-Host ""
-    Write-Host "  Common fixes:" -ForegroundColor Yellow
-    Write-Host "    - Run: dotnet workload install maui" -ForegroundColor Gray
-    Write-Host "    - Run: dotnet workload repair" -ForegroundColor Gray
-    Write-Host "    - Ensure Windows 10 SDK is installed" -ForegroundColor Gray
-    exit 1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "Build failed!"
+        Write-Host ($publishOutput | Out-String) -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Common fixes:" -ForegroundColor Yellow
+        Write-Host "    - Run: dotnet workload install maui-windows" -ForegroundColor Gray
+        Write-Host "    - Run: dotnet workload repair" -ForegroundColor Gray
+        Write-Host "    - Ensure Windows 10 SDK is installed" -ForegroundColor Gray
+        exit 1
+    }
 }
 
 $exePath = Join-Path $Script:InstallDir $Script:ExeName
 if (Test-Path $exePath) {
-    Write-Success "Application published to $($Script:InstallDir)"
+    Write-Success "Application installed to $($Script:InstallDir)"
     Write-Detail "Executable: $exePath"
 }
 else {
-    Write-Fail "Published executable not found at $exePath"
-    Write-Detail "Checking what was published..."
+    Write-Fail "Executable not found at $exePath"
+    Write-Detail "Checking what was copied/published..."
     $exeFiles = Get-ChildItem -Path $Script:InstallDir -Filter "*.exe" -Recurse | Select-Object -First 5
     if ($exeFiles) {
         Write-Detail "Found executables:"
         $exeFiles | ForEach-Object { Write-Detail "  $($_.FullName)" }
-        $exePath = $exeFiles[0].FullName
-        $Script:ExeName = $exeFiles[0].Name
+        $exePath           = $exeFiles[0].FullName
+        $Script:ExeName    = $exeFiles[0].Name
         Write-Warn "Using: $exePath"
     }
     else {
-        Write-Fail "No executables found in publish output"
+        Write-Fail "No executables found in install directory"
         exit 1
     }
 }
 
 # ============================================================
-# Step 5: Create Shortcuts & Startup Entry
+# Step 5: Create Shortcuts
 # ============================================================
 Write-StepHeader -Step 5 -Total $totalSteps -Title "Creating Shortcuts"
 
 if ($createDesktopShortcut) {
-    $desktopPath = [Environment]::GetFolderPath("CommonDesktopDirectory")
+    $desktopPath  = [Environment]::GetFolderPath("CommonDesktopDirectory")
     $shortcutPath = Join-Path $desktopPath "$($Script:AppName).lnk"
 
     try {
-        $shell = New-Object -ComObject WScript.Shell
+        $shell    = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $exePath
+        $shortcut.TargetPath       = $exePath
         $shortcut.WorkingDirectory = $Script:InstallDir
-        $shortcut.Description = "SmartLog QR Attendance Scanner"
+        $shortcut.Description      = "SmartLog QR Attendance Scanner"
         $shortcut.Save()
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
         Write-Success "Desktop shortcut created: $shortcutPath"
     }
     catch {
         Write-Warn "Could not create desktop shortcut: $($_.Exception.Message)"
-        # Try user desktop instead
         try {
-            $userDesktop = [Environment]::GetFolderPath("Desktop")
+            $userDesktop  = [Environment]::GetFolderPath("Desktop")
             $shortcutPath = Join-Path $userDesktop "$($Script:AppName).lnk"
-            $shell = New-Object -ComObject WScript.Shell
-            $shortcut = $shell.CreateShortcut($shortcutPath)
-            $shortcut.TargetPath = $exePath
+            $shell        = New-Object -ComObject WScript.Shell
+            $shortcut     = $shell.CreateShortcut($shortcutPath)
+            $shortcut.TargetPath       = $exePath
             $shortcut.WorkingDirectory = $Script:InstallDir
-            $shortcut.Description = "SmartLog QR Attendance Scanner"
+            $shortcut.Description      = "SmartLog QR Attendance Scanner"
             $shortcut.Save()
             [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
             Write-Success "Desktop shortcut created (user): $shortcutPath"
@@ -328,15 +360,15 @@ if ($createDesktopShortcut) {
 }
 
 if ($addToStartup) {
-    $startupFolder = [Environment]::GetFolderPath("CommonStartup")
+    $startupFolder   = [Environment]::GetFolderPath("CommonStartup")
     $startupShortcut = Join-Path $startupFolder "$($Script:AppName).lnk"
 
     try {
-        $shell = New-Object -ComObject WScript.Shell
+        $shell    = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($startupShortcut)
-        $shortcut.TargetPath = $exePath
+        $shortcut.TargetPath       = $exePath
         $shortcut.WorkingDirectory = $Script:InstallDir
-        $shortcut.Description = "SmartLog Scanner - Auto Start"
+        $shortcut.Description      = "SmartLog Scanner - Auto Start"
         $shortcut.Save()
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
         Write-Success "Startup shortcut created (launches on boot)"
@@ -344,15 +376,14 @@ if ($addToStartup) {
     }
     catch {
         Write-Warn "Could not create startup shortcut: $($_.Exception.Message)"
-        # Fallback to user startup
         try {
-            $userStartup = [Environment]::GetFolderPath("Startup")
+            $userStartup     = [Environment]::GetFolderPath("Startup")
             $startupShortcut = Join-Path $userStartup "$($Script:AppName).lnk"
-            $shell = New-Object -ComObject WScript.Shell
-            $shortcut = $shell.CreateShortcut($startupShortcut)
-            $shortcut.TargetPath = $exePath
+            $shell           = New-Object -ComObject WScript.Shell
+            $shortcut        = $shell.CreateShortcut($startupShortcut)
+            $shortcut.TargetPath       = $exePath
             $shortcut.WorkingDirectory = $Script:InstallDir
-            $shortcut.Description = "SmartLog Scanner - Auto Start"
+            $shortcut.Description      = "SmartLog Scanner - Auto Start"
             $shortcut.Save()
             [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
             Write-Success "Startup shortcut created (current user only)"
@@ -375,35 +406,17 @@ Write-Host "  |    SmartLog Scanner App Installed!                 |" -Foregroun
 Write-Host "  |                                                    |" -ForegroundColor Green
 Write-Host "  +==================================================+" -ForegroundColor Green
 Write-Host ""
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
-Write-Host "  |  INSTALLATION DETAILS                              |" -ForegroundColor DarkGray
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
-Write-Host "  |  Install Path:  $($Script:InstallDir)" -ForegroundColor White
-Write-Host "  |  Executable:    $exePath" -ForegroundColor White
-Write-Host "  |  Auto-Start:    $(if ($addToStartup) { 'Enabled' } else { 'Disabled' })" -ForegroundColor White
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
+Write-Host "  Install Path : $($Script:InstallDir)" -ForegroundColor White
+Write-Host "  Executable   : $exePath" -ForegroundColor White
+Write-Host "  Auto-Start   : $(if ($addToStartup) { 'Enabled' } else { 'Disabled' })" -ForegroundColor White
 Write-Host ""
-Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
-Write-Host "  |  FIRST LAUNCH CHECKLIST                            |" -ForegroundColor Yellow
-Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
-Write-Host "  |                                                    |" -ForegroundColor Yellow
-Write-Host "  |  Have these ready from the Web App administrator:  |" -ForegroundColor Yellow
-Write-Host "  |                                                    |" -ForegroundColor Yellow
-Write-Host "  |  1. Server URL   (e.g., http://192.168.1.100:8080) |" -ForegroundColor White
-Write-Host "  |  2. API Key      (from Device Management)          |" -ForegroundColor White
-Write-Host "  |  3. HMAC Secret  (shared QR signing key)           |" -ForegroundColor White
-Write-Host "  |                                                    |" -ForegroundColor Yellow
-Write-Host "  |  The app's setup wizard will guide you through     |" -ForegroundColor Yellow
-Write-Host "  |  entering these on first launch.                   |" -ForegroundColor Yellow
-Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
+Write-Host "  FIRST LAUNCH - have these ready from the Web App admin:" -ForegroundColor Yellow
+Write-Host "    1. Server URL   (e.g., http://192.168.1.100:8080)" -ForegroundColor White
+Write-Host "    2. API Key      (from Device Management)" -ForegroundColor White
+Write-Host "    3. HMAC Secret  (shared QR signing key)" -ForegroundColor White
 Write-Host ""
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
-Write-Host "  |  USEFUL COMMANDS                                   |" -ForegroundColor DarkGray
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
-Write-Host "  |  Launch:   $exePath" -ForegroundColor Gray
-Write-Host "  |  Logs:     %LOCALAPPDATA%\SmartLog.Scanner\logs\   |" -ForegroundColor Gray
-Write-Host "  |  Database: %LOCALAPPDATA%\SmartLog.Scanner\        |" -ForegroundColor Gray
-Write-Host "  +--------------------------------------------------+" -ForegroundColor DarkGray
+Write-Host "  Logs     : $env:LOCALAPPDATA\SmartLog.Scanner\logs\" -ForegroundColor Gray
+Write-Host "  Database : $env:LOCALAPPDATA\SmartLog.Scanner\" -ForegroundColor Gray
 Write-Host ""
 
 if (Read-YesNo "Launch SmartLog Scanner now?" $true) {

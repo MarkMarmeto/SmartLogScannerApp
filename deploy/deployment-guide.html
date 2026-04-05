@@ -151,8 +151,8 @@
 <table>
     <tr><th>Component</th><th>Requirement</th></tr>
     <tr><td>Operating System</td><td>Windows 10 version 1909 (build 19041) or later</td></tr>
-    <tr><td>.NET 8 SDK</td><td>Version 8.0.0 or higher</td></tr>
-    <tr><td>MAUI Workload</td><td>Installed via <code>dotnet workload install maui</code></td></tr>
+    <tr><td>.NET SDK</td><td>Version 8.0 or higher (.NET 9 also supported)</td></tr>
+    <tr><td>MAUI Workload</td><td>Installed via <code>dotnet workload install maui-windows</code></td></tr>
     <tr><td>Git</td><td>Optional (for pulling updates)</td></tr>
     <tr><td>Camera or USB Scanner</td><td>Webcam for QR scanning, or USB barcode/QR scanner (keyboard-wedge mode)</td></tr>
     <tr><td>Network</td><td>Same LAN as the SmartLog Web App server</td></tr>
@@ -162,12 +162,12 @@
 
 <table>
     <tr><th>Software</th><th>Download</th></tr>
-    <tr><td>.NET 8 SDK</td><td><code>https://dotnet.microsoft.com/download/dotnet/8.0</code></td></tr>
+    <tr><td>.NET 8+ SDK</td><td><code>https://dotnet.microsoft.com/download/dotnet/8.0</code></td></tr>
     <tr><td>Git for Windows</td><td><code>https://git-scm.com/download/win</code></td></tr>
 </table>
 
-<p>After installing the .NET 8 SDK, install the MAUI workload:</p>
-<pre><code>dotnet workload install maui</code></pre>
+<p>After installing the .NET SDK, install the Windows MAUI workload:</p>
+<pre><code>dotnet workload install maui-windows</code></pre>
 
 <!-- ============================================================ -->
 
@@ -222,8 +222,8 @@
 
 <table>
     <tr><th>Step</th><th>What It Does</th></tr>
-    <tr><td>1. Prerequisites</td><td>Checks .NET 8 SDK and MAUI workload. Offers to install MAUI if missing.</td></tr>
-    <tr><td>2. Source Code</td><td>Locates the project files (auto-detects from script location or prompts).</td></tr>
+    <tr><td>1. Prerequisites</td><td>Checks .NET SDK (8+) and MAUI workload. Offers to install <code>maui-windows</code> if missing.</td></tr>
+    <tr><td>2. Source Code</td><td>Detects pre-built release package or locates source files for building from scratch.</td></tr>
     <tr><td>3. Options</td><td>Asks for install directory (default: <code>C:\SmartLogScanner</code>), desktop shortcut, and auto-start preferences.</td></tr>
     <tr><td>4. Build</td><td>Restores NuGet packages, builds and publishes for Windows x64.</td></tr>
     <tr><td>5. Shortcuts</td><td>Creates desktop shortcut and optionally adds to Windows startup folder.</td></tr>
@@ -495,7 +495,7 @@ ACCEPTED   DUPLICATE  REJECTED   OFFLINE
 <table>
     <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
     <tr><td>Missing DLL error</td><td>.NET runtime not installed</td><td>Install .NET 8 Desktop Runtime</td></tr>
-    <tr><td>MAUI workload error</td><td>MAUI workload missing</td><td><code>dotnet workload install maui</code></td></tr>
+    <tr><td>MAUI workload error</td><td>MAUI workload missing</td><td><code>dotnet workload install maui-windows</code></td></tr>
     <tr><td>Windows version error</td><td>Windows 10 build too old</td><td>Update Windows to version 1909+</td></tr>
 </table>
 

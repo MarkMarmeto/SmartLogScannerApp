@@ -75,7 +75,7 @@
                                 <RoundRectangle CornerRadius="6" />
                             </Border.StrokeShape>
                             <Entry Text="{Binding ServerUrl, Mode=TwoWay}"
-                                   Placeholder="https://192.168.1.100:8443"
+                                   Placeholder="http://192.168.1.100:8080"
                                    Keyboard="Url"
                                    BackgroundColor="Transparent"
                                    PlaceholderColor="#999999" />

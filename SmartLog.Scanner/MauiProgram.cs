@@ -33,6 +33,8 @@ public static class MauiProgram
 			{
 #if MACCATALYST
 				handlers.AddHandler<Controls.CameraQrView, Platforms.MacCatalyst.CameraQrViewHandler>();
+#elif WINDOWS
+				handlers.AddHandler<Controls.CameraQrView, Platforms.Windows.CameraQrViewHandler>();
 #endif
 			});
 
