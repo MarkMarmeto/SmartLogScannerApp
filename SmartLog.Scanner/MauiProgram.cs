@@ -7,6 +7,7 @@ using Serilog;
 using Serilog.Events;
 using Plugin.Maui.Audio;
 using SmartLog.Scanner.Core.Data;
+using SmartLog.Scanner.Core.Infrastructure;
 using SmartLog.Scanner.Core.Services;
 using SmartLog.Scanner.Core.ViewModels;
 using SmartLog.Scanner.ViewModels;
@@ -102,11 +103,13 @@ public static class MauiProgram
 			args.SetObserved(); // Prevent process termination, app continues
 		};
 
-		// SECURITY: Certificate validation setting from appsettings.json
-		// Defaults to false (production-safe). User explicitly enables via setup UI.
-		// Note: This reads from appsettings.json; actual runtime value comes from
-		// user's setup choices (saved in Preferences).
-		var acceptSelfSigned = config.GetValue<bool>("Server:AcceptSelfSignedCerts", false);
+		// SECURITY: Certificate validation setting.
+		// Read from user Preferences first (saved by setup wizard), fall back to appsettings.json.
+		// This ensures the HttpClient respects the user's "Accept self-signed certs" choice.
+		var setupCompleted = Preferences.Default.Get(ConfigKeys.SetupCompleted, false);
+		var acceptSelfSigned = setupCompleted
+			? Preferences.Default.Get(ConfigKeys.AcceptSelfSignedCerts, false)
+			: config.GetValue<bool>("Server:AcceptSelfSignedCerts", false);
 		var certificateThumbprint = config.GetValue<string>("Server:CertificateThumbprint", string.Empty);
 		var timeoutSeconds = config.GetValue<int>("Server:TimeoutSeconds", 30);
 
@@ -129,11 +132,13 @@ public static class MauiProgram
 				return false;
 			}
 
-			// Self-signed mode enabled - validate certificate thumbprint
+			// Self-signed mode enabled — if no thumbprint configured, accept any cert (LAN trust mode).
+			// This is safe for closed on-premise LAN deployments where the server cert is known.
 			if (string.IsNullOrWhiteSpace(certificateThumbprint))
 			{
-				Log.Error("Self-signed cert mode enabled but no thumbprint configured. Rejecting certificate.");
-				return false;
+				Log.Warning("⚠️ Accepting self-signed certificate without thumbprint pinning (LAN trust mode). " +
+					"Safe for closed on-premise networks only.");
+				return true;
 			}
 
 			if (cert == null)
