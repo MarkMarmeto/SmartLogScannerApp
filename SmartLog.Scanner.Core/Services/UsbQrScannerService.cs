@@ -20,7 +20,7 @@ public class UsbQrScannerService : IQrScannerService
 
     private readonly StringBuilder _inputBuffer = new();
     private DateTime _lastKeystrokeTime = DateTime.MinValue;
-    private readonly TimeSpan _interKeystrokeTimeout = TimeSpan.FromMilliseconds(100);
+    private readonly TimeSpan _interKeystrokeTimeout;
     private System.Threading.Timer? _timeoutTimer;
     private readonly object _bufferLock = new();
 
@@ -34,7 +34,8 @@ public class UsbQrScannerService : IQrScannerService
         IOfflineQueueService offlineQueue,
         IPreferencesService preferences,
         IScanDeduplicationService dedup,
-        ILogger<UsbQrScannerService> logger)
+        ILogger<UsbQrScannerService> logger,
+        TimeSpan? interKeystrokeTimeout = null)
     {
         _hmacValidator = hmacValidator;
         _scanApi = scanApi;
@@ -43,6 +44,7 @@ public class UsbQrScannerService : IQrScannerService
         _preferences = preferences;
         _dedup = dedup;
         _logger = logger;
+        _interKeystrokeTimeout = interKeystrokeTimeout ?? TimeSpan.FromMilliseconds(100);
     }
 
     public Task StartAsync()
