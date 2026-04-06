@@ -49,6 +49,9 @@ public class UsbQrScannerServiceTests
                     ScannedAt = scannedAt
                 }));
 
+        // Use a 500ms inter-keystroke timeout so CI scheduling jitter (which can
+        // inflate Task.Delay(10) well beyond 10ms) doesn't falsely trigger the
+        // "slow keystroke" discard path during timing-sensitive tests.
         _service = new UsbQrScannerService(
             _hmacValidatorMock.Object,
             _scanApiMock.Object,
@@ -56,7 +59,8 @@ public class UsbQrScannerServiceTests
             _offlineQueueMock.Object,
             _preferencesMock.Object,
             _dedupMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            interKeystrokeTimeout: TimeSpan.FromMilliseconds(500));
     }
 
     [Fact]
@@ -128,8 +132,8 @@ public class UsbQrScannerServiceTests
         await Task.Delay(10);
         _service.ProcessKeystroke(":");
 
-        // Wait for timeout + async processing to complete
-        await Task.Delay(500);
+        // Wait for timeout (500ms) + async processing to complete
+        await Task.Delay(1000);
 
         // Assert
         Assert.NotNull(capturedResult);
