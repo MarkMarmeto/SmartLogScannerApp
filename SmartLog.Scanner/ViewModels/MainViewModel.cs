@@ -29,7 +29,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isScanning = true;
     [ObservableProperty] private string _statusMessage = "";
     [ObservableProperty] private string _statusIcon = "";
-    [ObservableProperty] private string _statusIconSource = "icon_camera.svg";
 
     // US0009: Scan type toggle (ENTRY/EXIT)
     [ObservableProperty] private string _currentScanType = "ENTRY";
@@ -115,13 +114,11 @@ public partial class MainViewModel : ObservableObject
         {
             _cameraScanner.ScanCompleted += OnScanCompleted;
             StatusIcon = "📷";
-            StatusIconSource = "icon_camera.svg";
         }
         else // USB
         {
             _usbScanner.ScanCompleted += OnScanCompleted;
             StatusIcon = "⌨️";
-            StatusIconSource = "icon_keyboard.svg";
         }
 
         // US0015: Subscribe to connectivity changes
@@ -164,14 +161,12 @@ public partial class MainViewModel : ObservableObject
             await _cameraScanner!.StartAsync();
             StatusMessage = "Ready to scan QR codes";
             StatusIcon = "📷";
-            StatusIconSource = "icon_camera.svg";
         }
         else // USB
         {
             await _usbScanner!.StartAsync();
             StatusMessage = "Ready for USB scanner input";
             StatusIcon = "⌨️";
-            StatusIconSource = "icon_keyboard.svg";
         }
         IsScanning = true;
     }
@@ -204,7 +199,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Accepted!";
                     StatusIcon = "✓";
-                    StatusIconSource = "icon_check.svg";
                     // US0012: Play success sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
                     break;
@@ -225,7 +219,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Duplicate scan";
                     StatusIcon = "⚠";
-                    StatusIconSource = "icon_warning.svg";
                     // US0012: Play duplicate sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
                     break;
@@ -245,7 +238,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Rejected";
                     StatusIcon = "✗";
-                    StatusIconSource = "icon_close.svg";
                     // US0012: Play error sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
                     break;
@@ -265,7 +257,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Queued offline";
                     StatusIcon = "📥";
-                    StatusIconSource = "icon_queue.svg";
                     // US0012: Play queued sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Queued);
                     break;
@@ -285,7 +276,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Error";
                     StatusIcon = "✗";
-                    StatusIconSource = "icon_close.svg";
                     // US0012: Play error sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Error);
                     break;
@@ -305,7 +295,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Rate limited";
                     StatusIcon = "⏱";
-                    StatusIconSource = "icon_timer.svg";
                     // US0012: Play queued sound (same as offline)
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.RateLimited);
                     break;
@@ -325,7 +314,6 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Already scanned";
                     StatusIcon = "⚠";
-                    StatusIconSource = "icon_warning.svg";
                     // Play duplicate sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
                     break;
@@ -350,13 +338,11 @@ public partial class MainViewModel : ObservableObject
                     {
                         StatusMessage = "Ready to scan QR codes";
                         StatusIcon = "📷";
-                        StatusIconSource = "icon_camera.svg";
                     }
                     else
                     {
                         StatusMessage = "Ready for USB scanner input";
                         StatusIcon = "⌨️";
-                        StatusIconSource = "icon_keyboard.svg";
                     }
                 });
             });
