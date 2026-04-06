@@ -76,9 +76,8 @@
                         <TapGestureRecognizer Command="{Binding ToggleScanTypeCommand}" />
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="10">
-                        <Image Source="icon_sync.svg"
-                               WidthRequest="16"
-                               HeightRequest="16"
+                        <Label Text="🔄"
+                               FontSize="16"
                                VerticalOptions="Center" />
                         <Label Text="{Binding CurrentScanType, StringFormat='{0} Mode'}"
                                FontSize="16"
@@ -89,67 +88,37 @@
                 </Border>
 
                 <!-- View Logs Button -->
-                <Border Grid.Column="4"
-                        BackgroundColor="#4D9B91"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        StrokeThickness="0"
+                <Button Grid.Column="4"
+                        Text="📊"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        TextColor="#4D9B91"
+                        Clicked="OnViewLogsClicked"
                         VerticalOptions="Center"
-                        Margin="0,0,10,0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnViewLogsClicked" />
-                    </Border.GestureRecognizers>
-                    <Image Source="icon_chart.svg"
-                           WidthRequest="18"
-                           HeightRequest="18"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
+                        Padding="8,4"
+                        Margin="0,0,10,0" />
 
                 <!-- Settings Button -->
-                <Border Grid.Column="5"
-                        BackgroundColor="#4D9B91"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        StrokeThickness="0"
+                <Button Grid.Column="5"
+                        Text="⚙️"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        TextColor="#4D9B91"
+                        Clicked="OnSettingsClicked"
                         VerticalOptions="Center"
-                        Margin="0,0,10,0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnSettingsClicked" />
-                    </Border.GestureRecognizers>
-                    <Image Source="icon_settings.svg"
-                           WidthRequest="18"
-                           HeightRequest="18"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
+                        Padding="8,4"
+                        Margin="0,0,10,0" />
 
                 <!-- About Button -->
-                <Border Grid.Column="6"
-                        BackgroundColor="#4D9B91"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        StrokeThickness="0"
+                <Button Grid.Column="6"
+                        Text="ℹ️"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        TextColor="#4D9B91"
+                        Clicked="OnAboutClicked"
                         VerticalOptions="Center"
-                        Margin="0,0,10,0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnAboutClicked" />
-                    </Border.GestureRecognizers>
-                    <Image Source="icon_info.svg"
-                           WidthRequest="18"
-                           HeightRequest="18"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
+                        Padding="8,4"
+                        Margin="0,0,10,0" />
 
                 <!-- Scanning Status -->
                 <HorizontalStackLayout Grid.Column="7"
@@ -202,16 +171,10 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="8" />
                         </Border.StrokeShape>
-                        <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
-                            <Image Source="icon_camera.svg"
-                                   WidthRequest="10"
-                                   HeightRequest="10"
-                                   VerticalOptions="Center" />
-                            <Label Text="Scanner"
-                                   FontSize="10"
-                                   TextColor="White"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
+                        <Label Text="📷 Scanner"
+                               FontSize="10"
+                               TextColor="White"
+                               HorizontalOptions="Center" />
                     </Border>
                 </Grid>
             </Border>
@@ -266,33 +229,32 @@
                         <!-- Skeleton avatar (no data) -->
                         <Border WidthRequest="120"
                                 HeightRequest="120"
-                                BackgroundColor="#BDBDBD"
+                                BackgroundColor="#EEEEEE"
                                 Stroke="#D0D0D0"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="60" />
                             </Border.StrokeShape>
-                            <Image Source="icon_person.svg"
-                                   WidthRequest="54"
-                                   HeightRequest="54"
-                                   Opacity="0.5"
+                            <Label Text="👤"
+                                   FontSize="54"
+                                   Opacity="0.3"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
                         <!-- Active avatar (has data) -->
                         <Border WidthRequest="120"
                                 HeightRequest="120"
-                                BackgroundColor="#4D9B91"
+                                BackgroundColor="#E0F2F1"
                                 Stroke="#4D9B91"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="60" />
                             </Border.StrokeShape>
-                            <Image Source="icon_person.svg"
-                                   WidthRequest="54"
-                                   HeightRequest="54"
+                            <Label Text="👤"
+                                   FontSize="54"
+                                   Opacity="0.85"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
@@ -415,20 +377,9 @@
                             <HorizontalStackLayout Spacing="8"
                                                    HorizontalOptions="Center"
                                                    IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
-                                <Border WidthRequest="20"
-                                        HeightRequest="20"
-                                        BackgroundColor="#4D9B91"
-                                        StrokeThickness="0"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <Image Source="icon_camera.svg"
-                                           WidthRequest="12"
-                                           HeightRequest="12"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
+                                <Label Text="📷"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
                                 <Label Text="Scan a student QR code"
                                        FontSize="13"
                                        TextColor="#9E9E9E"
@@ -438,20 +389,9 @@
                             <HorizontalStackLayout Spacing="8"
                                                    HorizontalOptions="Center"
                                                    IsVisible="{Binding HasScannedStudent}">
-                                <Border WidthRequest="20"
-                                        HeightRequest="20"
-                                        BackgroundColor="#4D9B91"
-                                        StrokeThickness="0"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <Image Source="icon_clock.svg"
-                                           WidthRequest="12"
-                                           HeightRequest="12"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
+                                <Label Text="🕒"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
                                 <Label Text="{Binding LastScanTime, StringFormat='Scanned at {0}'}"
                                        FontSize="13"
                                        FontAttributes="Bold"
@@ -485,9 +425,9 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="28" />
                     </Border.StrokeShape>
-                    <Image Source="{Binding StatusIconSource}"
-                           WidthRequest="28"
-                           HeightRequest="28"
+                    <Label Text="{Binding StatusIcon}"
+                           FontSize="28"
+                           TextColor="White"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
                 </Border>
@@ -506,9 +446,8 @@
                 <HorizontalStackLayout Grid.Column="1" Grid.Row="1"
                                        Spacing="6"
                                        VerticalOptions="Start">
-                    <Image Source="icon_clock.svg"
-                           WidthRequest="12"
-                           HeightRequest="12"
+                    <Label Text="🕒"
+                           FontSize="12"
                            VerticalOptions="Center" />
                     <Label Text="{Binding LastScanTime, StringFormat='{0}'}"
                            FontSize="13"
@@ -549,14 +488,14 @@
                 <!-- Animated Ready Icon -->
                 <Border WidthRequest="48"
                         HeightRequest="48"
-                        BackgroundColor="#4D9B91"
+                        BackgroundColor="#E0F2F1"
                         VerticalOptions="Center">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="24" />
                     </Border.StrokeShape>
-                    <Image Source="{Binding StatusIconSource}"
-                           WidthRequest="24"
-                           HeightRequest="24"
+                    <Label Text="{Binding StatusIcon}"
+                           FontSize="24"
+                           TextColor="#4D9B91"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
                 </Border>
@@ -605,9 +544,8 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
-                            <Image Source="icon_queue.svg"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
+                            <Label Text="📥"
+                                   FontSize="20"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
@@ -646,9 +584,8 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
-                            <Image Source="icon_chart.svg"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
+                            <Label Text="📊"
+                                   FontSize="20"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
@@ -691,9 +628,8 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
-                            <Image Source="icon_sync.svg"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
+                            <Label Text="🔄"
+                                   FontSize="20"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
