@@ -137,7 +137,20 @@
                         SelectionMode="Single">
             <CollectionView.EmptyView>
                 <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
-                    <Label Text="📊" FontSize="48" HorizontalOptions="Center"/>
+                    <Border WidthRequest="80"
+                            HeightRequest="80"
+                            BackgroundColor="#4D9B91"
+                            StrokeThickness="0"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="40" />
+                        </Border.StrokeShape>
+                        <Image Source="icon_chart.svg"
+                               WidthRequest="48"
+                               HeightRequest="48"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
                     <Label Text="No scan logs yet" FontSize="18" HorizontalOptions="Center"/>
                     <Label Text="Scans will appear here automatically"
                            FontSize="14"

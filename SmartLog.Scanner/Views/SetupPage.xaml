@@ -36,7 +36,10 @@
                     <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,2" />
                 </Border.Shadow>
                 <HorizontalStackLayout Spacing="10">
-                    <Label Text="⚠️" FontSize="18" VerticalOptions="Center" />
+                    <Image Source="icon_warning.svg"
+                           WidthRequest="18"
+                           HeightRequest="18"
+                           VerticalOptions="Center" />
                     <Label Text="{Binding SaveError}"
                            TextColor="White"
                            VerticalOptions="Center"
@@ -56,10 +59,27 @@
                 </Border.Shadow>
 
                 <VerticalStackLayout Spacing="15">
-                    <Label Text="🌐 Server Connection"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Border WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#4D9B91"
+                                StrokeThickness="0"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Image Source="icon_network.svg"
+                                   WidthRequest="18"
+                                   HeightRequest="18"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="Server Connection"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
 
                     <!-- Server URL -->
                     <VerticalStackLayout Spacing="5">
@@ -136,10 +156,20 @@
                             <RoundRectangle CornerRadius="6" />
                         </Border.StrokeShape>
                         <HorizontalStackLayout Spacing="10">
-                            <Label Text="{Binding TestResult, Converter={StaticResource TestResultIconConverter}}"
-                                   FontSize="20"
-                                   TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
-                                   VerticalOptions="Center" />
+                            <Border WidthRequest="28"
+                                    HeightRequest="28"
+                                    BackgroundColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
+                                    StrokeThickness="0"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Image Source="{Binding TestResult, Converter={StaticResource TestResultImageConverter}}"
+                                       WidthRequest="16"
+                                       HeightRequest="16"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
                             <Label Text="{Binding TestResultMessage}"
                                    TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
                                    VerticalOptions="Center"
@@ -168,10 +198,27 @@
                 </Border.Shadow>
 
                 <VerticalStackLayout Spacing="15">
-                    <Label Text="🔐 Security Configuration"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Border WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#4D9B91"
+                                StrokeThickness="0"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Image Source="icon_lock.svg"
+                                   WidthRequest="18"
+                                   HeightRequest="18"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="Security Configuration"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
 
                     <!-- HMAC Secret -->
                     <VerticalStackLayout Spacing="5">
@@ -214,7 +261,20 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="10">
                                 <HorizontalStackLayout Spacing="10">
-                                    <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
+                                    <Border WidthRequest="28"
+                                            HeightRequest="28"
+                                            BackgroundColor="#FF9800"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Image Source="icon_warning.svg"
+                                               WidthRequest="16"
+                                               HeightRequest="16"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
                                     <Label Text="TLS Certificate Security"
                                            FontSize="15"
                                            FontAttributes="Bold"
@@ -260,10 +320,27 @@
                 </Border.Shadow>
 
                 <VerticalStackLayout Spacing="15">
-                    <Label Text="📷 Scanner Configuration"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Border WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#4D9B91"
+                                StrokeThickness="0"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Image Source="icon_camera.svg"
+                                   WidthRequest="18"
+                                   HeightRequest="18"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="Scanner Configuration"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
 
                     <!-- Detected Devices -->
                     <VerticalStackLayout Spacing="5">

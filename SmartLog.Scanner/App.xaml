@@ -23,6 +23,7 @@
             <converters:EnumNotNoneConverter x:Key="EnumNotNoneConverter" />
             <converters:TestResultIconConverter x:Key="TestResultIconConverter" />
             <converters:TestResultColorConverter x:Key="TestResultColorConverter" />
+            <converters:TestResultImageConverter x:Key="TestResultImageConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
