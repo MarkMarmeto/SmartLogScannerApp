@@ -25,6 +25,11 @@ public class CameraQrScannerService : IQrScannerService
     private DateTime _lastProcessedTime = DateTime.MinValue;
     private string? _lastProcessedPayload;
 
+    // How long to lock out the same QR payload after processing.
+    // Matches the UI feedback duration (3s) so the scanner is ready the moment feedback clears.
+    // The student-level dedup service handles repeat-student protection beyond this window.
+    private static readonly TimeSpan PayloadLockoutWindow = TimeSpan.FromSeconds(3);
+
     public event EventHandler<ScanResult>? ScanCompleted;
     public event EventHandler<ScanResult>? ScanUpdated;
     public bool IsScanning { get; private set; }
@@ -84,11 +89,13 @@ public class CameraQrScannerService : IQrScannerService
             return;
         }
 
-        // Post-scan lockout: same payload within warn window is silently ignored
-        if (payload == _lastProcessedPayload && (now - _lastProcessedTime) < DeduplicationConfig.WarnWindow)
+        // Post-scan lockout: same payload within lockout window is silently ignored.
+        // 3s matches the UI feedback duration — once feedback clears, the same card can be re-scanned
+        // and the student-level dedup service provides feedback for any repeats within its own window.
+        if (payload == _lastProcessedPayload && (now - _lastProcessedTime) < PayloadLockoutWindow)
         {
             _logger.LogDebug("Same QR code still in view, ignoring (lockout {Sec}s remaining)",
-                (DeduplicationConfig.WarnWindow - (now - _lastProcessedTime)).TotalSeconds);
+                (PayloadLockoutWindow - (now - _lastProcessedTime)).TotalSeconds);
             return;
         }
 

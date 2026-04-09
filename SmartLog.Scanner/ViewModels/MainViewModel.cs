@@ -362,8 +362,10 @@ public partial class MainViewModel : ObservableObject
             if (result.Status != ScanStatus.Accepted || !result.IsOptimistic)
                 _ = UpdateStatisticsAsync(result.Status);
 
-            // Hide feedback after 3 seconds and reset card to skeleton
-            Task.Delay(3000).ContinueWith(_ =>
+            // Hide feedback after 3 seconds and reset card to skeleton.
+            // 3s matches the CameraQrScannerService payload lockout window (PayloadLockoutWindow),
+            // so the scanner is ready for a new card the moment feedback disappears.
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
