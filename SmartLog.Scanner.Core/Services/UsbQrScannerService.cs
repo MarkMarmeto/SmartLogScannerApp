@@ -16,6 +16,7 @@ public class UsbQrScannerService : IQrScannerService
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IPreferencesService _preferences;
     private readonly IScanDeduplicationService _dedup;
+    private readonly ITimeService _timeService;
     private readonly ILogger<UsbQrScannerService> _logger;
 
     private readonly StringBuilder _inputBuffer = new();
@@ -35,6 +36,7 @@ public class UsbQrScannerService : IQrScannerService
         IOfflineQueueService offlineQueue,
         IPreferencesService preferences,
         IScanDeduplicationService dedup,
+        ITimeService timeService,
         ILogger<UsbQrScannerService> logger,
         TimeSpan? interKeystrokeTimeout = null)
     {
@@ -44,6 +46,7 @@ public class UsbQrScannerService : IQrScannerService
         _offlineQueue = offlineQueue;
         _preferences = preferences;
         _dedup = dedup;
+        _timeService = timeService;
         _logger = logger;
         _interKeystrokeTimeout = interKeystrokeTimeout ?? TimeSpan.FromMilliseconds(100);
     }
@@ -190,7 +193,7 @@ public class UsbQrScannerService : IQrScannerService
             _logger.LogInformation("Valid USB scan - StudentId: {StudentId}", validationResult.StudentId);
 
             var scanType = _preferences.GetDefaultScanType();
-            var scannedAt = DateTimeOffset.UtcNow;
+            var scannedAt = _timeService.UtcNow;
 
             // Student-level deduplication check (after HMAC validation)
             var dedupResult = _dedup.CheckAndRecord(

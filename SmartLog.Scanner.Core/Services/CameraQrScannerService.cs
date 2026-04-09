@@ -16,6 +16,7 @@ public class CameraQrScannerService : IQrScannerService
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IPreferencesService _preferences;
     private readonly IScanDeduplicationService _dedup;
+    private readonly ITimeService _timeService;
     private readonly ILogger<CameraQrScannerService> _logger;
 
     private string? _lastPayload;
@@ -35,6 +36,7 @@ public class CameraQrScannerService : IQrScannerService
         IOfflineQueueService offlineQueue,
         IPreferencesService preferences,
         IScanDeduplicationService dedup,
+        ITimeService timeService,
         ILogger<CameraQrScannerService> logger)
     {
         _hmacValidator = hmacValidator;
@@ -43,6 +45,7 @@ public class CameraQrScannerService : IQrScannerService
         _offlineQueue = offlineQueue;
         _preferences = preferences;
         _dedup = dedup;
+        _timeService = timeService;
         _logger = logger;
     }
 
@@ -113,7 +116,7 @@ public class CameraQrScannerService : IQrScannerService
         _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
 
         var scanType = _preferences.GetDefaultScanType();
-        var scannedAt = DateTimeOffset.UtcNow;
+        var scannedAt = _timeService.UtcNow;
 
         // Student-level deduplication check (~2ms)
         var dedupResult = _dedup.CheckAndRecord(validationResult.StudentId!, scanType, studentName: null);

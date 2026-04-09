@@ -23,6 +23,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IBackgroundSyncService _backgroundSync;
     private readonly ISecureConfigService _secureConfig;
     private readonly IScanHistoryService _scanHistory;
+    private readonly ITimeService _timeService;
     private readonly ILogger<MainViewModel> _logger;
     private readonly string _scannerMode;
 
@@ -109,6 +110,7 @@ public partial class MainViewModel : ObservableObject
         IBackgroundSyncService backgroundSync,
         ISecureConfigService secureConfig,
         IScanHistoryService scanHistory,
+        ITimeService timeService,
         ILogger<MainViewModel> logger)
     {
         _cameraScanner = cameraScanner;
@@ -120,6 +122,7 @@ public partial class MainViewModel : ObservableObject
         _backgroundSync = backgroundSync;
         _secureConfig = secureConfig;
         _scanHistory = scanHistory;
+        _timeService = timeService;
         _logger = logger;
 
         // Read scanner mode from preferences (set during setup)
@@ -150,12 +153,17 @@ public partial class MainViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
-        // Start live clock — ticks every second, updates CurrentDateTime
-        CurrentDateTime = DateTimeOffset.Now.ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+        // Sync clock with server before starting the ticker so the display reflects
+        // the corrected time from the very first tick.
+        await _timeService.SyncAsync();
+
+        // Start live clock — uses ITimeService.UtcNow so the display shows synced time.
+        // Converts to local time for display.
+        CurrentDateTime = _timeService.UtcNow.ToLocalTime().ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
         _clockTimer = Application.Current!.Dispatcher.CreateTimer();
         _clockTimer.Interval = TimeSpan.FromSeconds(1);
         _clockTimer.Tick += (_, _) =>
-            CurrentDateTime = DateTimeOffset.Now.ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+            CurrentDateTime = _timeService.UtcNow.ToLocalTime().ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
         _clockTimer.Start();
 
         // US0012: Initialize audio service (pre-load sound files)
