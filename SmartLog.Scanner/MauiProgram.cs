@@ -314,6 +314,9 @@ public static class MauiProgram
 		// US0015: Register health check monitoring service
 		builder.Services.AddSingleton<IHealthCheckService, HealthCheckService>();
 
+		// Time sync service — corrects device clock drift using server time on startup
+		builder.Services.AddSingleton<ITimeService, TimeService>();
+
 		// US0016: Register background sync service
 		builder.Services.AddSingleton<IBackgroundSyncService, BackgroundSyncService>();
 
