@@ -60,6 +60,22 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
 
         _logger.LogInformation("Background sync service started");
 
+        // Auto-reset any scans that were permanently marked FAILED in a previous session.
+        // This gives them another chance to sync instead of requiring manual intervention.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var resetCount = await _offlineQueue.RetryFailedScansAsync();
+                if (resetCount > 0)
+                    _logger.LogInformation("Auto-reset {Count} permanently-failed scans back to PENDING on startup", resetCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-reset FAILED scans on startup");
+            }
+        });
+
         // US0016 AC8: If already online, trigger immediate sync
         var currentStatus = _healthCheck.IsOnline;
         _logger.LogInformation("BackgroundSync: Current health check status = {Status}",

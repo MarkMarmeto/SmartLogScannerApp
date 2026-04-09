@@ -150,7 +150,7 @@ public class OfflineQueueService : IOfflineQueueService
     /// </summary>
     public async Task MarkFailedAsync(int queueId, string errorMessage)
     {
-        const int MaxRetryAttempts = 10;
+        const int MaxRetryAttempts = 25;
 
         try
         {

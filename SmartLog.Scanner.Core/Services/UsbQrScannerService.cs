@@ -237,8 +237,9 @@ public class UsbQrScannerService : IQrScannerService
                 _logger.LogDebug("Server online - submitting USB scan to API");
                 scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
 
-                // US0017 AC3: Mid-request failure fallback to queue
-                if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error)
+                // US0017 AC3: Mid-request failure fallback to queue (also covers rate limiting)
+                if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error
+                    || scanResult.Status == ScanStatus.RateLimited)
                 {
                     _logger.LogWarning("Server submission failed, falling back to offline queue");
 
