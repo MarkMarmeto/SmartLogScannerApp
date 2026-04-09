@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog — System Architecture</title>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #1e429f;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --radius: 8px;
+    --teal: #0f766e;
+    --teal-light: #ccfbf1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); }
+
+  header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--teal) 100%); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 1.75rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .5rem; }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p { font-size: 14px; opacity: .8; margin-top: 5px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; }
+  section > h2 { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 1.25rem; padding-bottom: .6rem; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 .6rem; }
+  h3:first-of-type { margin-top: 0; }
+  h4 { font-size: .875rem; font-weight: 600; margin: 1.25rem 0 .5rem; color: var(--text-muted); }
+  p { margin-bottom: .75rem; font-size: 14px; }
+  ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; font-size: 14px; }
+  li { margin-bottom: .3rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .55rem .9rem; border: 1px solid var(--border); }
+  td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: var(--radius); padding: 1.25rem 1.4rem; overflow-x: auto; font-size: 13px; line-height: 1.7; margin: .75rem 0; }
+  code { font-family: 'SFMono-Regular', Consolas, monospace; }
+  p code, td code, li code { background: #f1f5f9; color: #c7254e; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .callout { border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0; font-size: 14px; }
+  .callout-info { background: #dbeafe; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .callout-warn { background: #fef9c3; border-left: 4px solid #eab308; color: #713f12; }
+
+  .component-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin: 1rem 0; }
+  @media (max-width: 720px) { .component-grid { grid-template-columns: 1fr; } main { padding: 1.5rem 1rem; } }
+
+  .component-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .component-card-header { padding: .85rem 1.1rem; font-weight: 700; font-size: .95rem; display: flex; align-items: center; gap: .6rem; }
+  .component-card-body { padding: .85rem 1.1rem; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+  .component-card-body ul { margin: 0; }
+
+  .status-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .status-green { background: #dcfce7; color: #166534; }
+  .status-amber { background: #fef9c3; color: #713f12; }
+  .status-red { background: #fee2e2; color: #991b1b; }
+  .status-blue { background: #dbeafe; color: #1e40af; }
+
+  .flow-step { display: flex; gap: 1rem; margin-bottom: .75rem; align-items: flex-start; }
+  .flow-num { width: 24px; height: 24px; min-width: 24px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: .2rem; }
+  .flow-content { flex: 1; font-size: 14px; line-height: 1.6; }
+
+  .topology-box { background: var(--code-bg); color: var(--code-text); border-radius: var(--radius); padding: 1.5rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; line-height: 1.9; overflow-x: auto; }
+  .topology-box .label-server { color: #86efac; }
+  .topology-box .label-scanner { color: #93c5fd; }
+  .topology-box .label-admin { color: #fde68a; }
+  .topology-box .label-sms { color: #f9a8d4; }
+  .topology-box .label-db { color: #c4b5fd; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">System Architecture</div>
+    <h1>SmartLog</h1>
+    <p>How SmartLogWebApp and SmartLogScannerApp work together</p>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#overview">Overview</a>
+    <a href="#roles">Roles</a>
+    <a href="#communication">Communication</a>
+    <a href="#auth">Auth &amp; Trust</a>
+    <a href="#qr">QR Lifecycle</a>
+    <a href="#sms">SMS Flow</a>
+    <a href="#offline">Offline Resilience</a>
+    <a href="#topology">Deployment</a>
+    <a href="#data">Data Storage</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <h2>System Overview</h2>
+    <p>SmartLog is a two-application system deployed entirely on the school's local network. No internet connection is required for core operations.</p>
+
+    <div class="topology-box">
+<span style="color:#94a3b8">┌────────────────────────────────────────────────────────────────────────┐</span>
+<span style="color:#94a3b8">│                    School LAN (192.168.1.x)                             │</span>
+<span style="color:#94a3b8">│                                                                          │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">┌──────────────────────┐</span><span style="color:#94a3b8">    HTTP/REST     </span><span class="label-server">┌───────────────────────┐</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">│  SmartLogScannerApp  │</span><span style="color:#94a3b8"> ──────────────► </span><span class="label-server">│   SmartLogWebApp      │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">│  .NET 8 MAUI         │</span><span style="color:#94a3b8"> POST /scans     </span><span class="label-server">│   ASP.NET Core 8      │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">│  Gate scanner device │</span><span style="color:#94a3b8"> GET  /health    </span><span class="label-server">│   Port 5050           │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">└──────────────────────┘</span><span style="color:#94a3b8"> ◄────────────── </span><span class="label-server">│                       │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│                            scan result      </span><span class="label-server">│  </span><span class="label-db">┌─────────────────┐</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">┌──────────────────────┐</span><span style="color:#94a3b8">                 </span><span class="label-server">│  </span><span class="label-db">│  SQL Server     │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">│  SmartLogScannerApp  │</span><span style="color:#94a3b8"> ──────────────► </span><span class="label-server">│  </span><span class="label-db">└─────────────────┘</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">│  (second gate)       │</span><span style="color:#94a3b8">                 </span><span class="label-server">│                       │</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-scanner">└──────────────────────┘</span><span style="color:#94a3b8">                 </span><span class="label-server">│  </span><span class="label-sms">┌─────────────────┐</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│                                               </span><span class="label-server">│  </span><span class="label-sms">│  GSM Modem      │──► SMS</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-admin">┌──────────────────────┐</span><span style="color:#94a3b8">                 </span><span class="label-server">│  </span><span class="label-sms">└─────────────────┘</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-admin">│  Admin Browser       │</span><span style="color:#94a3b8"> ──── HTTP ────► </span><span class="label-server">└───────────────────────┘</span><span style="color:#94a3b8">  │</span>
+<span style="color:#94a3b8">│  </span><span class="label-admin">│  (any LAN browser)   │</span><span style="color:#94a3b8">   Razor Pages                              │</span>
+<span style="color:#94a3b8">│  </span><span class="label-admin">└──────────────────────┘</span><span style="color:#94a3b8">                                              │</span>
+<span style="color:#94a3b8">└────────────────────────────────────────────────────────────────────────┘</span>
+    </div>
+
+    <table style="margin-top:1.5rem">
+      <thead><tr><th>Component</th><th>Role</th><th>Deployment</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SmartLogWebApp</strong></td><td>Central server — attendance records, student data, SMS, admin UI</td><td>Windows Service on a dedicated school PC</td></tr>
+        <tr><td><strong>SmartLogScannerApp</strong></td><td>Gate client — reads QR codes, submits scans, shows real-time feedback</td><td>Windows desktop app on each gate PC</td></tr>
+        <tr><td><strong>SQL Server Express</strong></td><td>Persistent data store for all records</td><td>Co-located with SmartLogWebApp</td></tr>
+        <tr><td><strong>GSM Modem</strong></td><td>SMS gateway for parent notifications (offline-capable)</td><td>USB-connected to the SmartLogWebApp server</td></tr>
+        <tr><td><strong>Semaphore API</strong></td><td>Cloud SMS fallback (requires internet)</td><td>External; used only when GSM modem fails</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ROLES -->
+  <section id="roles">
+    <h2>Roles &amp; Responsibilities</h2>
+    <div class="component-grid">
+      <div class="component-card">
+        <div class="component-card-header" style="background:#dbeafe;color:#1e40af">
+          🖥️ SmartLogWebApp <span style="font-size:11px;font-weight:500;opacity:.7">(Server)</span>
+        </div>
+        <div class="component-card-body">
+          <ul>
+            <li><strong>Source of truth</strong> for all student, attendance, and config data</li>
+            <li>Validates QR codes (HMAC-SHA256)</li>
+            <li>Enforces business rules: school calendar, duplicate detection, student status</li>
+            <li>Queues and sends SMS notifications to parents</li>
+            <li>Provides admin UI (Razor Pages) for managing the entire system</li>
+            <li>Exposes a REST API for scanner clients</li>
+          </ul>
+        </div>
+      </div>
+      <div class="component-card">
+        <div class="component-card-header" style="background:#ccfbf1;color:#134e4a">
+          📷 SmartLogScannerApp <span style="font-size:11px;font-weight:500;opacity:.7">(Client)</span>
+        </div>
+        <div class="component-card-body">
+          <ul>
+            <li>Reads QR codes via camera or USB barcode scanner</li>
+            <li>Performs <strong>local HMAC pre-validation</strong> before hitting the server</li>
+            <li>Submits scans and shows color-coded results to the gate guard</li>
+            <li>Monitors server health every 15 seconds</li>
+            <li>Multiple instances can run simultaneously — each with its own API key</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMUNICATION -->
+  <section id="communication">
+    <h2>Communication Protocol</h2>
+    <p>The Scanner App and Web App communicate exclusively over <strong>HTTP/REST</strong> on the school's LAN.</p>
+
+    <h3>Endpoints Used by the Scanner App</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/v1/scans</code></td><td><code>X-API-Key</code> header</td><td>Submit a QR scan, receive result</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/health</code></td><td>None</td><td>Check server is reachable</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Scanner → Server Request Flow</h3>
+    <div style="margin:1rem 0">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-content">Student presents QR code to the gate scanner</div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-content">Scanner reads payload: <code>SMARTLOG:{studentId}:{timestamp}:{hmac}</code></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-content">Scanner validates HMAC <strong>locally</strong> — rejects bad format or tampered codes immediately, without a network round-trip</div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-content">Scanner sends <code>POST /api/v1/scans</code> with <code>X-API-Key</code> header and <code>{ qrPayload, scannedAt, scanType }</code></div></div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-content">Server authenticates device (SHA-256 hash lookup, constant-time comparison)</div></div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-content">Server re-validates HMAC independently</div></div>
+      <div class="flow-step"><div class="flow-num">7</div><div class="flow-content">Server checks: student active? school day? duplicate within 5-minute window?</div></div>
+      <div class="flow-step"><div class="flow-num">8</div><div class="flow-content">Server saves <code>Scan</code> record to SQL Server and queues SMS notification</div></div>
+      <div class="flow-step"><div class="flow-num">9</div><div class="flow-content">Server responds: <code>{ studentName, grade, section, status: "ACCEPTED" }</code></div></div>
+      <div class="flow-step"><div class="flow-num">10</div><div class="flow-content">Scanner shows color-coded result + plays audio cue</div></div>
+      <div class="flow-step"><div class="flow-num">11</div><div class="flow-content"><code>SmsWorkerService</code> (background) sends SMS to parent via GSM modem or Semaphore</div></div>
+    </div>
+
+    <h3>Response Status Values</h3>
+    <table>
+      <thead><tr><th>Status</th><th>Meaning</th><th>Scanner Display</th></tr></thead>
+      <tbody>
+        <tr><td><code>ACCEPTED</code></td><td>Scan recorded successfully</td><td><span class="status-badge status-green">Green</span></td></tr>
+        <tr><td><code>DUPLICATE</code></td><td>Already scanned within 5-min window</td><td><span class="status-badge status-amber">Amber</span></td></tr>
+        <tr><td><code>REJECTED_INVALID_QR</code></td><td>Bad format or HMAC mismatch</td><td><span class="status-badge status-red">Red</span></td></tr>
+        <tr><td><code>REJECTED_QR_INVALIDATED</code></td><td>QR was regenerated; this code is revoked</td><td><span class="status-badge status-red">Red</span></td></tr>
+        <tr><td><code>REJECTED_STUDENT_INACTIVE</code></td><td>Student account deactivated</td><td><span class="status-badge status-red">Red</span></td></tr>
+        <tr><td><code>REJECTED_NOT_SCHOOL_DAY</code></td><td>Holiday, suspension, or weekend</td><td><span class="status-badge status-blue">Blue/Teal</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- AUTH -->
+  <section id="auth">
+    <h2>Authentication &amp; Trust Model</h2>
+    <div class="component-grid">
+      <div>
+        <h3>Scanner Device → Server</h3>
+        <p>Each scanner device has a unique API key (<code>sk_live_xxx</code>). The Web App stores only the SHA-256 hash. The Scanner stores the plain key in platform secure storage (DPAPI on Windows, Keychain on macOS).</p>
+        <pre><code>Scanner App             Web App
+X-API-Key: sk_live_xxx ──►  SHA256(key)
+                             == Device.ApiKeyHash?
+                             (constant-time compare)</code></pre>
+        <p style="font-size:13px;color:var(--text-muted)">Keys are never stored in config files, logs, or source code.</p>
+      </div>
+      <div>
+        <h3>QR Code Validation (HMAC)</h3>
+        <p>The HMAC secret is shared between the Web App (signs QR codes at generation) and the Scanner App (local pre-validation).</p>
+        <pre><code>Scanner (local pre-check):
+  HMAC-SHA256(id:ts) == payload.hmac?
+
+Server (re-validates independently):
+  HMAC-SHA256(id:ts) == payload.hmac?
+  (constant-time compare)</code></pre>
+        <p style="font-size:13px;color:var(--text-muted)">Both validations use <code>CryptographicOperations.FixedTimeEquals</code> to prevent timing attacks.</p>
+      </div>
+    </div>
+    <h3>Admin Browser → Server</h3>
+    <p>Standard cookie-based auth via ASP.NET Core Identity. 10-hour sliding expiration. Role-based policies (SuperAdmin, Admin, Teacher, Security, Staff) restrict access to pages and API endpoints.</p>
+  </section>
+
+  <!-- QR LIFECYCLE -->
+  <section id="qr">
+    <h2>QR Code Lifecycle</h2>
+    <div class="component-grid">
+      <div>
+        <h3>Generation (Web App)</h3>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content">Admin generates QR for a student</div></div>
+        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content">Web App computes <code>HMAC-SHA256(studentId:timestamp)</code> using <code>SMARTLOG_HMAC_SECRET_KEY</code></div></div>
+        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content">Payload: <code>SMARTLOG:{id}:{ts}:{hmac}</code> saved to <code>QrCode</code> table (<code>IsValid=true</code>)</div></div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content">QR image printed on student ID card</div></div>
+      </div>
+      <div>
+        <h3>Revocation (Web App)</h3>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content">Admin regenerates QR for a student (lost card, etc.)</div></div>
+        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content">Old <code>QrCode.IsValid</code> set to <code>false</code></div></div>
+        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content">New QR generated with a new timestamp and HMAC</div></div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content">Any future scan of the old QR → <code>REJECTED_QR_INVALIDATED</code></div></div>
+      </div>
+    </div>
+    <div class="callout callout-info" style="margin-top:1rem">
+      The timestamp in the QR code does <strong>not</strong> expire — it is only used as input to the HMAC signature, not for time-based validity. Deduplication (5-minute window) is enforced server-side per scan submission.
+    </div>
+  </section>
+
+  <!-- SMS FLOW -->
+  <section id="sms">
+    <h2>SMS Notification Flow</h2>
+    <pre><code>Scan accepted by Web App
+    │
+    ▼
+ScanService.QueueAttendanceNotificationAsync()
+    ├─ Is SMS globally enabled?          (SmsSettings)
+    ├─ Does student have a phone number? (Student.ParentPhone)
+    ├─ Is SMS enabled for this student?  (Student.SmsEnabled)
+    ├─ What language?                    (Student.SmsLanguage → EN or FIL)
+    ├─ Render template                   (SmsTemplate: ENTRY or EXIT)
+    ├─ Duplicate check (5-min window)
+    └─ INSERT into SmsQueue (Status=Pending)
+              │
+              ▼
+    SmsWorkerService  (background, polls every 5s)
+    ├─ Fetch next Pending message (Priority order, then ScheduledAt)
+    ├─ Try GSM_MODEM (default)
+    │       ├─ Success → Status=Sent, log to SmsLog
+    │       └─ Failure → try fallback if enabled
+    ├─ Try SEMAPHORE (fallback)
+    │       ├─ Success → Status=Sent, log to SmsLog
+    │       └─ Failure → schedule retry
+    └─ Retry: exponential backoff 2 min → 4 min → 8 min (max 3 retries)</code></pre>
+
+    <h3>SMS Gateways</h3>
+    <table>
+      <thead><tr><th>Gateway</th><th>Transport</th><th>Internet Required</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GSM Modem</strong></td><td>USB serial AT commands</td><td>No</td><td>~₱1/SMS (SIM load)</td></tr>
+        <tr><td><strong>Semaphore</strong></td><td>HTTPS REST API</td><td>Yes</td><td>Per-credit pricing</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- OFFLINE -->
+  <section id="offline">
+    <h2>Offline Resilience (Scanner App)</h2>
+    <p>The Scanner App handles temporary server unavailability through a SQLite-backed offline queue.</p>
+    <div class="component-grid">
+      <div>
+        <h3>Normal Operation</h3>
+        <pre><code>QR scan
+  → HMAC local pre-validation
+  → POST /api/v1/scans
+  → display result to guard</code></pre>
+      </div>
+      <div>
+        <h3>Server Unreachable</h3>
+        <pre><code>QR scan
+  → HMAC local pre-validation
+  → POST fails
+  → OfflineQueueService
+  → INSERT into SQLite QueuedScans</code></pre>
+      </div>
+    </div>
+    <h3>Sync on Reconnect</h3>
+    <pre><code>BackgroundSyncService (polls health endpoint every 15s)
+    │
+    ├─ Server reachable?
+    │     → flush QueuedScans to server in batches
+    │     → success: delete from queue / mark synced
+    └─ Still unreachable?
+          → continue queuing, retry next cycle</code></pre>
+    <div class="callout callout-warn">Offline mode is currently <strong>disabled by default</strong> ("always-online mode"). The scanner rejects scans when the server is unreachable unless offline mode is re-enabled in code.</div>
+  </section>
+
+  <!-- TOPOLOGY -->
+  <section id="topology">
+    <h2>Deployment Topology</h2>
+    <div class="topology-box">
+<span style="color:#94a3b8">School Building</span>
+<span style="color:#94a3b8">│</span>
+<span style="color:#94a3b8">├── Server Room / Office</span>
+<span style="color:#94a3b8">│   └── Server PC (Windows, static IP: 192.168.1.10)</span>
+<span style="color:#94a3b8">│       ├── </span><span class="label-server">SmartLogWebApp  (Windows Service, port 5050)</span>
+<span style="color:#94a3b8">│       ├── </span><span class="label-db">SQL Server Express</span>
+<span style="color:#94a3b8">│       └── </span><span class="label-sms">USB GSM Modem  ──────────────────────────► Parent phones (SMS)</span>
+<span style="color:#94a3b8">│</span>
+<span style="color:#94a3b8">├── Main Gate</span>
+<span style="color:#94a3b8">│   └── Gate PC (Windows)</span>
+<span style="color:#94a3b8">│       ├── </span><span class="label-scanner">SmartLogScannerApp  (desktop app)</span>
+<span style="color:#94a3b8">│       └── Camera or USB barcode scanner</span>
+<span style="color:#94a3b8">│</span>
+<span style="color:#94a3b8">├── Back Gate</span>
+<span style="color:#94a3b8">│   └── Gate PC (Windows)</span>
+<span style="color:#94a3b8">│       └── </span><span class="label-scanner">SmartLogScannerApp  (desktop app)</span>
+<span style="color:#94a3b8">│</span>
+<span style="color:#94a3b8">└── School Wi-Fi Router (192.168.1.1)</span>
+<span style="color:#94a3b8">    └── All devices on same subnet (192.168.1.x)</span>
+    </div>
+
+    <h3>Key Constraints</h3>
+    <ul>
+      <li>The server must have a <strong>static IP</strong> — scanner devices use it as their server URL</li>
+      <li>All devices must be on the <strong>same LAN subnet</strong> — no internet or cross-subnet routing required</li>
+      <li>Each gate PC registers as a separate device with its own API key</li>
+      <li>The admin UI is accessible from <strong>any browser on the LAN</strong> — no dedicated admin machine required</li>
+      <li>The .NET 8 runtime is <strong>self-contained</strong> in the published output — no SDK required on gate PCs</li>
+    </ul>
+  </section>
+
+  <!-- DATA STORAGE -->
+  <section id="data">
+    <h2>Data Storage Summary</h2>
+    <table>
+      <thead><tr><th>Data</th><th>Store</th><th>Location</th></tr></thead>
+      <tbody>
+        <tr><td>Students, attendance, SMS, settings</td><td>SQL Server</td><td>SmartLogWebApp server</td></tr>
+        <tr><td>API key hash, device registrations</td><td>SQL Server</td><td>SmartLogWebApp server</td></tr>
+        <tr><td>QR code images (base64)</td><td>SQL Server</td><td>SmartLogWebApp server</td></tr>
+        <tr><td>Offline scan queue</td><td>SQLite</td><td>Gate PC — <code>AppData/smartlog-scanner.db</code></td></tr>
+        <tr><td>API key (plain text)</td><td>DPAPI / Keychain</td><td>Gate PC — platform secure storage</td></tr>
+        <tr><td>HMAC secret (plain text)</td><td>DPAPI / Keychain</td><td>Gate PC — platform secure storage</td></tr>
+        <tr><td>Server URL, scan mode preference</td><td>MAUI Preferences</td><td>Gate PC — Windows registry (<code>HKCU</code>)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+</body>
+</html>

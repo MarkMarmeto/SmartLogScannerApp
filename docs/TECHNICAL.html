@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog Scanner App — Technical Reference</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 1.5rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .4rem; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p { font-size: 13px; opacity: .75; margin-top: 4px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; }
+  section > h2 { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 1.25rem; padding-bottom: .6rem; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .6rem; }
+  h3:first-of-type { margin-top: 0; }
+  h4 { font-size: .875rem; font-weight: 600; margin: 1.25rem 0 .5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  p { margin-bottom: .75rem; font-size: 14px; }
+  ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; font-size: 14px; }
+  li { margin-bottom: .25rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .5rem .9rem; border: 1px solid var(--border); }
+  td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: var(--radius); padding: 1.1rem 1.3rem; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: .75rem 0; }
+  code { font-family: 'SFMono-Regular', Consolas, monospace; }
+  p code, td code, li code { background: #f1f5f9; color: #c7254e; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } main { padding: 1.5rem 1rem; } }
+
+  .callout-info { background: #ccfbf1; border-left: 4px solid #0d9488; border-radius: var(--radius); padding: .85rem 1.1rem; margin: .75rem 0; font-size: 14px; color: #134e4a; }
+  .callout-warn { background: #fef9c3; border-left: 4px solid #eab308; border-radius: var(--radius); padding: .85rem 1.1rem; margin: .75rem 0; font-size: 14px; color: #713f12; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Technical Reference</div>
+    <h1>SmartLog Scanner App</h1>
+    <p>.NET 8 MAUI · MVVM · SQLite · Polly · ZXing · Windows + macOS</p>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#stack">Stack</a>
+    <a href="#structure">Structure</a>
+    <a href="#arch">Architecture</a>
+    <a href="#services">Services</a>
+    <a href="#data">Data Layer</a>
+    <a href="#qr">QR &amp; HMAC</a>
+    <a href="#security">Security</a>
+    <a href="#config">Configuration</a>
+    <a href="#build">Build &amp; Test</a>
+    <a href="#crossplatform">Cross-Platform</a>
+  </div>
+</nav>
+
+<main>
+
+  <section id="stack">
+    <h2>Stack</h2>
+    <table>
+      <thead><tr><th>Component</th><th>Technology</th></tr></thead>
+      <tbody>
+        <tr><td>Framework</td><td>.NET 8 MAUI (Windows + macOS)</td></tr>
+        <tr><td>Architecture</td><td>MVVM (CommunityToolkit.Mvvm)</td></tr>
+        <tr><td>Database</td><td>EF Core + SQLite (offline queue)</td></tr>
+        <tr><td>Logging</td><td>Serilog (file + console)</td></tr>
+        <tr><td>HTTP Resilience</td><td>Polly (retry + circuit breaker)</td></tr>
+        <tr><td>QR Scanning</td><td>ZXing.Net.Maui (camera)</td></tr>
+        <tr><td>Audio</td><td>Plugin.Maui.Audio</td></tr>
+        <tr><td>Secure Storage</td><td>DPAPI (Windows) / Keychain (macOS)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="structure">
+    <h2>Solution Structure</h2>
+    <pre><code>SmartLogScannerApp/
+├── SmartLog.Scanner/              # MAUI app (UI + platform-specific code)
+│   ├── Views/                     # XAML pages
+│   │   ├── MainPage.xaml          # Scan screen (primary UI)
+│   │   ├── SetupPage.xaml         # First-launch setup wizard
+│   │   ├── ScanLogsPage.xaml      # Scan history viewer
+│   │   ├── OfflineQueuePage.xaml  # Offline queue management
+│   │   └── AboutPage.xaml
+│   ├── ViewModels/                # App-level view models
+│   │   ├── MainViewModel.cs       # Scan logic, feedback, statistics
+│   │   └── OfflineQueueViewModel.cs
+│   ├── Platforms/
+│   │   ├── Windows/               # WinUI-specific (DeviceDetection, Program.cs)
+│   │   └── MacCatalyst/           # macOS-specific (Camera, DeviceDetection)
+│   ├── Controls/                  # CameraQrView (custom camera control)
+│   └── Services/                  # Platform services (Sound, Navigation)
+├── SmartLog.Scanner.Core/         # Portable business logic library
+│   ├── Services/                  # All core services (see below)
+│   ├── Models/                    # ScanResult, QueuedScan, ScanLog, etc.
+│   ├── ViewModels/                # SetupViewModel, ScanLogsViewModel
+│   └── Data/                      # EF Core DbContext (SQLite)
+├── SmartLog.Scanner.Tests/        # xUnit test suite (net8.0, no MAUI TFM)
+├── deploy/                        # Windows deployment scripts
+├── docs/                          # This documentation
+└── sdlc-studio/                   # PRD, TRD, epics, user stories</code></pre>
+  </section>
+
+  <section id="arch">
+    <h2>Architecture</h2>
+    <h3>Startup Flow (<code>App.xaml.cs</code>)</h3>
+    <ol>
+      <li><code>SecurityMigrationService</code> — migrates any plain-text secrets into platform secure storage</li>
+      <li>Initialize SQLite via EF Core (<code>ScannerDbContext</code>)</li>
+      <li>Start <code>BackgroundSyncService</code> — polls offline queue, syncs when online</li>
+      <li>Navigate to <code>SetupPage</code> (first launch) or <code>MainPage</code> (configured)</li>
+    </ol>
+
+    <h3>DI Registration (<code>MauiProgram.cs</code>)</h3>
+    <p>All services registered via <code>Microsoft.Extensions.DependencyInjection</code>. Platform-specific implementations (<code>IDeviceDetectionService</code>, <code>ICameraQrScannerService</code>) are registered per-platform in <code>Platforms/Windows/</code> and <code>Platforms/MacCatalyst/</code>.</p>
+  </section>
+
+  <section id="services">
+    <h2>Core Services</h2>
+    <p>Located in <code>SmartLog.Scanner.Core/Services/</code></p>
+    <table>
+      <thead><tr><th>Service</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>SecureConfigService</code></td><td>API key + HMAC secret via DPAPI (Windows) / Keychain (macOS)</td></tr>
+        <tr><td><code>HmacValidator</code></td><td>HMAC-SHA256 QR signature verification (constant-time comparison)</td></tr>
+        <tr><td><code>ScanApiService</code></td><td>HTTP submission to backend; Polly retry (3× exponential) + circuit breaker (5 failures → 30s open)</td></tr>
+        <tr><td><code>OfflineQueueService</code></td><td>SQLite-backed queue for scans that fail to submit</td></tr>
+        <tr><td><code>BackgroundSyncService</code></td><td>Background worker that flushes queue when connectivity is restored</td></tr>
+        <tr><td><code>HealthCheckService</code></td><td>15-second server health polling; publishes connectivity status</td></tr>
+        <tr><td><code>ScanDeduplicationService</code></td><td>Tiered time-window dedup: 3s (suppress) / 60s (warn) / 300s (server)</td></tr>
+        <tr><td><code>PreferencesService</code></td><td>Non-sensitive config (server URL, scan type, scanner mode) via MAUI Preferences</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="data">
+    <h2>Data Layer</h2>
+    <ul>
+      <li><strong>EF Core + SQLite</strong> in <code>SmartLog.Scanner.Core/Data/ScannerDbContext.cs</code></li>
+      <li>Tables: <code>QueuedScans</code>, <code>ScanLogs</code></li>
+      <li>DB file: <code>{AppDataDirectory}/smartlog-scanner.db</code></li>
+    </ul>
+  </section>
+
+  <section id="qr">
+    <h2>QR Code Format &amp; HMAC Validation</h2>
+    <pre><code>SMARTLOG:{studentId}:{timestamp}:{HMAC-SHA256-base64}</code></pre>
+    <p>The <code>HmacValidator</code> performs local pre-validation before sending to the server:</p>
+    <ol>
+      <li>Split payload on <code>:</code> — expect 4 parts</li>
+      <li>Verify prefix is <code>SMARTLOG</code></li>
+      <li>Recompute <code>HMAC-SHA256(studentId:timestamp)</code> with the stored HMAC secret</li>
+      <li>Compare using constant-time algorithm to prevent timing attacks</li>
+    </ol>
+    <p>See <code>SmartLog.Scanner.Core/Services/HmacValidator.cs</code>.</p>
+  </section>
+
+  <section id="security">
+    <h2>Security Model</h2>
+    <table>
+      <thead><tr><th>Concern</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>API key storage</td><td>Platform secure storage (DPAPI/Keychain) via <code>SecureConfigService</code></td></tr>
+        <tr><td>HMAC secret storage</td><td>Platform secure storage — never written to config files</td></tr>
+        <tr><td>QR validation</td><td>HMAC-SHA256 constant-time comparison (local pre-validation)</td></tr>
+        <tr><td>Transport</td><td>HTTPS with self-signed certificate support (configurable thumbprint)</td></tr>
+        <tr><td>Timing attacks</td><td><code>CryptographicOperations.FixedTimeEquals</code> for HMAC comparison</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="config">
+    <h2>Configuration</h2>
+    <p>Non-secret runtime config is in <code>SmartLog.Scanner/Resources/Raw/appsettings.json</code> (embedded resource):</p>
+    <pre><code>{
+  "Logging": { "MinimumLevel": "Information" },
+  "Server": {
+    "BaseUrl": "",
+    "AcceptSelfSignedCerts": false,
+    "CertificateThumbprint": "",
+    "TimeoutSeconds": 10
+  },
+  "OfflineQueue": {
+    "HealthCheckIntervalSeconds": 15,
+    "SyncBatchSize": 10
+  }
+}</code></pre>
+    <div class="callout-info">Secrets (API key, HMAC secret) are never in config files — only through <code>SecureConfigService</code>.</div>
+  </section>
+
+  <section id="build">
+    <h2>Build &amp; Test</h2>
+    <div class="grid-2">
+      <div>
+        <h3>Build</h3>
+        <pre><code># macOS (development)
+dotnet build SmartLog.Scanner \
+  -f net8.0-maccatalyst
+
+# Windows
+dotnet build SmartLog.Scanner \
+  -f net8.0-windows10.0.19041.0
+
+# Publish Windows release
+dotnet publish SmartLog.Scanner \
+  -f net8.0-windows10.0.19041.0 \
+  -c Release -o ./publish/win-x64</code></pre>
+      </div>
+      <div>
+        <h3>Run &amp; Test</h3>
+        <pre><code># Run locally (macOS)
+dotnet run --project SmartLog.Scanner \
+  -f net8.0-maccatalyst
+
+# All tests
+dotnet test SmartLog.Scanner.Tests
+
+# Single class
+dotnet test SmartLog.Scanner.Tests \
+  --filter "FullyQualifiedName~HmacValidatorTests"
+
+# With TRX output
+dotnet test SmartLog.Scanner.Tests -c Release \
+  --logger "trx;LogFileName=results.trx" \
+  --results-directory ./test-results</code></pre>
+      </div>
+    </div>
+    <div class="callout-warn">Build tests with <code>-c Release</code> before using <code>--no-build</code>.</div>
+  </section>
+
+  <section id="crossplatform">
+    <h2>Cross-Platform Notes</h2>
+    <ul>
+      <li><strong>Developed on macOS</strong>, deployed to Windows. Both TFMs in the same csproj.</li>
+      <li><code>EnableWindowsTargeting</code> allows the Windows TFM to be built from macOS for CI validation.</li>
+      <li><code>NETSDK1202</code> is suppressed — the .NET 9 SDK flags <code>net8.0-maccatalyst</code> as EOL; safe for .NET 8 targets.</li>
+      <li>MAUI workload for source builds on Windows: <code>dotnet workload install maui-windows</code> (not <code>maui</code>, which installs iOS/Android).</li>
+      <li>Platform-specific camera and device detection are behind interfaces, registered conditionally per platform.</li>
+    </ul>
+
+    <h3>Testing Notes</h3>
+    <ul>
+      <li>Tests use <code>xUnit</code> + <code>Moq</code>; no real platform APIs invoked.</li>
+      <li>Test project targets <code>net8.0</code> (not a MAUI TFM) — MAUI types are behind interfaces.</li>
+      <li><code>ConnectionTestServiceTests</code> has a conditional assertion for HTTP vs HTTPS URL validation that differs between Debug and Release builds (see test file comment).</li>
+    </ul>
+
+    <h3>CI/CD</h3>
+    <ul>
+      <li><strong>CI</strong> — Builds and tests on every push/PR to <code>main</code> (GitHub Actions, Windows runner)</li>
+      <li><strong>CD</strong> — Creates GitHub Release with Windows x64 zip on <code>v*</code> tags</li>
+    </ul>
+  </section>
+
+</main>
+</body>
+</html>
