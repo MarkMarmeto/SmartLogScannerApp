@@ -17,6 +17,7 @@ public class UsbQrScannerServiceTests
     private readonly Mock<IOfflineQueueService> _offlineQueueMock;
     private readonly Mock<IPreferencesService> _preferencesMock;
     private readonly Mock<IScanDeduplicationService> _dedupMock;
+    private readonly Mock<ITimeService> _timeServiceMock;
     private readonly Mock<ILogger<UsbQrScannerService>> _loggerMock;
     private readonly UsbQrScannerService _service;
 
@@ -28,7 +29,9 @@ public class UsbQrScannerServiceTests
         _offlineQueueMock = new Mock<IOfflineQueueService>();
         _preferencesMock = new Mock<IPreferencesService>();
         _dedupMock = new Mock<IScanDeduplicationService>();
+        _timeServiceMock = new Mock<ITimeService>();
         _loggerMock = new Mock<ILogger<UsbQrScannerService>>();
+        _timeServiceMock.SetupGet(t => t.UtcNow).Returns(() => DateTimeOffset.UtcNow);
         // Default mock setups
         _preferencesMock.Setup(p => p.GetDefaultScanType()).Returns("ENTRY");
         _dedupMock
@@ -59,6 +62,7 @@ public class UsbQrScannerServiceTests
             _offlineQueueMock.Object,
             _preferencesMock.Object,
             _dedupMock.Object,
+            _timeServiceMock.Object,
             _loggerMock.Object,
             interKeystrokeTimeout: TimeSpan.FromMilliseconds(500));
     }
