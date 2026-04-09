@@ -159,18 +159,71 @@ public class CameraQrScannerService : IQrScannerService
         });
 
         // Background: submit to server, then fire ScanUpdated so UI can update student info
-        // or correct the result if the server rejects (e.g. inactive student, not a school day)
+        // or correct the result if the server rejects (e.g. inactive student, not a school day).
+        // On network failure or rate limit, fall back to the offline queue so the scan is not lost.
         _ = Task.Run(async () =>
         {
             try
             {
                 var serverResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
+
+                if (serverResult.Status == ScanStatus.Error || serverResult.Status == ScanStatus.RateLimited)
+                {
+                    _logger.LogWarning("Camera scan submission failed (Status={Status}), falling back to offline queue",
+                        serverResult.Status);
+                    await TryEnqueueAsync(payload, scannedAt, scanType, validationResult);
+                    return;
+                }
+
                 ScanUpdated?.Invoke(this, serverResult with { ValidationResult = validationResult, ScannedAt = scannedAt });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error submitting scan to server after optimistic acceptance");
+                _logger.LogError(ex, "Network error submitting camera scan — queuing offline");
+                await TryEnqueueAsync(payload, scannedAt, scanType, validationResult);
             }
         });
+    }
+
+    /// <summary>
+    /// Enqueues a camera scan that failed to reach the server.
+    /// Deduplicates before inserting and fires ScanUpdated with Queued status so the UI reflects the fallback.
+    /// </summary>
+    private async Task TryEnqueueAsync(
+        string payload,
+        DateTimeOffset scannedAt,
+        string scanType,
+        HmacValidationResult validationResult)
+    {
+        try
+        {
+            var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
+                validationResult.StudentId!, scanType);
+
+            if (!alreadyQueued)
+            {
+                await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
+                _logger.LogWarning("Camera scan queued offline: StudentId={StudentId}", validationResult.StudentId);
+            }
+            else
+            {
+                _logger.LogDebug("Camera scan already queued for {StudentId}, skipping duplicate", validationResult.StudentId);
+            }
+
+            ScanUpdated?.Invoke(this, new ScanResult
+            {
+                RawPayload = payload,
+                ValidationResult = validationResult,
+                Status = ScanStatus.Queued,
+                Message = "Scan queued (offline)",
+                StudentId = validationResult.StudentId,
+                ScanType = scanType,
+                ScannedAt = scannedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to enqueue camera scan to offline queue");
+        }
     }
 }

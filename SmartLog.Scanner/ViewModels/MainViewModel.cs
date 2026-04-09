@@ -87,6 +87,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _connectivityIcon = "⚪";
     [ObservableProperty] private Color _connectivityColor = Color.FromArgb("#9E9E9E"); // Gray
 
+    // Live clock display
+    [ObservableProperty] private string _currentDateTime = string.Empty;
+    private IDispatcherTimer? _clockTimer;
+
     // Camera barcode reader options
     public BarcodeReaderOptions BarcodeReaderOptions { get; } = new BarcodeReaderOptions
     {
@@ -146,6 +150,14 @@ public partial class MainViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
+        // Start live clock — ticks every second, updates CurrentDateTime
+        CurrentDateTime = DateTimeOffset.Now.ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+        _clockTimer = Application.Current!.Dispatcher.CreateTimer();
+        _clockTimer.Interval = TimeSpan.FromSeconds(1);
+        _clockTimer.Tick += (_, _) =>
+            CurrentDateTime = DateTimeOffset.Now.ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+        _clockTimer.Start();
+
         // US0012: Initialize audio service (pre-load sound files)
         await _soundService.InitializeAsync();
 
@@ -622,6 +634,9 @@ public partial class MainViewModel : ObservableObject
 
     public async ValueTask DisposeAsync()
     {
+        _clockTimer?.Stop();
+        _clockTimer = null;
+
         // Only stop the scanner, don't unsubscribe events.
         // Events stay subscribed because this ViewModel is a Singleton
         // and InitializeAsync/DisposeAsync are called on page appear/disappear.
