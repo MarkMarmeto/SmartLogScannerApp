@@ -25,6 +25,7 @@ public class UsbQrScannerService : IQrScannerService
     private readonly object _bufferLock = new();
 
     public event EventHandler<ScanResult>? ScanCompleted;
+    public event EventHandler<ScanResult>? ScanUpdated; // Not fired for USB; server response is awaited directly
     public bool IsScanning { get; private set; }
 
     public UsbQrScannerService(

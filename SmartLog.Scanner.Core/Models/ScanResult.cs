@@ -82,6 +82,12 @@ public record ScanResult
     public int? RetryAfterSeconds { get; init; }
 
     /// <summary>
+    /// True if this result is an optimistic local prediction, not yet confirmed by the server.
+    /// The UI shows it immediately; ScanUpdated will fire with the real server result.
+    /// </summary>
+    public bool IsOptimistic { get; init; }
+
+    /// <summary>
     /// True if the QR code passed HMAC validation.
     /// </summary>
     public bool IsValid => ValidationResult?.IsValid ?? false;
