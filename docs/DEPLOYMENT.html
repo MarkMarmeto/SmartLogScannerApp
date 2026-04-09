@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog Scanner App — Deployment Guide</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 1.5rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .4rem; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p { font-size: 13px; opacity: .75; margin-top: 4px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; }
+  section > h2 { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 1.25rem; padding-bottom: .6rem; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .6rem; }
+  h3:first-of-type { margin-top: 0; }
+  h4 { font-size: .875rem; font-weight: 600; margin: 1.25rem 0 .5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  p { margin-bottom: .75rem; font-size: 14px; }
+  ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; font-size: 14px; }
+  li { margin-bottom: .25rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .5rem .9rem; border: 1px solid var(--border); }
+  td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: var(--radius); padding: 1.1rem 1.3rem; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: .75rem 0; }
+  code { font-family: 'SFMono-Regular', Consolas, monospace; }
+  p code, td code, li code { background: #f1f5f9; color: #c7254e; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .callout-info { background: #ccfbf1; border-left: 4px solid #0d9488; border-radius: var(--radius); padding: .85rem 1.1rem; margin: .75rem 0; font-size: 14px; color: #134e4a; }
+  .callout-warn { background: #fef9c3; border-left: 4px solid #eab308; border-radius: var(--radius); padding: .85rem 1.1rem; margin: .75rem 0; font-size: 14px; color: #713f12; }
+
+  .step { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .step-num { width: 28px; height: 28px; min-width: 28px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: .15rem; }
+  .step-content { flex: 1; }
+  .step-content strong { display: block; margin-bottom: .25rem; }
+
+  @media (max-width: 700px) { main { padding: 1.5rem 1rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Deployment Guide</div>
+    <h1>SmartLog Scanner App</h1>
+    <p>Windows deployment for school gate scanning stations</p>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#prereqs">Prerequisites</a>
+    <a href="#automated">Automated Setup</a>
+    <a href="#manual">Manual Deployment</a>
+    <a href="#releases">Releases</a>
+    <a href="#config">Configuration</a>
+    <a href="#multiple">Multiple Stations</a>
+    <a href="#network">Network</a>
+    <a href="#troubleshoot">Troubleshooting</a>
+  </div>
+</nav>
+
+<main>
+
+  <section id="prereqs">
+    <h2>Prerequisites</h2>
+    <ul>
+      <li>Windows 10 (build 19041 or later) or Windows 11</li>
+      <li>The published SmartLog Scanner build (from GitHub Releases or built from source)</li>
+      <li>Network connectivity to the SmartLog Web App server</li>
+      <li>SmartLog Web App server URL and a registered device API key</li>
+      <li>HMAC secret from the SmartLog Web App administrator</li>
+    </ul>
+  </section>
+
+  <section id="automated">
+    <h2>Option A: Automated Setup (Recommended)</h2>
+    <div class="callout-info">The <code>deploy/</code> folder contains scripts that handle everything for Windows. Run as Administrator.</div>
+
+    <h3>Deployment Scripts</h3>
+    <table>
+      <thead><tr><th>Script</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>Setup-SmartLogScanner.bat</code></td><td><strong>Full automated installation wizard</strong> — checks prereqs, installs MAUI workload if needed, builds or copies pre-built files, creates desktop shortcut, optionally adds to startup</td></tr>
+        <tr><td><code>Update-SmartLogScanner.bat</code></td><td>Update existing installation — backs up current install, pulls latest code, rebuilds, relaunches. Supports <code>-SkipBackup</code> and <code>-Branch</code> flags</td></tr>
+      </tbody>
+    </table>
+
+    <h3>First-Time Install</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Get the files</strong>
+        Download the latest release ZIP from GitHub Releases, or clone the repository.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>Run the installer</strong>
+        Right-click <code>deploy/Setup-SmartLogScanner.bat</code> → <strong>Run as administrator</strong>.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>Follow the wizard</strong>
+        The script checks for .NET MAUI workload (or uses pre-built files), installs to <code>%LocalAppData%\SmartLogScanner</code>, and creates a desktop shortcut.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>Complete the app Setup Wizard</strong>
+        Enter server URL, API key, and HMAC secret. Click <strong>Test Connection</strong>, then save.
+      </div>
+    </div>
+
+    <div class="callout-info">The script auto-detects whether it is running from a pre-built release ZIP (skips build) or from source (builds from source). Pre-built is preferred for deployment.</div>
+
+    <h3>Updates</h3>
+    <p>Right-click <code>deploy/Update-SmartLogScanner.bat</code> → <strong>Run as administrator</strong>. The script backs up the current install, pulls latest code (or extracts a new release ZIP), rebuilds, and relaunches.</p>
+    <p><strong>Optional flags</strong> (when running the <code>.ps1</code> directly in PowerShell):</p>
+    <pre><code>.\deploy\Update-SmartLogScanner.ps1 -SkipBackup   # Skip backup (faster)
+.\deploy\Update-SmartLogScanner.ps1 -Branch dev   # Pull from a different branch</code></pre>
+  </section>
+
+  <section id="manual">
+    <h2>Option B: Manual Deployment</h2>
+
+    <h3>1. Build (if deploying from source)</h3>
+    <p>On a machine with the .NET 8 SDK and MAUI workload:</p>
+    <pre><code>dotnet workload install maui-windows
+dotnet publish SmartLog.Scanner -f net8.0-windows10.0.19041.0 -c Release -o ./publish/win-x64</code></pre>
+    <p>The <code>publish/win-x64/</code> folder is self-contained — no SDK needed on the target machine.</p>
+
+    <h3>2. Deploy to Target Machine</h3>
+    <p>Copy <code>publish/win-x64/</code> to the target PC (e.g., <code>C:\SmartLogScanner\</code>). Run <code>SmartLog.Scanner.exe</code> directly.</p>
+
+    <h3>3. Complete the Setup Wizard</h3>
+    <p>On first launch, the Setup Wizard opens automatically:</p>
+    <table>
+      <thead><tr><th>Field</th><th>Where to Get It</th></tr></thead>
+      <tbody>
+        <tr><td>Server URL</td><td>Static IP of the SmartLog server, e.g., <code>http://192.168.1.10:5050</code></td></tr>
+        <tr><td>API Key</td><td>SmartLog Web App → Admin &gt; Register Device (shown once, <code>sk_live_xxx</code>)</td></tr>
+        <tr><td>HMAC Secret</td><td>From the SmartLog Web App administrator</td></tr>
+      </tbody>
+    </table>
+    <p>Click <strong>Test Connection</strong> to verify before saving.</p>
+  </section>
+
+  <section id="releases">
+    <h2>Releases via GitHub</h2>
+    <ul>
+      <li>Production releases are published automatically on <code>v*</code> tags via GitHub Actions</li>
+      <li>Each release includes a ZIP with <code>publish/win-x64/</code> + <code>deploy/</code> scripts</li>
+      <li>Download the latest release ZIP, extract, and run <code>Setup-SmartLogScanner.bat</code> as Administrator</li>
+    </ul>
+  </section>
+
+  <section id="config">
+    <h2>Configuration Storage</h2>
+    <table>
+      <thead><tr><th>Data</th><th>Storage</th></tr></thead>
+      <tbody>
+        <tr><td>API Key</td><td>Windows DPAPI (encrypted, bound to the Windows user account)</td></tr>
+        <tr><td>HMAC Secret</td><td>Windows DPAPI</td></tr>
+        <tr><td>Server URL, scan mode</td><td>MAUI Preferences (Windows registry under <code>HKCU</code>)</td></tr>
+      </tbody>
+    </table>
+    <p>To reset all settings: delete the MAUI Preferences entry for SmartLogScanner and re-run the Setup Wizard.</p>
+  </section>
+
+  <section id="multiple">
+    <h2>Multiple Scanner Stations</h2>
+    <p>Each gate PC is a separate device registration in the SmartLog Web App. Each gets its own API key. All point to the same server URL.</p>
+    <table>
+      <thead><tr><th>Device</th><th>Location</th><th>Server URL</th></tr></thead>
+      <tbody>
+        <tr><td>Main Gate Scanner</td><td>Main Entrance</td><td><code>http://192.168.1.10:5050</code></td></tr>
+        <tr><td>Back Gate Scanner</td><td>Back Entrance</td><td><code>http://192.168.1.10:5050</code></td></tr>
+      </tbody>
+    </table>
+    <p>Register each device at <strong>Admin &gt; Register Device</strong> in the SmartLog Web App.</p>
+  </section>
+
+  <section id="network">
+    <h2>Network Requirements</h2>
+    <ul>
+      <li>The scanner PC must be on the <strong>same LAN</strong> as the SmartLog server</li>
+      <li>Server must have a <strong>static IP</strong> (scanner needs a fixed address to connect to)</li>
+    </ul>
+    <p>Verify connectivity from the scanner PC:</p>
+    <pre><code>ping 192.168.1.10
+curl http://192.168.1.10:5050/health</code></pre>
+    <p>Expected: ping replies and <code>Healthy</code> response.</p>
+    <p>For detailed network configuration, see the SmartLog Web App <strong>docs/DEPLOYMENT.md</strong>, Section: Network Setup for Scanner Devices.</p>
+  </section>
+
+  <section id="troubleshoot">
+    <h2>Troubleshooting</h2>
+    <table>
+      <thead><tr><th>Problem</th><th>Check</th></tr></thead>
+      <tbody>
+        <tr><td>Setup Wizard can't connect</td><td>Correct server URL and port? Run <code>curl http://{server}/health</code> from this PC.</td></tr>
+        <tr><td>"Invalid API Key" after setup</td><td>Was the API key copied completely? Re-register the device and copy the full <code>sk_live_xxx</code> key.</td></tr>
+        <tr><td>Scanner not reading QR codes</td><td>Camera permissions granted? USB scanner — try a different USB port.</td></tr>
+        <tr><td>App crashes on launch</td><td>Check <code>%LocalAppData%\SmartLogScanner\logs\</code> for Serilog log files.</td></tr>
+        <tr><td>Audio not playing</td><td>System volume up? App has audio permissions?</td></tr>
+        <tr><td>Scans not reaching server</td><td>Health indicator shows offline? Server running? Firewall open on port 5050?</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Uninstall</h3>
+    <p>Delete the installation folder (e.g., <code>C:\SmartLogScanner\</code>) and the desktop shortcut. Credentials stored in DPAPI are automatically cleaned up when the Windows user profile is deleted.</p>
+  </section>
+
+</main>
+</body>
+</html>

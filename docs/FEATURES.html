@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog Scanner App — Features</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); text-decoration: none; }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 1.5rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .4rem; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p { font-size: 13px; opacity: .75; margin-top: 4px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+  .module { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden; }
+  .module-header { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .module-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .module-title { font-size: 1rem; font-weight: 700; }
+  .module-body { padding: 1.25rem 1.5rem; }
+
+  .feature-list { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+  @media (max-width: 700px) { .feature-list { grid-template-columns: 1fr; } main { padding: 1.5rem 1rem; } }
+  .feature-list li { padding: .3rem 0 .3rem .9rem; position: relative; font-size: 14px; }
+  .feature-list li::before { content: '✓'; position: absolute; left: 0; color: #22c55e; font-weight: 700; font-size: 12px; top: .45rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .5rem .9rem; border: 1px solid var(--border); }
+  td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+
+  code { font-family: 'SFMono-Regular', Consolas, monospace; background: #f1f5f9; color: #c7254e; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .badge-disabled { display: inline-block; background: #fef9c3; color: #713f12; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 4px; }
+
+  .perf-table td:nth-child(3) { color: #166534; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Features</div>
+    <h1>SmartLog Scanner App</h1>
+    <p>.NET MAUI desktop application for school gate attendance scanning</p>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#setup">Setup</a>
+    <a href="#scanning">QR Scanning</a>
+    <a href="#feedback">Feedback</a>
+    <a href="#health">Health Monitor</a>
+    <a href="#dedup">Deduplication</a>
+    <a href="#offline">Offline Queue</a>
+    <a href="#history">History</a>
+    <a href="#performance">Performance</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="module" id="setup">
+    <div class="module-header">
+      <div class="module-icon" style="background:#dbeafe">⚙️</div>
+      <div><div class="module-title">Setup &amp; Configuration</div></div>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li>First-launch Setup Wizard — guided configuration</li>
+        <li>Enter server URL, API key, and HMAC secret</li>
+        <li>Connection test validates server before saving</li>
+        <li>Settings persisted — no wizard on subsequent launches</li>
+        <li>Re-accessible anytime via settings screen</li>
+        <li>Secure storage — DPAPI (Windows) / Keychain (macOS)</li>
+        <li>API key and HMAC secret never stored in config files</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="module" id="scanning">
+    <div class="module-header">
+      <div class="module-icon" style="background:#dcfce7">📷</div>
+      <div><div class="module-title">QR Code Scanning</div></div>
+    </div>
+    <div class="module-body">
+      <table>
+        <thead><tr><th>Mode</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Camera Scanning</strong></td><td>Live camera feed with real-time QR detection (ZXing.Net.Maui). Cross-platform: AVFoundation on macOS, WinUI camera API on Windows.</td></tr>
+          <tr><td><strong>USB Barcode Scanner</strong></td><td>Any USB keyboard-wedge scanner. 100ms input timeout distinguishes scanner from keyboard. Plug and play — no special drivers.</td></tr>
+          <tr><td><strong>Local HMAC Pre-validation</strong></td><td>QR payload validated locally before network submission. HMAC-SHA256 constant-time comparison. Invalid QR codes rejected before hitting the server.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module" id="feedback">
+    <div class="module-header">
+      <div class="module-icon" style="background:#ede9fe">🎨</div>
+      <div><div class="module-title">Scan Processing &amp; Feedback</div></div>
+    </div>
+    <div class="module-body">
+      <p style="font-size:14px;margin-bottom:1rem"><strong>ENTRY / EXIT Mode:</strong> Toggle between scan types, persists across app restarts, always visible in the UI.</p>
+      <table>
+        <thead><tr><th>Color</th><th>Meaning</th><th>Audio Cue</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Green</td>
+            <td>Scan accepted — student name, grade, section shown</td>
+            <td>Pleasant beep (400Hz, 200ms)</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:14px;height:14px;background:#d97706;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Amber</td>
+            <td>Duplicate scan — already scanned within dedup window</td>
+            <td>Neutral tone (500Hz, 150ms)</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Red</td>
+            <td>Scan rejected — invalid QR, inactive student, etc.</td>
+            <td>Error buzz (200Hz, 300ms)</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:14px;height:14px;background:#0891b2;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Blue/Teal</td>
+            <td>Informational (e.g., not a school day)</td>
+            <td>Distinct alert tone</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;margin-top:.75rem;color:var(--text-muted)">Result screen auto-clears after 3 seconds.</p>
+      <p style="font-size:14px;margin-top:1rem"><strong>Scan Statistics Footer</strong> — Live session counters: total scans, accepted, duplicate, rejected.</p>
+    </div>
+  </div>
+
+  <div class="module" id="health">
+    <div class="module-header">
+      <div class="module-icon" style="background:#ccfbf1">🟢</div>
+      <div><div class="module-title">Server Health Monitoring</div></div>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li>Background health check every 15 seconds (<code>GET /api/v1/health</code>)</li>
+        <li>Visual connection status indicator always visible</li>
+        <li>Scanner stops accepting submissions when server is unreachable</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="module" id="dedup">
+    <div class="module-header">
+      <div class="module-icon" style="background:#fce7f3">🔁</div>
+      <div><div class="module-title">Scan Deduplication</div></div>
+    </div>
+    <div class="module-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Window</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Suppress</td><td>3 seconds</td><td>Silently ignored (accidental double-scan)</td></tr>
+          <tr><td>Warn</td><td>60 seconds</td><td>Amber warning screen</td></tr>
+          <tr><td>Server</td><td>300 seconds</td><td>Forwarded to server for server-side dedup check</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module" id="offline">
+    <div class="module-header">
+      <div class="module-icon" style="background:#fef9c3">📡</div>
+      <div>
+        <div class="module-title">Offline Resilience &nbsp;<span class="badge-disabled">Implemented — Currently Disabled</span></div>
+      </div>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li>SQLite-backed queue for scans that fail to submit</li>
+        <li>Background sync flushes queue when connectivity restored</li>
+        <li>Polly retry policies with exponential backoff</li>
+        <li>Circuit breaker (5 failures → 30s open state)</li>
+        <li>Offline Queue page shows pending items and sync status</li>
+      </ul>
+      <p style="font-size:13px;margin-top:.75rem;color:var(--text-muted)">Disabled by default ("always-online mode"). Code remains in codebase for future activation.</p>
+    </div>
+  </div>
+
+  <div class="module" id="history">
+    <div class="module-header">
+      <div class="module-icon" style="background:#f1f5f9">📜</div>
+      <div><div class="module-title">Scan History</div></div>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li>Scan Logs page shows history of all scans in the current session</li>
+        <li>Timestamps, student IDs, and result statuses</li>
+        <li>Useful for guard review and incident verification</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="module" id="performance">
+    <div class="module-header">
+      <div class="module-icon" style="background:#dcfce7">⚡</div>
+      <div><div class="module-title">Performance Metrics</div></div>
+    </div>
+    <div class="module-body">
+      <table class="perf-table">
+        <thead><tr><th>Metric</th><th>Target</th><th>Achieved</th></tr></thead>
+        <tbody>
+          <tr><td>Scan-to-feedback latency</td><td>&lt; 500ms</td><td>~200–300ms</td></tr>
+          <tr><td>Camera frame processing</td><td>30 FPS</td><td>~30 FPS</td></tr>
+          <tr><td>USB input timeout</td><td>100ms</td><td>100ms</td></tr>
+          <tr><td>Health check interval</td><td>15s</td><td>15s</td></tr>
+          <tr><td>Auto-clear timer</td><td>3s</td><td>3s</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>
