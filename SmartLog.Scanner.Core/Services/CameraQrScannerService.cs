@@ -25,6 +25,7 @@ public class CameraQrScannerService : IQrScannerService
     private string? _lastProcessedPayload;
 
     public event EventHandler<ScanResult>? ScanCompleted;
+    public event EventHandler<ScanResult>? ScanUpdated;
     public bool IsScanning { get; private set; }
 
     public CameraQrScannerService(
@@ -62,7 +63,8 @@ public class CameraQrScannerService : IQrScannerService
 
     /// <summary>
     /// AC3: Processes a decoded QR payload with raw payload debounce and student-level deduplication.
-    /// Call this from ZXing BarcodesDetected event handler.
+    /// Uses optimistic acceptance: fires ScanCompleted immediately after local validation,
+    /// then submits to the server in background and fires ScanUpdated with the confirmed result.
     /// </summary>
     public async Task ProcessQrCodeAsync(string payload)
     {
@@ -71,7 +73,7 @@ public class CameraQrScannerService : IQrScannerService
 
         var now = DateTime.UtcNow;
 
-        // AC3: 500ms raw payload debounce (performance optimization only)
+        // AC3: 500ms raw payload debounce (performance optimisation only)
         if (payload == _lastPayload && (now - _lastScanTime) < _debounceWindow)
         {
             _logger.LogDebug("Duplicate QR payload within {Ms}ms debounce window, ignoring",
@@ -80,7 +82,6 @@ public class CameraQrScannerService : IQrScannerService
         }
 
         // Post-scan lockout: same payload within warn window is silently ignored
-        // Prevents re-processing while the QR code is still visible to the camera
         if (payload == _lastProcessedPayload && (now - _lastProcessedTime) < DeduplicationConfig.WarnWindow)
         {
             _logger.LogDebug("Same QR code still in view, ignoring (lockout {Sec}s remaining)",
@@ -88,91 +89,88 @@ public class CameraQrScannerService : IQrScannerService
             return;
         }
 
-        // Update debounce tracking
         _lastPayload = payload;
         _lastScanTime = now;
 
-        // AC4: Forward to HMAC validation
+        // AC4: HMAC validation (~10ms)
         _logger.LogInformation("Processing QR code: {Payload}", payload);
         var validationResult = await _hmacValidator.ValidateAsync(payload);
 
-        ScanResult scanResult;
-
-        if (validationResult.IsValid)
-        {
-            _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
-
-            var scanType = _preferences.GetDefaultScanType();
-            var scannedAt = DateTimeOffset.UtcNow;
-
-            // Student-level deduplication check (after HMAC validation)
-            var dedupResult = _dedup.CheckAndRecord(
-                validationResult.StudentId!,
-                scanType,
-                studentName: null); // Name will be populated by server response
-
-            switch (dedupResult.Action)
-            {
-                case DeduplicationAction.SuppressSilent:
-                    // Within 2s suppress window - no UI feedback, no event raised
-                    _logger.LogDebug("Scan suppressed silently (within {Ms}ms of last scan)",
-                        dedupResult.TimeSinceLastScan.TotalMilliseconds);
-                    return;
-
-                case DeduplicationAction.RejectWithFeedback:
-                    // Within 30s warn window - show amber feedback, no API call
-                    _logger.LogDebug("Scan rejected with feedback (within {Sec}s of last scan)",
-                        dedupResult.TimeSinceLastScan.TotalSeconds);
-
-                    scanResult = new ScanResult
-                    {
-                        RawPayload = payload,
-                        ValidationResult = validationResult,
-                        Status = ScanStatus.DebouncedLocally,
-                        Message = dedupResult.Message ?? "Already scanned. Please proceed.",
-                        StudentId = validationResult.StudentId,
-                        ScannedAt = scannedAt
-                    };
-
-                    ScanCompleted?.Invoke(this, scanResult);
-                    return;
-
-                case DeduplicationAction.Proceed:
-                    // Beyond warn window or first scan - continue to online/offline routing
-                    _logger.LogDebug("Deduplication check passed, proceeding to submission");
-                    break;
-            }
-
-            // ALWAYS ONLINE MODE: Offline queue disabled, always submit to server
-            _logger.LogInformation("Always-online mode: submitting scan to server");
-            System.Diagnostics.Debug.WriteLine("[CameraScanner] Always-online mode enabled");
-
-            // Submit to server regardless of health check status
-            scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
-
-            // Preserve validation result for compatibility
-            scanResult = scanResult with { ValidationResult = validationResult };
-        }
-        else
+        if (!validationResult.IsValid)
         {
             _logger.LogWarning("Invalid QR code - Reason: {Reason}", validationResult.RejectionReason);
-
-            // Invalid HMAC - don't submit to server
-            scanResult = new ScanResult
+            ScanCompleted?.Invoke(this, new ScanResult
             {
                 RawPayload = payload,
                 ValidationResult = validationResult,
                 Status = ScanStatus.Rejected,
                 Message = validationResult.RejectionReason,
                 ScannedAt = DateTimeOffset.UtcNow
-            };
+            });
+            return;
         }
 
-        // Lock out this payload so the camera doesn't re-process while QR is still visible
+        _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
+
+        var scanType = _preferences.GetDefaultScanType();
+        var scannedAt = DateTimeOffset.UtcNow;
+
+        // Student-level deduplication check (~2ms)
+        var dedupResult = _dedup.CheckAndRecord(validationResult.StudentId!, scanType, studentName: null);
+
+        if (dedupResult.Action == DeduplicationAction.SuppressSilent)
+        {
+            _logger.LogDebug("Scan suppressed silently (within {Ms}ms of last scan)",
+                dedupResult.TimeSinceLastScan.TotalMilliseconds);
+            return;
+        }
+
+        if (dedupResult.Action == DeduplicationAction.RejectWithFeedback)
+        {
+            _logger.LogDebug("Scan rejected with feedback (within {Sec}s of last scan)",
+                dedupResult.TimeSinceLastScan.TotalSeconds);
+            ScanCompleted?.Invoke(this, new ScanResult
+            {
+                RawPayload = payload,
+                ValidationResult = validationResult,
+                Status = ScanStatus.DebouncedLocally,
+                Message = dedupResult.Message ?? "Already scanned. Please proceed.",
+                StudentId = validationResult.StudentId,
+                ScannedAt = scannedAt
+            });
+            return;
+        }
+
+        // Lock out this payload immediately so the camera doesn't re-process while QR is still visible
         _lastProcessedPayload = payload;
         _lastProcessedTime = DateTime.UtcNow;
 
-        // Raise event for UI
-        ScanCompleted?.Invoke(this, scanResult);
+        // Optimistic acceptance: fire green feedback instantly based on local HMAC+dedup validation.
+        // The server call happens in the background; ScanUpdated fires with the confirmed result.
+        ScanCompleted?.Invoke(this, new ScanResult
+        {
+            RawPayload = payload,
+            ValidationResult = validationResult,
+            Status = ScanStatus.Accepted,
+            StudentId = validationResult.StudentId,
+            ScanType = scanType,
+            ScannedAt = scannedAt,
+            IsOptimistic = true
+        });
+
+        // Background: submit to server, then fire ScanUpdated so UI can update student info
+        // or correct the result if the server rejects (e.g. inactive student, not a school day)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var serverResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
+                ScanUpdated?.Invoke(this, serverResult with { ValidationResult = validationResult, ScannedAt = scannedAt });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting scan to server after optimistic acceptance");
+            }
+        });
     }
 }

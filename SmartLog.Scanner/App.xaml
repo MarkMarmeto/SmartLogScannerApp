@@ -23,6 +23,9 @@
             <converters:EnumNotNoneConverter x:Key="EnumNotNoneConverter" />
             <converters:TestResultIconConverter x:Key="TestResultIconConverter" />
             <converters:TestResultColorConverter x:Key="TestResultColorConverter" />
+
+            <!-- Scan Logs filter chip color -->
+            <converters:FilterChipColorConverter x:Key="FilterChipColorConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -19,9 +19,9 @@ public class ScanApiService : IScanApiService
     private readonly IOfflineQueueService _offlineQueue;
     private readonly ILogger<ScanApiService> _logger;
 
-    // AC10: Client-side rate tracking (60 requests per minute sliding window)
+    // AC10: Client-side rate tracking (120 requests per minute — matches server capacity)
     private readonly ConcurrentQueue<DateTimeOffset> _requestTimestamps = new();
-    private const int MaxRequestsPerMinute = 60;
+    private const int MaxRequestsPerMinute = 120;
     private readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(1);
 
     private readonly JsonSerializerOptions _jsonOptions = new()
@@ -188,12 +188,13 @@ public class ScanApiService : IScanApiService
 
             if (string.IsNullOrWhiteSpace(responseJson))
             {
-                _logger.LogError("Empty response body from server");
+                _logger.LogError("Empty response body from server (200 OK with no body)");
                 return new ScanResult
                 {
                     RawPayload = qrPayload,
                     Status = ScanStatus.Error,
-                    Message = "Empty server response. Please contact IT administrator."
+                    ErrorReason = "EmptyResponse",
+                    Message = "Something went wrong — please try again"
                 };
             }
 
@@ -201,12 +202,13 @@ public class ScanApiService : IScanApiService
 
             if (responseData == null)
             {
-                _logger.LogError("Failed to deserialize server response");
+                _logger.LogError("Failed to deserialize server response: {Json}", responseJson[..Math.Min(200, responseJson.Length)]);
                 return new ScanResult
                 {
                     RawPayload = qrPayload,
                     Status = ScanStatus.Error,
-                    Message = "Invalid server response. Please contact IT administrator."
+                    ErrorReason = "InvalidResponse",
+                    Message = "Something went wrong — please try again"
                 };
             }
 
@@ -215,12 +217,13 @@ public class ScanApiService : IScanApiService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Malformed JSON response from server");
+            _logger.LogError(ex, "Malformed JSON in server response");
             return new ScanResult
             {
                 RawPayload = qrPayload,
                 Status = ScanStatus.Error,
-                Message = "Invalid server response. Please contact IT administrator."
+                ErrorReason = "MalformedResponse",
+                Message = "Something went wrong — please try again"
             };
         }
     }
@@ -317,7 +320,7 @@ public class ScanApiService : IScanApiService
             RawPayload = qrPayload,
             Status = ScanStatus.RateLimited,
             RetryAfterSeconds = retryAfterSeconds,
-            Message = $"Rate limit exceeded. Please wait {retryAfterSeconds}s.",
+            Message = $"Too many scans — please wait {retryAfterSeconds}s",
             ScannedAt = scannedAt,
             ScanType = scanType
         };
@@ -332,14 +335,15 @@ public class ScanApiService : IScanApiService
         DateTimeOffset scannedAt,
         string scanType)
     {
-        _logger.LogWarning("Unexpected server response: {StatusCode}", response.StatusCode);
+        _logger.LogWarning("Unexpected server response: HTTP {StatusCode}", (int)response.StatusCode);
 
         // ALWAYS ONLINE MODE: No queueing, return error
         return new ScanResult
         {
             RawPayload = qrPayload,
             Status = ScanStatus.Error,
-            Message = $"Server error ({response.StatusCode}). Please try again.",
+            ErrorReason = $"HttpError{(int)response.StatusCode}",
+            Message = "Something went wrong — please try again",
             ScannedAt = scannedAt,
             ScanType = scanType
         };
@@ -363,20 +367,23 @@ public class ScanApiService : IScanApiService
             {
                 RawPayload = qrPayload,
                 Status = ScanStatus.Error,
-                Message = "Scan submission cancelled",
+                ErrorReason = "Cancelled",
+                Message = "Scan cancelled",
                 ScannedAt = scannedAt,
                 ScanType = scanType
             };
         }
 
         // ALWAYS ONLINE MODE: Network error - return error, no queueing
-        _logger.LogWarning(ex, "Network error during scan submission");
+        _logger.LogWarning(ex, "Network error during scan submission: {ExceptionType} - {Message}",
+            ex.GetType().Name, ex.Message);
 
         return new ScanResult
         {
             RawPayload = qrPayload,
             Status = ScanStatus.Error,
-            Message = "Network error. Check connection and try again.",
+            ErrorReason = "NetworkError",
+            Message = "No connection — check your network",
             ScannedAt = scannedAt,
             ScanType = scanType
         };

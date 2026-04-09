@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -67,6 +68,20 @@ public partial class MainViewModel : ObservableObject
     // Offline queue visibility
     [ObservableProperty] private bool _hasQueuedScans;
 
+    // Optimistic scan tracking: timestamp of the last optimistic result still on screen
+    private DateTimeOffset? _currentOptimisticScanAt;
+
+    // Phase 2: Channel for decoupling camera detection from scan processing
+    // Camera callback writes payload here; background consumer calls ProcessQrCodeAsync
+    private readonly Channel<string> _scanChannel = Channel.CreateBounded<string>(
+        new BoundedChannelOptions(50)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+            SingleWriter = false
+        });
+    private CancellationTokenSource? _channelCts;
+
     // US0015: Connectivity status indicator
     [ObservableProperty] private string _connectivityStatus = "Connecting...";
     [ObservableProperty] private string _connectivityIcon = "⚪";
@@ -113,6 +128,7 @@ public partial class MainViewModel : ObservableObject
         if (_scannerMode == "Camera")
         {
             _cameraScanner.ScanCompleted += OnScanCompleted;
+            _cameraScanner.ScanUpdated += OnScanUpdated;
             StatusIcon = "📷";
         }
         else // USB
@@ -161,6 +177,10 @@ public partial class MainViewModel : ObservableObject
             await _cameraScanner!.StartAsync();
             StatusMessage = "Ready to scan QR codes";
             StatusIcon = "📷";
+
+            // Phase 2: Start background channel consumer so camera callback returns instantly
+            _channelCts = new CancellationTokenSource();
+            _ = Task.Run(() => ProcessScanChannelAsync(_channelCts.Token));
         }
         else // USB
         {
@@ -174,8 +194,10 @@ public partial class MainViewModel : ObservableObject
 
     private void OnScanCompleted(object? sender, ScanResult result)
     {
-        // Log scan to history (async, don't block UI)
-        _ = LogScanToHistoryAsync(result);
+        // For optimistic results, defer history/stats to OnScanUpdated (when server confirms).
+        // For all other results (rejected, debounced, USB), log immediately.
+        if (!result.IsOptimistic)
+            _ = LogScanToHistoryAsync(result);
 
         // Update UI on main thread
         MainThread.BeginInvokeOnMainThread(() =>
@@ -184,7 +206,8 @@ public partial class MainViewModel : ObservableObject
             switch (result.Status)
             {
                 case ScanStatus.Accepted:
-                    // AC1: ACCEPTED - green feedback with student info
+                    // AC1: ACCEPTED - green feedback with student info (may be optimistic)
+                    _currentOptimisticScanAt = result.IsOptimistic ? result.ScannedAt : null;
                     LastStudentId = result.StudentId;
                     LastLrn = result.Lrn;
                     LastStudentName = result.StudentName;
@@ -194,13 +217,15 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#4CAF50"); // Green
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
-                    LastScanMessage = $"✓ {result.StudentName ?? result.StudentId} - {result.Grade} {result.Section}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#4CAF50"); // Material Green
                     ShowFeedback = true;
                     StatusMessage = "Accepted!";
                     StatusIcon = "✓";
-                    // US0012: Play success sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
+                    // Stats updated in OnScanUpdated for optimistic results
+                    if (!result.IsOptimistic)
+                        _ = UpdateStatisticsAsync(result.Status);
                     break;
 
                 case ScanStatus.Duplicate:
@@ -214,12 +239,11 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
-                    LastScanMessage = $"⚠ {result.Message ?? "Already scanned. Please proceed."}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#FF9800"); // Material Amber
                     ShowFeedback = true;
-                    StatusMessage = "Duplicate scan";
+                    StatusMessage = "Already scanned";
                     StatusIcon = "⚠";
-                    // US0012: Play duplicate sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
                     break;
 
@@ -233,17 +257,16 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#F44336"); // Red
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
-                    LastScanMessage = $"✗ {result.Message ?? result.ValidationResult?.RejectionReason ?? "Rejected"}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#F44336"); // Material Red
                     ShowFeedback = true;
                     StatusMessage = "Rejected";
                     StatusIcon = "✗";
-                    // US0012: Play error sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
                     break;
 
                 case ScanStatus.Queued:
-                    // AC6: QUEUED - blue feedback (offline)
+                    // AC6: QUEUED - teal feedback (offline)
                     LastStudentId = result.StudentId;
                     LastStudentName = null;
                     LastGrade = null;
@@ -252,12 +275,11 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#4D9B91"); // Teal
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
-                    LastScanMessage = $"📥 {result.Message ?? "Scan queued (offline)"}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#4D9B91"); // Teal
                     ShowFeedback = true;
                     StatusMessage = "Queued offline";
                     StatusIcon = "📥";
-                    // US0012: Play queued sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Queued);
                     break;
 
@@ -271,12 +293,11 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#F44336"); // Red
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
-                    LastScanMessage = $"✗ {result.Message ?? "Error"}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#F44336"); // Material Red
                     ShowFeedback = true;
                     StatusMessage = "Error";
                     StatusIcon = "✗";
-                    // US0012: Play error sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Error);
                     break;
 
@@ -290,17 +311,16 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
-                    LastScanMessage = $"⏱ {result.Message ?? "Rate limit exceeded"}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#FF9800"); // Material Amber
                     ShowFeedback = true;
                     StatusMessage = "Rate limited";
                     StatusIcon = "⏱";
-                    // US0012: Play queued sound (same as offline)
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.RateLimited);
                     break;
 
                 case ScanStatus.DebouncedLocally:
-                    // DEBOUNCED LOCALLY - amber feedback (duplicate within warn window or already queued)
+                    // DEBOUNCED LOCALLY - amber feedback
                     LastStudentId = result.StudentId;
                     LastStudentName = null;
                     LastGrade = null;
@@ -309,24 +329,25 @@ public partial class MainViewModel : ObservableObject
                     CardBorderColor = Color.FromArgb("#FF9800"); // Amber
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
-                    LastScanMessage = $"⚠ {result.Message ?? "Already scanned. Please proceed."}";
+                    LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#FF9800"); // Material Amber
                     ShowFeedback = true;
                     StatusMessage = "Already scanned";
                     StatusIcon = "⚠";
-                    // Play duplicate sound
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
                     break;
             }
 
-            // US0013: Update statistics counters
-            _ = UpdateStatisticsAsync(result.Status);
+            // US0013: Update statistics counters (skipped for optimistic Accepted — handled in OnScanUpdated)
+            if (result.Status != ScanStatus.Accepted || !result.IsOptimistic)
+                _ = UpdateStatisticsAsync(result.Status);
 
             // Hide feedback after 3 seconds and reset card to skeleton
             Task.Delay(3000).ContinueWith(_ =>
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
+                    _currentOptimisticScanAt = null; // No longer showing any optimistic result
                     ShowFeedback = false;
                     HasScannedStudent = false;
                     LastStudentId = null;
@@ -346,6 +367,79 @@ public partial class MainViewModel : ObservableObject
                     }
                 });
             });
+        });
+    }
+
+    /// <summary>
+    /// Handles server confirmation or correction of an optimistic camera scan result.
+    /// Updates student info on screen, or flips feedback to red/amber if the server rejects.
+    /// Also logs to history and updates statistics (deferred from OnScanCompleted for optimistic scans).
+    /// </summary>
+    private void OnScanUpdated(object? sender, ScanResult result)
+    {
+        // Log the real server result to history regardless of whether UI is still showing
+        _ = LogScanToHistoryAsync(result);
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Update statistics with the confirmed server status
+            _ = UpdateStatisticsAsync(result.Status);
+
+            // Only update the visual if we are still showing the optimistic card for this scan
+            if (!ShowFeedback || _currentOptimisticScanAt != result.ScannedAt)
+                return;
+
+            _currentOptimisticScanAt = null; // Resolved
+
+            switch (result.Status)
+            {
+                case ScanStatus.Accepted:
+                    // Server confirmed — update card with full student info from server response
+                    if (!string.IsNullOrEmpty(result.StudentName))
+                    {
+                        LastStudentName = result.StudentName;
+                        LastLrn = result.Lrn;
+                        LastGrade = result.Grade;
+                        LastSection = result.Section;
+                        LastScanMessage = ToFriendlyMessage(result);
+                    }
+                    break;
+
+                case ScanStatus.Duplicate:
+                    // Server says already scanned — flip to amber
+                    HasScannedStudent = !string.IsNullOrEmpty(result.StudentId);
+                    CardBorderColor = Color.FromArgb("#FF9800");
+                    FeedbackColor = Color.FromArgb("#FF9800");
+                    LastScanMessage = ToFriendlyMessage(result);
+                    StatusMessage = "Already scanned";
+                    StatusIcon = "⚠";
+                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
+                    break;
+
+                case ScanStatus.Rejected:
+                    // Server rejected (e.g. inactive student, not a school day) — flip to red
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#F44336");
+                    FeedbackColor = Color.FromArgb("#F44336");
+                    LastScanValid = false;
+                    LastScanMessage = ToFriendlyMessage(result);
+                    StatusMessage = "Rejected";
+                    StatusIcon = "✗";
+                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
+                    break;
+
+                case ScanStatus.Error:
+                    // Server unreachable — flip to red
+                    HasScannedStudent = false;
+                    CardBorderColor = Color.FromArgb("#F44336");
+                    FeedbackColor = Color.FromArgb("#F44336");
+                    LastScanValid = false;
+                    LastScanMessage = ToFriendlyMessage(result);
+                    StatusMessage = "Error";
+                    StatusIcon = "✗";
+                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Error);
+                    break;
+            }
         });
     }
 
@@ -534,6 +628,11 @@ public partial class MainViewModel : ObservableObject
         if (_scannerMode == "Camera")
         {
             await _cameraScanner!.StopAsync();
+
+            // Stop channel consumer; any items still in channel are discarded (page is leaving)
+            _channelCts?.Cancel();
+            _channelCts?.Dispose();
+            _channelCts = null;
         }
         else // USB
         {
@@ -718,23 +817,56 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// US0007: Process QR code from camera barcode detection.
-    /// Called from MainPage BarcodesDetected event handler.
+    /// Writes the payload to the scan channel and returns immediately so the camera callback
+    /// is never blocked. The background channel consumer calls ProcessQrCodeAsync.
     /// </summary>
-    public async Task ProcessCameraQrCodeAsync(string payload)
+    public Task ProcessCameraQrCodeAsync(string payload)
     {
-        if (_scannerMode == "Camera")
-        {
-            await _cameraScanner!.ProcessQrCodeAsync(payload);
-        }
+        if (_scannerMode == "Camera" && !string.IsNullOrEmpty(payload))
+            _scanChannel.Writer.TryWrite(payload); // Non-blocking; drops oldest if channel full
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Log scan to history for diagnostics and troubleshooting
+    /// Background consumer that reads payloads from the scan channel and processes them.
+    /// Runs for the lifetime of the scanning session (started in InitializeAsync).
+    /// </summary>
+    private async Task ProcessScanChannelAsync(CancellationToken ct)
+    {
+        try
+        {
+            await foreach (var payload in _scanChannel.Reader.ReadAllAsync(ct))
+            {
+                try
+                {
+                    if (_cameraScanner != null)
+                        await _cameraScanner.ProcessQrCodeAsync(payload);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing scan payload from channel");
+                }
+            }
+        }
+        catch (OperationCanceledException) { /* normal shutdown */ }
+    }
+
+    /// <summary>
+    /// Log scan to history for diagnostics and troubleshooting.
+    /// Always records the full technical detail regardless of what is shown in the UI.
     /// </summary>
     private async Task LogScanToHistoryAsync(ScanResult result)
     {
         try
         {
+            // Processing time = wall-clock time from scan capture to result received
+            var processingTimeMs = result.ScannedAt != default
+                ? (long)(DateTimeOffset.UtcNow - result.ScannedAt).TotalMilliseconds
+                : 0L;
+
+            // Full technical detail for ErrorDetails — useful for support/debugging
+            var technicalDetail = BuildTechnicalDetail(result);
+
             var logEntry = new ScanLogEntry
             {
                 Timestamp = result.ScannedAt,
@@ -746,20 +878,138 @@ public partial class MainViewModel : ObservableObject
                 Message = result.Message,
                 ScanId = result.ScanId,
                 NetworkAvailable = _healthCheck.IsOnline ?? false,
-                ProcessingTimeMs = 0, // TODO: Track processing time if needed
+                ProcessingTimeMs = processingTimeMs,
                 GradeSection = !string.IsNullOrEmpty(result.Grade) && !string.IsNullOrEmpty(result.Section)
                     ? $"{result.Grade} - {result.Section}"
                     : null,
-                ErrorDetails = result.ErrorReason,
+                ErrorDetails = technicalDetail,
                 ScanMethod = _scannerMode
             };
 
             await _scanHistory.LogScanAsync(logEntry);
+
+            // Structured log for operational monitoring (technical detail always logged, never shown in UI)
+            _logger.LogInformation(
+                "Scan logged: Status={Status} StudentId={StudentId} StudentName={StudentName} " +
+                "GradeSection={GradeSection} ScanType={ScanType} ScanMethod={ScanMethod} " +
+                "ProcessingMs={ProcessingMs} Network={Network} Detail={Detail}",
+                result.Status,
+                result.StudentId ?? "(unknown)",
+                result.StudentName ?? "(unknown)",
+                logEntry.GradeSection ?? "(unknown)",
+                logEntry.ScanType,
+                _scannerMode,
+                processingTimeMs,
+                _healthCheck.IsOnline,
+                technicalDetail);
         }
         catch (Exception ex)
         {
             // Don't let logging errors break scanning
             _logger.LogError(ex, "Failed to log scan to history");
         }
+    }
+
+    /// <summary>
+    /// Builds a full technical detail string for logging — includes error codes, HMAC rejection
+    /// reasons, and server messages. Never displayed in the UI.
+    /// </summary>
+    private static string BuildTechnicalDetail(ScanResult result)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrEmpty(result.ErrorReason))
+            parts.Add($"ErrorReason={result.ErrorReason}");
+
+        var hmacReason = result.ValidationResult?.RejectionReason;
+        if (!string.IsNullOrEmpty(hmacReason))
+            parts.Add($"HmacReason={hmacReason}");
+
+        if (!string.IsNullOrEmpty(result.Message))
+            parts.Add($"ServerMessage={result.Message}");
+
+        if (result.RetryAfterSeconds.HasValue)
+            parts.Add($"RetryAfter={result.RetryAfterSeconds}s");
+
+        return parts.Count > 0 ? string.Join(" | ", parts) : string.Empty;
+    }
+
+    /// <summary>
+    /// Converts a ScanResult into a user-friendly display message.
+    /// Technical error codes and HMAC reasons are translated to plain language here;
+    /// the raw technical detail is preserved in logs only.
+    /// </summary>
+    private static string ToFriendlyMessage(ScanResult result)
+    {
+        return result.Status switch
+        {
+            ScanStatus.Accepted =>
+                $"✓ {result.StudentName ?? result.StudentId} — {result.Grade} {result.Section}".TrimEnd(' ', '—'),
+
+            ScanStatus.Duplicate =>
+                $"⚠ {result.Message ?? "Already scanned — please proceed"}",
+
+            ScanStatus.DebouncedLocally =>
+                $"⚠ {result.Message ?? "Already scanned — please proceed"}",
+
+            ScanStatus.Queued =>
+                $"📥 {result.Message ?? "Scan saved — will sync when online"}",
+
+            ScanStatus.RateLimited =>
+                result.RetryAfterSeconds.HasValue
+                    ? $"⏱ Too many scans — please wait {result.RetryAfterSeconds}s"
+                    : "⏱ Too many scans — please wait a moment",
+
+            ScanStatus.Rejected => ToFriendlyRejectedMessage(result),
+
+            ScanStatus.Error => ToFriendlyErrorMessage(result),
+
+            _ => result.Message ?? "Unknown status"
+        };
+    }
+
+    private static string ToFriendlyRejectedMessage(ScanResult result)
+    {
+        // Server rejection messages are already user-friendly (come from the web app)
+        // Pass them through directly if they don't look like raw codes
+        var serverMessage = result.Message;
+        if (!string.IsNullOrEmpty(serverMessage) &&
+            !serverMessage.Equals("QR code rejected by server.", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"✗ {serverMessage}";
+        }
+
+        // HMAC/local validation failures — translate technical codes to plain language
+        var reason = result.ValidationResult?.RejectionReason ?? string.Empty;
+
+        if (reason.StartsWith("Expired", StringComparison.Ordinal))
+            return "✗ QR code expired — student needs a new ID card";
+
+        if (reason.StartsWith("SecretUnavailable", StringComparison.Ordinal))
+            return "✗ Device not configured — contact IT support";
+
+        // Malformed, InvalidPrefix, InvalidBase64, InvalidSignature → all map to the same thing
+        return "✗ Invalid QR code";
+    }
+
+    private static string ToFriendlyErrorMessage(ScanResult result)
+    {
+        var errorReason = result.ErrorReason ?? string.Empty;
+
+        // Setup errors — keep existing message (already user-friendly)
+        if (errorReason is "MissingApiKey" or "MissingServerUrl")
+            return $"✗ {result.Message}";
+
+        if (errorReason == "InvalidApiKey")
+            return "✗ Device not authorised — contact IT support";
+
+        if (errorReason == "NetworkError")
+            return "✗ No connection — check your network";
+
+        if (errorReason == "Cancelled")
+            return "✗ Scan cancelled";
+
+        // All other server/response errors
+        return "✗ Something went wrong — please try again";
     }
 }

@@ -9,9 +9,15 @@ namespace SmartLog.Scanner.Core.Services;
 public interface IQrScannerService
 {
     /// <summary>
-    /// Fired when a QR code is successfully scanned and validated.
+    /// Fired when a QR code is detected and locally validated (may be optimistic).
     /// </summary>
     event EventHandler<ScanResult>? ScanCompleted;
+
+    /// <summary>
+    /// Fired after the server confirms or corrects an optimistic ScanCompleted result.
+    /// Only raised for camera scans submitted in optimistic mode.
+    /// </summary>
+    event EventHandler<ScanResult>? ScanUpdated;
 
     /// <summary>
     /// Starts the scanner (camera or USB listener).

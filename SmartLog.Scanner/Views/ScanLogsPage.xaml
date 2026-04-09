@@ -6,229 +6,481 @@
              x:Class="SmartLog.Scanner.Views.ScanLogsPage"
              x:DataType="vm:ScanLogsViewModel"
              Title="Scan Logs"
-             BackgroundColor="{DynamicResource PageBackgroundColor}">
+             BackgroundColor="#F8F9FA">
 
     <Shell.BackButtonBehavior>
         <BackButtonBehavior IsVisible="False" />
     </Shell.BackButtonBehavior>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
-        <!-- Back navigation -->
-        <HorizontalStackLayout Grid.Row="0" Margin="0,0,0,8">
-            <Button Text="← Back to Scanner"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="#2C5F5D"
-                    FontSize="14"
-                    Padding="0" />
-        </HorizontalStackLayout>
+        <!-- ── Top Header Bar ── -->
+        <Border Grid.Row="0"
+                BackgroundColor="White"
+                Padding="20,14"
+                StrokeThickness="0">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.08" Radius="8" Offset="0,2" />
+            </Border.Shadow>
 
-        <!-- Statistics Header -->
-        <Border Grid.Row="1"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                StrokeThickness="0"
-                Padding="15"
-                Margin="0,0,0,10">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="10"/>
-            </Border.StrokeShape>
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
 
-            <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="Auto,Auto">
-                <!-- Total Scans -->
-                <VerticalStackLayout Grid.Column="0" Spacing="5">
-                    <Label Text="{Binding TotalScans}"
-                           FontSize="24"
+                <!-- Back Button -->
+                <Border Grid.Column="0"
+                        BackgroundColor="#E0F2F1"
+                        Padding="12,8"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackClicked" />
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="6">
+                        <Label Text="←"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D"
+                               VerticalOptions="Center" />
+                        <Label Text="Back"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Page Title -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Label Text="Scan Logs"
+                           FontSize="18"
                            FontAttributes="Bold"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Total Today"
+                           TextColor="#2C5F5D"
+                           HorizontalOptions="Center" />
+                    <Label Text="{Binding TotalScans, StringFormat='{0} records today'}"
                            FontSize="12"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
+                           TextColor="#9E9E9E"
+                           HorizontalOptions="Center" />
                 </VerticalStackLayout>
 
-                <!-- Accepted -->
-                <VerticalStackLayout Grid.Column="1" Spacing="5">
-                    <Label Text="{Binding AcceptedCount}"
-                           FontSize="24"
+                <!-- Refresh Button -->
+                <Border Grid.Column="2"
+                        BackgroundColor="#4D9B91"
+                        Padding="14,8"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#4D9B91" Opacity="0.3" Radius="6" Offset="0,2" />
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="🔄 Refresh"
+                           FontSize="13"
                            FontAttributes="Bold"
-                           TextColor="#4CAF50"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Accepted"
-                           FontSize="12"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
+                           TextColor="White"
+                           VerticalOptions="Center" />
+                </Border>
 
-                <!-- Duplicates -->
-                <VerticalStackLayout Grid.Column="2" Spacing="5">
-                    <Label Text="{Binding DuplicateCount}"
-                           FontSize="24"
+                <!-- Export CSV Button -->
+                <Border Grid.Column="3"
+                        BackgroundColor="#2C5F5D"
+                        Padding="14,8"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#2C5F5D" Opacity="0.3" Radius="6" Offset="0,2" />
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ExportLogsCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="📥 Export CSV"
+                           FontSize="13"
                            FontAttributes="Bold"
-                           TextColor="#FF9800"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Duplicates"
-                           FontSize="12"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
+                           TextColor="White"
+                           VerticalOptions="Center" />
+                </Border>
 
-                <!-- Rejected -->
-                <VerticalStackLayout Grid.Column="3" Spacing="5">
-                    <Label Text="{Binding RejectedCount}"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           TextColor="#F44336"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Rejected"
-                           FontSize="12"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
-
-                <!-- Errors -->
-                <VerticalStackLayout Grid.Column="4" Spacing="5">
-                    <Label Text="{Binding ErrorCount}"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           TextColor="#F44336"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Errors"
-                           FontSize="12"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
-
-                <!-- Unique Students (spans all columns in row 2) -->
-                <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="5" Spacing="5" Margin="0,15,0,0">
-                    <Label Text="{Binding UniqueStudents, StringFormat='{0} unique students scanned today'}"
-                           FontSize="14"
-                           FontAttributes="Italic"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
             </Grid>
         </Border>
 
-        <!-- Search and Filters -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10" ColumnSpacing="10">
-            <SearchBar Grid.Column="0"
-                       Placeholder="Search by student ID or name..."
-                       Text="{Binding SearchText}"
-                       SearchCommand="{Binding SearchCommand}"/>
+        <!-- ── Statistics Banner ── -->
+        <Border Grid.Row="1"
+                BackgroundColor="#2C5F5D"
+                Padding="20,16"
+                StrokeThickness="0">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,3" />
+            </Border.Shadow>
 
-            <Button Grid.Column="1"
-                    Text="Refresh"
-                    Command="{Binding RefreshCommand}"
-                    BackgroundColor="{DynamicResource Primary}"
-                    TextColor="White"/>
+            <VerticalStackLayout Spacing="14">
 
-            <Button Grid.Column="2"
-                    Text="Export CSV"
-                    Command="{Binding ExportLogsCommand}"
-                    BackgroundColor="{DynamicResource Secondary}"
-                    TextColor="White"/>
-        </Grid>
+                <!-- Stat Cards Row -->
+                <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
 
-        <!-- Logs List -->
+                    <!-- Total -->
+                    <Border BackgroundColor="#33FFFFFF" Padding="16,10" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{Binding TotalScans}"
+                                   FontSize="26" FontAttributes="Bold"
+                                   TextColor="White" HorizontalOptions="Center" />
+                            <Label Text="Total" FontSize="11"
+                                   TextColor="#A0D5CF" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Accepted -->
+                    <Border BackgroundColor="#33FFFFFF" Padding="16,10" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{Binding AcceptedCount}"
+                                   FontSize="26" FontAttributes="Bold"
+                                   TextColor="#69F0AE" HorizontalOptions="Center" />
+                            <Label Text="Accepted" FontSize="11"
+                                   TextColor="#A0D5CF" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Duplicates -->
+                    <Border BackgroundColor="#33FFFFFF" Padding="16,10" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{Binding DuplicateCount}"
+                                   FontSize="26" FontAttributes="Bold"
+                                   TextColor="#FFD54F" HorizontalOptions="Center" />
+                            <Label Text="Duplicates" FontSize="11"
+                                   TextColor="#A0D5CF" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Rejected -->
+                    <Border BackgroundColor="#33FFFFFF" Padding="16,10" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{Binding RejectedCount}"
+                                   FontSize="26" FontAttributes="Bold"
+                                   TextColor="#EF9A9A" HorizontalOptions="Center" />
+                            <Label Text="Rejected" FontSize="11"
+                                   TextColor="#A0D5CF" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Errors -->
+                    <Border BackgroundColor="#33FFFFFF" Padding="16,10" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{Binding ErrorCount}"
+                                   FontSize="26" FontAttributes="Bold"
+                                   TextColor="#EF9A9A" HorizontalOptions="Center" />
+                            <Label Text="Errors" FontSize="11"
+                                   TextColor="#A0D5CF" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                </HorizontalStackLayout>
+
+                <!-- Unique Students -->
+                <Label Text="{Binding UniqueStudents, StringFormat='👥 {0} unique students scanned today'}"
+                       FontSize="13"
+                       FontAttributes="Italic"
+                       TextColor="#A0D5CF"
+                       HorizontalOptions="Center" />
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ── Search + Filter Strip ── -->
+        <Border Grid.Row="2"
+                BackgroundColor="White"
+                Padding="16,12"
+                StrokeThickness="0"
+                Margin="0,0,0,0">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.06" Radius="6" Offset="0,2" />
+            </Border.Shadow>
+
+            <VerticalStackLayout Spacing="10">
+
+                <!-- Search Field -->
+                <Border BackgroundColor="White"
+                        Stroke="#2C5F5D"
+                        StrokeThickness="1.5">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <SearchBar Placeholder="Search by student ID or name..."
+                               PlaceholderColor="#9E9E9E"
+                               Text="{Binding SearchText}"
+                               SearchCommand="{Binding SearchCommand}"
+                               BackgroundColor="White"
+                               TextColor="#37474F" />
+                </Border>
+
+                <!-- Filter Chips -->
+                <ScrollView Orientation="Horizontal">
+                    <HorizontalStackLayout Spacing="8">
+
+                        <Border BackgroundColor="{Binding ActiveFilter, Converter={StaticResource FilterChipColorConverter}, ConverterParameter='All'}"
+                                Padding="16,7" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="14"/></Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding FilterByStatusCommand}" CommandParameter="All" />
+                            </Border.GestureRecognizers>
+                            <Label Text="All" FontSize="12" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" />
+                        </Border>
+
+                        <Border BackgroundColor="{Binding ActiveFilter, Converter={StaticResource FilterChipColorConverter}, ConverterParameter='Accepted'}"
+                                Padding="16,7" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="14"/></Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding FilterByStatusCommand}" CommandParameter="Accepted" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✅ Accepted" FontSize="12" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" />
+                        </Border>
+
+                        <Border BackgroundColor="{Binding ActiveFilter, Converter={StaticResource FilterChipColorConverter}, ConverterParameter='Duplicate'}"
+                                Padding="16,7" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="14"/></Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding FilterByStatusCommand}" CommandParameter="Duplicate" />
+                            </Border.GestureRecognizers>
+                            <Label Text="⚠️ Duplicate" FontSize="12" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" />
+                        </Border>
+
+                        <Border BackgroundColor="{Binding ActiveFilter, Converter={StaticResource FilterChipColorConverter}, ConverterParameter='Rejected'}"
+                                Padding="16,7" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="14"/></Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding FilterByStatusCommand}" CommandParameter="Rejected" />
+                            </Border.GestureRecognizers>
+                            <Label Text="❌ Rejected" FontSize="12" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" />
+                        </Border>
+
+                        <Border BackgroundColor="{Binding ActiveFilter, Converter={StaticResource FilterChipColorConverter}, ConverterParameter='Error'}"
+                                Padding="16,7" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="14"/></Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding FilterByStatusCommand}" CommandParameter="Error" />
+                            </Border.GestureRecognizers>
+                            <Label Text="🚫 Error" FontSize="12" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" />
+                        </Border>
+
+                    </HorizontalStackLayout>
+                </ScrollView>
+
+                <!-- Export success feedback -->
+                <Border BackgroundColor="#E0F2F1"
+                        Padding="12,8"
+                        StrokeThickness="0"
+                        IsVisible="{Binding StatusMessage, Converter={StaticResource IsNotNullConverter}}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                    <Label Text="{Binding StatusMessage}"
+                           TextColor="#2C5F5D"
+                           FontSize="12"
+                           FontAttributes="Bold" />
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ── Logs List ── -->
         <CollectionView Grid.Row="3"
                         ItemsSource="{Binding Logs}"
                         SelectedItem="{Binding SelectedLog}"
-                        SelectionMode="Single">
+                        SelectionMode="Single"
+                        Margin="16,12,16,0">
+
             <CollectionView.EmptyView>
-                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
-                    <Label Text="📊" FontSize="48" HorizontalOptions="Center"/>
-                    <Label Text="No scan logs yet" FontSize="18" HorizontalOptions="Center"/>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Margin="0,60,0,0">
+                    <Border BackgroundColor="#E0F2F1"
+                            WidthRequest="80" HeightRequest="80"
+                            StrokeThickness="0"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="40"/></Border.StrokeShape>
+                        <Label Text="📊" FontSize="40"
+                               HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Label Text="No scan logs yet"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="#37474F"
+                           HorizontalOptions="Center" />
                     <Label Text="Scans will appear here automatically"
-                           FontSize="14"
-                           TextColor="{DynamicResource SecondaryTextColor}"
-                           HorizontalOptions="Center"/>
+                           FontSize="13"
+                           TextColor="#9E9E9E"
+                           HorizontalOptions="Center" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:ScanLogEntry">
-                    <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    <Border BackgroundColor="White"
                             StrokeThickness="0"
                             Margin="0,0,0,10"
-                            Padding="15">
+                            Padding="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8"/>
+                            <RoundRectangle CornerRadius="12"/>
                         </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Opacity="0.07" Radius="8" Offset="0,2" />
+                        </Border.Shadow>
 
-                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15">
-                            <!-- Status Indicator -->
-                            <BoxView Grid.Row="0"
-                                     Grid.RowSpan="3"
-                                     Grid.Column="0"
-                                     WidthRequest="4"
+                        <Grid ColumnDefinitions="6,*" RowDefinitions="Auto">
+
+                            <!-- Left status colour bar -->
+                            <BoxView Grid.Column="0" Grid.RowSpan="1"
                                      Color="{Binding StatusColor}"
-                                     VerticalOptions="Fill"/>
+                                     VerticalOptions="Fill"
+                                     WidthRequest="6">
+                                <BoxView.Clip>
+                                    <RoundRectangleGeometry CornerRadius="12,0,0,12"
+                                                            Rect="0,0,6,1000" />
+                                </BoxView.Clip>
+                            </BoxView>
 
-                            <!-- Main Content -->
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="5">
-                                <Label Text="{Binding StatusDisplay}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding StatusColor}"/>
+                            <!-- Card Content -->
+                            <Grid Grid.Column="1"
+                                  RowDefinitions="Auto,Auto,Auto,Auto"
+                                  Padding="14,12,14,12"
+                                  RowSpacing="0">
 
-                                <Label Text="{Binding StudentName, StringFormat='Student: {0}'}"
-                                       FontSize="14"
-                                       IsVisible="{Binding StudentName, Converter={StaticResource IsNotNullConverter}}"/>
+                                <!-- Row 0: Status badge + student info + timestamp -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding StatusDisplay}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding StatusColor}" />
+                                        <Label FontSize="14"
+                                               TextColor="#37474F"
+                                               IsVisible="{Binding StudentName, Converter={StaticResource IsNotNullConverter}}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding StudentName}" FontAttributes="Bold" />
+                                                    <Span Text="  " />
+                                                    <Span Text="{Binding GradeSection}" TextColor="#9E9E9E" />
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label Text="{Binding StudentId, StringFormat='ID: {0}'}"
+                                               FontSize="11"
+                                               TextColor="#9E9E9E"
+                                               IsVisible="{Binding StudentId, Converter={StaticResource IsNotNullConverter}}" />
+                                    </VerticalStackLayout>
 
-                                <Label Text="{Binding StudentId, StringFormat='ID: {0}'}"
+                                    <!-- Timestamp -->
+                                    <Label Grid.Column="1"
+                                           Text="{Binding TimestampDisplay}"
+                                           FontSize="11"
+                                           TextColor="#9E9E9E"
+                                           VerticalOptions="Start" />
+                                </Grid>
+
+                                <!-- Row 1: User-friendly message -->
+                                <Label Grid.Row="1"
+                                       Text="{Binding Message}"
                                        FontSize="12"
-                                       TextColor="{DynamicResource SecondaryTextColor}"
-                                       IsVisible="{Binding StudentId, Converter={StaticResource IsNotNullConverter}}"/>
-                            </VerticalStackLayout>
+                                       TextColor="#546E7A"
+                                       LineBreakMode="WordWrap"
+                                       Margin="0,6,0,0"
+                                       IsVisible="{Binding Message, Converter={StaticResource IsNotNullConverter}}" />
 
-                            <!-- Timestamp -->
-                            <Label Grid.Row="0" Grid.Column="2"
-                                   Text="{Binding TimestampDisplay}"
-                                   FontSize="12"
-                                   TextColor="{DynamicResource SecondaryTextColor}"
-                                   VerticalOptions="Start"/>
+                                <!-- Row 2: Technical error detail -->
+                                <Border Grid.Row="2"
+                                        BackgroundColor="#FFF3E0"
+                                        Stroke="#FFB74D"
+                                        StrokeThickness="1"
+                                        Padding="10,6"
+                                        Margin="0,6,0,0"
+                                        IsVisible="{Binding HasErrorDetails}">
+                                    <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                    <Label Text="{Binding ErrorDetails}"
+                                           FontSize="11"
+                                           FontFamily="Courier"
+                                           TextColor="#E65100"
+                                           LineBreakMode="CharacterWrap" />
+                                </Border>
 
-                            <!-- Details -->
-                            <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                                   Text="{Binding Message}"
-                                   FontSize="12"
-                                   TextColor="{DynamicResource SecondaryTextColor}"
-                                   LineBreakMode="WordWrap"
-                                   IsVisible="{Binding Message, Converter={StaticResource IsNotNullConverter}}"/>
+                                <!-- Row 3: Metadata chips -->
+                                <HorizontalStackLayout Grid.Row="3" Spacing="8" Margin="0,8,0,0">
 
-                            <!-- Metadata -->
-                            <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Spacing="15">
-                                <Label Text="{Binding ScanType, StringFormat='Type: {0}'}"
-                                       FontSize="11"
-                                       TextColor="{DynamicResource SecondaryTextColor}"/>
-                                <Label Text="{Binding ScanMethod, StringFormat='Method: {0}'}"
-                                       FontSize="11"
-                                       TextColor="{DynamicResource SecondaryTextColor}"/>
-                                <Label Text="{Binding ProcessingTimeMs, StringFormat='Time: {0}ms'}"
-                                       FontSize="11"
-                                       TextColor="{DynamicResource SecondaryTextColor}"/>
-                            </HorizontalStackLayout>
+                                    <Border BackgroundColor="#F5F5F5" Padding="8,4" StrokeThickness="0">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                        <Label Text="{Binding ScanType}"
+                                               FontSize="10" FontAttributes="Bold"
+                                               TextColor="#546E7A" />
+                                    </Border>
+
+                                    <Border BackgroundColor="#F5F5F5" Padding="8,4" StrokeThickness="0">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                        <Label Text="{Binding ScanMethod}"
+                                               FontSize="10" FontAttributes="Bold"
+                                               TextColor="#546E7A" />
+                                    </Border>
+
+                                    <Border BackgroundColor="#F5F5F5" Padding="8,4" StrokeThickness="0">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                        <Label Text="{Binding ProcessingTimeDisplay}"
+                                               FontSize="10" FontAttributes="Bold"
+                                               TextColor="#546E7A" />
+                                    </Border>
+
+                                    <Border BackgroundColor="#E0F2F1" Padding="8,4" StrokeThickness="0"
+                                            IsVisible="{Binding ScanId, Converter={StaticResource IsNotNullConverter}}">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                        <Label Text="{Binding ScanId, StringFormat='#{0}'}"
+                                               FontSize="10" FontAttributes="Bold"
+                                               TextColor="#2C5F5D" />
+                                    </Border>
+
+                                </HorizontalStackLayout>
+
+                            </Grid>
                         </Grid>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Loading Indicator -->
-        <ActivityIndicator Grid.Row="3"
-                          IsRunning="{Binding IsLoading}"
-                          IsVisible="{Binding IsLoading}"
-                          Color="{DynamicResource Primary}"
-                          VerticalOptions="Center"
-                          HorizontalOptions="Center"/>
+        <!-- Loading Overlay -->
+        <Grid Grid.Row="3" IsVisible="{Binding IsLoading}">
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               Color="#4D9B91"
+                               WidthRequest="40"
+                               HeightRequest="40"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center" />
+        </Grid>
 
         <!-- Error Message -->
-        <Label Grid.Row="4"
-               Text="{Binding ErrorMessage}"
-               IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}"
-               TextColor="#F44336"
-               FontSize="12"
-               Margin="0,10,0,0"/>
+        <Border Grid.Row="4"
+                BackgroundColor="#FFEBEE"
+                Stroke="#EF9A9A"
+                StrokeThickness="1"
+                Padding="14,10"
+                Margin="16,8,16,8"
+                IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}">
+            <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="⚠️" FontSize="14" VerticalOptions="Center" />
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#C62828"
+                       FontSize="13"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Border>
+
     </Grid>
 </ContentPage>

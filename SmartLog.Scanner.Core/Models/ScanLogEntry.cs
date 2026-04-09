@@ -86,7 +86,7 @@ public class ScanLogEntry
         ScanStatus.Queued => "💾 Queued (Offline)",
         ScanStatus.RateLimited => "⏱️ Rate Limited",
         ScanStatus.Error => "🚫 Error",
-        ScanStatus.DebouncedLocally => "⏭️ Debounced",
+        ScanStatus.DebouncedLocally => "⚠️ Already Scanned",
         _ => "❓ Unknown"
     };
 
@@ -109,6 +109,23 @@ public class ScanLogEntry
     /// Formatted timestamp for display
     /// </summary>
     public string TimestampDisplay => Timestamp.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss");
+
+    /// <summary>
+    /// True when there is technical detail worth showing (rejected / error scans).
+    /// </summary>
+    public bool HasErrorDetails =>
+        !string.IsNullOrEmpty(ErrorDetails) &&
+        (Status == ScanStatus.Rejected || Status == ScanStatus.Error);
+
+    /// <summary>
+    /// Human-readable processing time: "&lt;1s", "1.2s", etc.
+    /// </summary>
+    public string ProcessingTimeDisplay => ProcessingTimeMs switch
+    {
+        0 => "—",
+        < 1000 => $"{ProcessingTimeMs}ms",
+        _ => $"{ProcessingTimeMs / 1000.0:F1}s"
+    };
 
     /// <summary>
     /// Short summary for list view

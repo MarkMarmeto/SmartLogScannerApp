@@ -21,6 +21,8 @@ public partial class ScanLogsViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string? _errorMessage;
+    [ObservableProperty] private string? _statusMessage; // non-error feedback (e.g. export success)
+    [ObservableProperty] private string _activeFilter = "All"; // tracks which filter chip is active
 
     // Statistics
     [ObservableProperty] private int _totalScans;
@@ -154,6 +156,8 @@ public partial class ScanLogsViewModel : ObservableObject
     {
         IsLoading = true;
         ErrorMessage = null;
+        StatusMessage = null;
+        ActiveFilter = status;
 
         try
         {
@@ -241,8 +245,7 @@ public partial class ScanLogsViewModel : ObservableObject
 
             _logger.LogInformation("Exported logs to: {FilePath}", filePath);
 
-            // TODO: Show success message or share file
-            ErrorMessage = $"Exported to: {filePath}";
+            StatusMessage = $"Exported to: {filePath}";
         }
         catch (Exception ex)
         {
