@@ -19,7 +19,8 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, CameraQrScannerView
 
     public static IPropertyMapper<CameraQrView, CameraQrViewHandler> PropertyMapper = new PropertyMapper<CameraQrView, CameraQrViewHandler>(ViewHandler.ViewMapper)
     {
-        [nameof(CameraQrView.IsDetecting)] = MapIsDetecting
+        [nameof(CameraQrView.IsDetecting)]     = MapIsDetecting,
+        [nameof(CameraQrView.SelectedCameraId)] = MapSelectedCameraId,
     };
 
     protected override CameraQrScannerView CreatePlatformView()
@@ -39,12 +40,19 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, CameraQrScannerView
     private static void MapIsDetecting(CameraQrViewHandler handler, CameraQrView view)
     {
         if (view.IsDetecting)
-        {
-            _ = handler.PlatformView.StartScanningAsync();
-        }
+            _ = handler.PlatformView.StartScanningAsync(view.SelectedCameraId);
         else
+            handler.PlatformView.StopScanning();
+    }
+
+    private static void MapSelectedCameraId(CameraQrViewHandler handler, CameraQrView view)
+    {
+        // Restart with the new device if currently scanning
+        if (handler.PlatformView != null)
         {
             handler.PlatformView.StopScanning();
+            if (view.IsDetecting)
+                _ = handler.PlatformView.StartScanningAsync(view.SelectedCameraId);
         }
     }
 

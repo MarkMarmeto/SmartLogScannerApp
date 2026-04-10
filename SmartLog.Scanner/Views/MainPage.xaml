@@ -172,6 +172,7 @@
                 <Grid>
                     <controls:CameraQrView x:Name="cameraView"
                                            IsDetecting="{Binding IsScanning}"
+                                           SelectedCameraId="{Binding SelectedCameraId}"
                                            BarcodeDetected="OnBarcodeDetected" />
                     <!-- Camera label overlay -->
                     <Border BackgroundColor="#99000000"

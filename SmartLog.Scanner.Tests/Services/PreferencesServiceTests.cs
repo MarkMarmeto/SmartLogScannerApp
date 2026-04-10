@@ -42,6 +42,9 @@ public class PreferencesServiceTests
         public bool GetAcceptSelfSignedCerts() => Get("AcceptSelfSignedCerts", false);
         public void SetAcceptSelfSignedCerts(bool accept) => _store["AcceptSelfSignedCerts"] = accept;
 
+        public string GetSelectedCameraId() => Get("SelectedCameraId", string.Empty);
+        public void SetSelectedCameraId(string deviceId) => _store["SelectedCameraId"] = deviceId;
+
         public void ClearAll() => _store.Clear();
 
         private T Get<T>(string key, T defaultValue)

@@ -10,10 +10,23 @@ public class CameraQrView : View
         BindableProperty.Create(nameof(IsDetecting), typeof(bool), typeof(CameraQrView), false,
             propertyChanged: OnIsDetectingChanged);
 
+    public static readonly BindableProperty SelectedCameraIdProperty =
+        BindableProperty.Create(nameof(SelectedCameraId), typeof(string), typeof(CameraQrView), string.Empty);
+
     public bool IsDetecting
     {
         get => (bool)GetValue(IsDetectingProperty);
         set => SetValue(IsDetectingProperty, value);
+    }
+
+    /// <summary>
+    /// Platform-specific device ID of the camera to use.
+    /// Empty string means "system default".
+    /// </summary>
+    public string SelectedCameraId
+    {
+        get => (string)GetValue(SelectedCameraIdProperty);
+        set => SetValue(SelectedCameraIdProperty, value);
     }
 
     public event EventHandler<string>? BarcodeDetected;

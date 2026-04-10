@@ -92,6 +92,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _currentDateTime = string.Empty;
     private IDispatcherTimer? _clockTimer;
 
+    // Selected camera device ID (read from preferences; refreshed on each InitializeAsync call)
+    [ObservableProperty] private string _selectedCameraId = string.Empty;
+
     // Camera barcode reader options
     public BarcodeReaderOptions BarcodeReaderOptions { get; } = new BarcodeReaderOptions
     {
@@ -153,6 +156,9 @@ public partial class MainViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
+        // Refresh selected camera ID so the camera view picks up any change made in settings
+        SelectedCameraId = _preferences.GetSelectedCameraId();
+
         // Sync clock with server before starting the ticker so the display reflects
         // the corrected time from the very first tick.
         await _timeService.SyncAsync();

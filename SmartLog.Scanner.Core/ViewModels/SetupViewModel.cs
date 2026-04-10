@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using SmartLog.Scanner.Core.Services;
 using SmartLog.Scanner.Core.Models;
 using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
 
 namespace SmartLog.Scanner.Core.ViewModels;
 
@@ -17,6 +18,7 @@ public partial class SetupViewModel : ObservableObject
 	private readonly INavigationService _navigation;
 	private readonly IConnectionTestService _connectionTestService;
 	private readonly IDeviceDetectionService _deviceDetection;
+	private readonly ICameraEnumerationService? _cameraEnumeration;
 	private readonly ILogger<SetupViewModel> _logger;
 
 	// Form field properties
@@ -56,6 +58,12 @@ public partial class SetupViewModel : ObservableObject
 	[ObservableProperty] private string? _testResultMessage;
 	[ObservableProperty] private bool _isConnectionValid;
 
+	// Camera picker
+	[ObservableProperty] private ObservableCollection<CameraDeviceInfo> _availableCameras = new();
+	[ObservableProperty] private CameraDeviceInfo? _selectedCamera;
+	[ObservableProperty] private bool _hasCameras;
+	[ObservableProperty] private string _cameraPickerMessage = "Detecting cameras...";
+
 	// Picker options
 	public List<string> ScanTypeOptions { get; } = new() { "ENTRY", "EXIT" };
 
@@ -65,13 +73,15 @@ public partial class SetupViewModel : ObservableObject
 		INavigationService navigation,
 		IConnectionTestService connectionTestService,
 		IDeviceDetectionService deviceDetection,
-		ILogger<SetupViewModel> logger)
+		ILogger<SetupViewModel> logger,
+		ICameraEnumerationService? cameraEnumeration = null)
 	{
 		_secureConfig = secureConfig;
 		_preferences = preferences;
 		_navigation = navigation;
 		_connectionTestService = connectionTestService;
 		_deviceDetection = deviceDetection;
+		_cameraEnumeration = cameraEnumeration;
 		_logger = logger;
 	}
 
@@ -122,12 +132,54 @@ public partial class SetupViewModel : ObservableObject
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Device detection failed");
-			DetectedScanMethod = ScanningMethod.UsbScanner; // Fallback to USB
+			DetectedScanMethod = ScanningMethod.UsbScanner;
 			DetectedDevicesMessage = "Device detection failed. Defaulting to USB scanner mode.";
 		}
 		finally
 		{
 			IsDetectingDevices = false;
+		}
+
+		// Enumerate cameras for the camera picker
+		await LoadCamerasAsync();
+	}
+
+	private async Task LoadCamerasAsync()
+	{
+		if (_cameraEnumeration == null)
+		{
+			CameraPickerMessage = "Camera enumeration not available on this platform.";
+			HasCameras = false;
+			return;
+		}
+
+		try
+		{
+			var cameras = await _cameraEnumeration.GetAvailableCamerasAsync();
+			AvailableCameras = new ObservableCollection<CameraDeviceInfo>(cameras);
+			HasCameras = cameras.Count > 0;
+
+			if (cameras.Count == 0)
+			{
+				CameraPickerMessage = "No cameras detected. USB scanner will be used.";
+				return;
+			}
+
+			CameraPickerMessage = $"{cameras.Count} camera(s) found.";
+
+			// Restore previously saved selection
+			var savedId = _preferences.GetSelectedCameraId();
+			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId)
+				?? cameras[0];
+
+			_logger.LogInformation("Camera enumeration complete: {Count} camera(s), selected={Name}",
+				cameras.Count, SelectedCamera?.Name);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Camera enumeration failed");
+			CameraPickerMessage = "Could not enumerate cameras.";
+			HasCameras = false;
 		}
 	}
 
@@ -178,6 +230,7 @@ public partial class SetupViewModel : ObservableObject
 			});
 			_preferences.SetDefaultScanType(SelectedScanType);
 			_preferences.SetAcceptSelfSignedCerts(AcceptSelfSignedCerts);
+			_preferences.SetSelectedCameraId(SelectedCamera?.Id ?? string.Empty);
 			_preferences.SetSetupCompleted(true);
 			_logger.LogInformation("Configuration saved to preferences");
 

@@ -294,6 +294,31 @@
                         </Border>
                     </VerticalStackLayout>
 
+                    <!-- Camera Picker -->
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Camera"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#333333" />
+                        <Label Text="{Binding CameraPickerMessage}"
+                               FontSize="12"
+                               TextColor="#666666" />
+                        <Border BackgroundColor="#F9F9F9"
+                                StrokeThickness="1"
+                                Stroke="#DDDDDD"
+                                Padding="12,10"
+                                IsVisible="{Binding HasCameras}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6" />
+                            </Border.StrokeShape>
+                            <Picker ItemsSource="{Binding AvailableCameras}"
+                                    SelectedItem="{Binding SelectedCamera, Mode=TwoWay}"
+                                    ItemDisplayBinding="{Binding Name}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#333333" />
+                        </Border>
+                    </VerticalStackLayout>
+
                     <!-- Default Scan Type -->
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Default Scan Type"
