@@ -139,6 +139,49 @@ else {
     exit 1
 }
 
+# Check Windows App Runtime 1.5 (required by .NET MAUI on Windows)
+Write-Detail "Checking Windows App Runtime 1.5..."
+$winAppRt = Get-AppxPackage -Name "Microsoft.WindowsAppRuntime.1.5*" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Version -ge "5001.0.0.0" }
+
+if ($winAppRt) {
+    Write-Success "Windows App Runtime 1.5 installed ($($winAppRt.Version))"
+}
+else {
+    Write-Warn "Windows App Runtime 1.5 not found (required to run the app)"
+    if (Read-YesNo "Download and install Windows App Runtime 1.5 now?" $true) {
+        $arch = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+        $rtUrl       = "https://aka.ms/windowsappsdk/1.5/latest/windowsappruntimeinstall-$arch.exe"
+        $rtInstaller = Join-Path $env:TEMP "WindowsAppRuntimeInstall-1.5.exe"
+
+        Write-Detail "Downloading installer ($arch)..."
+        try {
+            Invoke-WebRequest -Uri $rtUrl -OutFile $rtInstaller -UseBasicParsing
+            Write-Detail "Running installer (this takes about a minute)..."
+            $proc = Start-Process -FilePath $rtInstaller -ArgumentList "--quiet" -Wait -PassThru
+            if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 1638) {
+                Write-Success "Windows App Runtime 1.5 installed successfully"
+            }
+            else {
+                Write-Warn "Installer exited with code $($proc.ExitCode) -- the app may still work"
+            }
+            Remove-Item $rtInstaller -Force -ErrorAction SilentlyContinue
+        }
+        catch {
+            Write-Fail "Download failed: $($_.Exception.Message)"
+            Write-Host ""
+            Write-Host "  Install it manually from:" -ForegroundColor Yellow
+            Write-Host "  https://aka.ms/windowsappsdk/1.5/latest/windowsappruntimeinstall-$arch.exe" -ForegroundColor Cyan
+            Write-Host ""
+            if (-not (Read-YesNo "Continue anyway?" $false)) { exit 1 }
+        }
+    }
+    else {
+        Write-Warn "Skipping -- the app will show an error dialog until the runtime is installed."
+        Write-Host "  Install it later from: https://aka.ms/windowsappsdk/1.5/latest/windowsappruntimeinstall-x64.exe" -ForegroundColor Cyan
+    }
+}
+
 # Check Git
 $gitVersion = $null
 try {
