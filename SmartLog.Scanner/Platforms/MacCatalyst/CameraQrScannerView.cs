@@ -27,12 +27,12 @@ public class CameraQrScannerView : UIView
         BackgroundColor = UIColor.Black;
     }
 
-    public async Task StartScanningAsync()
+    public async Task StartScanningAsync(string? deviceId = null)
     {
         if (_isScanning)
             return;
 
-        _logger?.LogInformation("Starting camera QR scanning...");
+        _logger?.LogInformation("Starting camera QR scanning (deviceId={DeviceId})...", deviceId ?? "default");
 
         // Request camera permission
         var status = AVCaptureDevice.GetAuthorizationStatus(AVAuthorizationMediaType.Video);
@@ -55,8 +55,12 @@ public class CameraQrScannerView : UIView
         _captureSession = new AVCaptureSession();
         _captureSession.SessionPreset = AVCaptureSession.PresetHigh;
 
-        // Get default video device
-        var videoDevice = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+        // Use specified device ID when provided; fall back to system default
+        AVCaptureDevice? videoDevice = null;
+        if (!string.IsNullOrWhiteSpace(deviceId))
+            videoDevice = AVCaptureDevice.DeviceWithUniqueID(deviceId);
+        videoDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+
         if (videoDevice == null)
         {
             _logger?.LogError("No video capture device found");

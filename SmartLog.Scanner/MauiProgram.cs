@@ -267,8 +267,10 @@ public static class MauiProgram
 		// Device detection service (automatic camera/USB detection) - Platform-specific
 #if MACCATALYST
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();
+		builder.Services.AddSingleton<ICameraEnumerationService, Platforms.MacCatalyst.CameraEnumerationService>();
 #elif WINDOWS
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.Windows.DeviceDetectionService>();
+		builder.Services.AddSingleton<ICameraEnumerationService, Platforms.Windows.CameraEnumerationService>();
 #else
 		// Fallback: Default to USB scanner only
 		builder.Services.AddSingleton<IDeviceDetectionService, Core.Services.DefaultDeviceDetectionService>();

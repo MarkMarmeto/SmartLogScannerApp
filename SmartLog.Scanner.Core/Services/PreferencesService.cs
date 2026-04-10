@@ -122,6 +122,20 @@ public class PreferencesService : IPreferencesService
 
     #endregion
 
+    #region Selected Camera
+
+    public string GetSelectedCameraId()
+    {
+        return Preferences.Default.Get(ConfigKeys.SelectedCameraId, string.Empty);
+    }
+
+    public void SetSelectedCameraId(string deviceId)
+    {
+        Preferences.Default.Set(ConfigKeys.SelectedCameraId, deviceId);
+    }
+
+    #endregion
+
     #region Clear All
 
     public void ClearAll()

@@ -70,5 +70,11 @@ public static class ConfigKeys
     /// </summary>
     public const string AcceptSelfSignedCerts = "Security.AcceptSelfSignedCerts";
 
+    /// <summary>
+    /// Device ID of the selected camera (platform-specific opaque string)
+    /// Default: "" (system picks default camera)
+    /// </summary>
+    public const string SelectedCameraId = "Scanner.SelectedCameraId";
+
     #endregion
 }

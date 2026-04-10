@@ -124,6 +124,21 @@ public interface IPreferencesService
 
     #endregion
 
+    #region Selected Camera
+
+    /// <summary>
+    /// Gets the platform-specific device ID of the selected camera.
+    /// Empty string means "use system default".
+    /// </summary>
+    string GetSelectedCameraId();
+
+    /// <summary>
+    /// Sets the selected camera device ID.
+    /// </summary>
+    void SetSelectedCameraId(string deviceId);
+
+    #endregion
+
     #region Clear All
 
     /// <summary>
