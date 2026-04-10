@@ -3,6 +3,7 @@ using Windows.Devices.Enumeration;
 using Windows.Graphics.Imaging;
 using Windows.Media.Capture;
 using Windows.Media.Capture.Frames;
+using Windows.Media.MediaProperties;
 using ZXing;
 using ZXing.Common;
 
@@ -36,7 +37,7 @@ public sealed class WindowsCameraScanner : IDisposable
         _barcodeReader = new BarcodeReaderGeneric
         {
             AutoRotate = true,
-            Options = new DecodingHints
+            Options = new DecodingOptions
             {
                 PossibleFormats = new List<BarcodeFormat> { BarcodeFormat.QR_CODE },
                 TryHarder = true
