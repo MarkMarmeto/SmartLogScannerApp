@@ -20,7 +20,7 @@ public sealed class WindowsCameraScanner : IDisposable
 {
     private MediaCapture? _mediaCapture;
     private MediaFrameReader? _frameReader;
-    private readonly BarcodeReader _barcodeReader;
+    private readonly BarcodeReaderGeneric _barcodeReader;
 
     private volatile bool _isScanning;
     private int _frameCount;
@@ -33,7 +33,7 @@ public sealed class WindowsCameraScanner : IDisposable
 
     public WindowsCameraScanner()
     {
-        _barcodeReader = new BarcodeReader
+        _barcodeReader = new BarcodeReaderGeneric
         {
             AutoRotate = true,
             Options = new DecodingHints

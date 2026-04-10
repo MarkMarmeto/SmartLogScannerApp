@@ -1,9 +1,8 @@
 using Microsoft.Maui.Handlers;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
 using SmartLog.Scanner.Controls;
 using WinGrid = Microsoft.UI.Xaml.Controls.Grid;
+using WinImage = Microsoft.UI.Xaml.Controls.Image;
 
 namespace SmartLog.Scanner.Platforms.Windows;
 
@@ -18,14 +17,14 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
     public static readonly IPropertyMapper<CameraQrView, CameraQrViewHandler> PropertyMapper =
         new PropertyMapper<CameraQrView, CameraQrViewHandler>(ViewHandler.ViewMapper)
         {
-            [nameof(CameraQrView.IsDetecting)]     = MapIsDetecting,
+            [nameof(CameraQrView.IsDetecting)]      = MapIsDetecting,
             [nameof(CameraQrView.SelectedCameraId)] = MapSelectedCameraId,
         };
 
     private WindowsCameraScanner? _scanner;
-    private Image? _previewImage;
-    private WriteableBitmap? _writeableBitmap;
-    private DispatcherTimer? _previewTimer;
+    private WinImage? _previewImage;
+    private Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap? _writeableBitmap;
+    private DispatcherQueueTimer? _previewTimer;
     private DispatcherQueue? _dispatcherQueue;
 
     public CameraQrViewHandler() : base(PropertyMapper) { }
@@ -38,11 +37,11 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
     {
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
 
-        _previewImage = new Image
+        _previewImage = new WinImage
         {
-            Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
-            HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
-            VerticalAlignment   = Microsoft.UI.Xaml.VerticalAlignment.Stretch,
+            Stretch                  = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
+            HorizontalAlignment      = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
+            VerticalAlignment        = Microsoft.UI.Xaml.VerticalAlignment.Stretch,
         };
 
         var grid = new WinGrid();
@@ -77,7 +76,7 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
 
     private static void MapSelectedCameraId(CameraQrViewHandler handler, CameraQrView view)
     {
-        // If already scanning, restart with the newly selected camera
+        // Restart with the newly selected camera if already scanning
         if (handler._scanner?.IsScanning == true)
         {
             _ = handler.StopCameraAsync()
@@ -119,13 +118,14 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
     }
 
     // -----------------------------------------------------------------------
-    // Preview rendering (~15 fps DispatcherTimer on the UI thread)
+    // Preview rendering (~15 fps DispatcherQueueTimer on the UI thread)
     // -----------------------------------------------------------------------
 
     private void StartPreviewTimer()
     {
         if (_dispatcherQueue == null) return;
-        _previewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(66) };
+        _previewTimer = _dispatcherQueue.CreateTimer();
+        _previewTimer.Interval = TimeSpan.FromMilliseconds(66);
         _previewTimer.Tick += OnPreviewTick;
         _previewTimer.Start();
     }
@@ -136,7 +136,7 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
         _previewTimer = null;
     }
 
-    private void OnPreviewTick(object? sender, object e)
+    private void OnPreviewTick(DispatcherQueueTimer sender, object args)
     {
         if (_scanner == null || _previewImage == null) return;
 
@@ -149,10 +149,10 @@ public class CameraQrViewHandler : ViewHandler<CameraQrView, WinGrid>
             int h = frame.PixelHeight;
 
             if (_writeableBitmap == null ||
-                _writeableBitmap.PixelWidth != w ||
+                _writeableBitmap.PixelWidth  != w ||
                 _writeableBitmap.PixelHeight != h)
             {
-                _writeableBitmap = new WriteableBitmap(w, h);
+                _writeableBitmap = new Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap(w, h);
             }
 
             frame.CopyToBuffer(_writeableBitmap.PixelBuffer);
