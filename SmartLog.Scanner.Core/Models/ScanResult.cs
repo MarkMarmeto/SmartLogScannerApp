@@ -88,6 +88,21 @@ public record ScanResult
     public bool IsOptimistic { get; init; }
 
     /// <summary>
+    /// US0076: Visitor pass code (e.g., "VISITOR-005"). Null for student scans.
+    /// </summary>
+    public string? PassCode { get; init; }
+
+    /// <summary>
+    /// US0076: Visitor pass number (e.g., 5). Null for student scans.
+    /// </summary>
+    public int? PassNumber { get; init; }
+
+    /// <summary>
+    /// US0076: True if this is a visitor scan (PassCode is present).
+    /// </summary>
+    public bool IsVisitorScan => PassCode != null;
+
+    /// <summary>
     /// True if the QR code passed HMAC validation.
     /// </summary>
     public bool IsValid => ValidationResult?.IsValid ?? false;

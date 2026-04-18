@@ -298,7 +298,12 @@ public partial class MainViewModel : ObservableObject
 
                 // Flash animation for the source camera cell
                 if (e.Result.Status == ScanStatus.Accepted)
-                    TriggerSlotFlash(e.CameraIndex, e.Result.StudentName ?? e.Result.StudentId);
+                {
+                    var flashName = e.Result.IsVisitorScan
+                        ? $"Visitor #{e.Result.PassNumber} — {e.Result.ScanType}"
+                        : e.Result.StudentName ?? e.Result.StudentId;
+                    TriggerSlotFlash(e.CameraIndex, flashName);
+                }
             }
         });
 
@@ -429,16 +434,23 @@ public partial class MainViewModel : ObservableObject
                 case ScanStatus.Accepted:
                     _currentOptimisticScanAt = result.IsOptimistic ? result.ScannedAt : null;
                     LastStudentId = result.StudentId;
-                    LastLrn = result.Lrn;
-                    LastStudentName = result.StudentName;
-                    LastGrade = result.Grade;
-                    LastSection = result.Section;
+                    LastLrn = result.IsVisitorScan ? null : result.Lrn;
+                    LastStudentName = result.IsVisitorScan
+                        ? $"Visitor Pass #{result.PassNumber}"
+                        : result.StudentName;
+                    LastGrade = result.IsVisitorScan ? null : result.Grade;
+                    LastSection = result.IsVisitorScan ? null : result.Section;
                     HasScannedStudent = true;
-                    CardBorderColor = Color.FromArgb("#4CAF50");
+                    // US0076-AC2: Blue for visitors, green for students
+                    CardBorderColor = result.IsVisitorScan
+                        ? Color.FromArgb("#2196F3")
+                        : Color.FromArgb("#4CAF50");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
                     LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#4CAF50");
+                    FeedbackColor = result.IsVisitorScan
+                        ? Color.FromArgb("#2196F3")
+                        : Color.FromArgb("#4CAF50");
                     ShowFeedback = true;
                     StatusMessage = "Accepted!";
                     StatusIcon = "✓";
@@ -449,11 +461,13 @@ public partial class MainViewModel : ObservableObject
 
                 case ScanStatus.Duplicate:
                     LastStudentId = result.StudentId;
-                    LastLrn = result.Lrn;
-                    LastStudentName = result.StudentName;
-                    LastGrade = result.Grade;
-                    LastSection = result.Section;
-                    HasScannedStudent = !string.IsNullOrEmpty(result.StudentId);
+                    LastLrn = result.IsVisitorScan ? null : result.Lrn;
+                    LastStudentName = result.IsVisitorScan
+                        ? $"Visitor Pass #{result.PassNumber}"
+                        : result.StudentName;
+                    LastGrade = result.IsVisitorScan ? null : result.Grade;
+                    LastSection = result.IsVisitorScan ? null : result.Section;
+                    HasScannedStudent = result.IsVisitorScan || !string.IsNullOrEmpty(result.StudentId);
                     CardBorderColor = Color.FromArgb("#FF9800");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = true;
@@ -467,17 +481,19 @@ public partial class MainViewModel : ObservableObject
 
                 case ScanStatus.Rejected:
                     LastStudentId = result.StudentId;
-                    LastStudentName = null;
+                    LastStudentName = result.IsVisitorScan
+                        ? $"Visitor Pass #{result.PassNumber}"
+                        : null;
                     LastGrade = null;
                     LastSection = null;
-                    HasScannedStudent = false;
+                    HasScannedStudent = result.IsVisitorScan;
                     CardBorderColor = Color.FromArgb("#F44336");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
                     LastScanValid = false;
                     LastScanMessage = ToFriendlyMessage(result);
                     FeedbackColor = Color.FromArgb("#F44336");
                     ShowFeedback = true;
-                    StatusMessage = "Rejected";
+                    StatusMessage = result.IsVisitorScan ? "Pass Inactive" : "Rejected";
                     StatusIcon = "✗";
                     _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
                     break;
@@ -1032,6 +1048,8 @@ public partial class MainViewModel : ObservableObject
     {
         return result.Status switch
         {
+            ScanStatus.Accepted when result.IsVisitorScan =>
+                $"✓ Visitor Pass #{result.PassNumber} — {result.ScanType}",
             ScanStatus.Accepted =>
                 $"✓ {result.StudentName ?? result.StudentId} — {result.Grade} {result.Section}".TrimEnd(' ', '—'),
             ScanStatus.Duplicate =>
