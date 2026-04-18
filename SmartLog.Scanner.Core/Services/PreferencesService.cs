@@ -145,4 +145,38 @@ public class PreferencesService : IPreferencesService
     }
 
     #endregion
+
+    #region Multi-Camera Config (EP0011)
+
+    public int GetCameraCount()
+        => Preferences.Default.Get("MultiCamera.Count", 1);
+
+    public void SetCameraCount(int count)
+        => Preferences.Default.Set("MultiCamera.Count", count);
+
+    public string GetCameraName(int index)
+        => Preferences.Default.Get($"MultiCamera.{index}.Name", $"Camera {index + 1}");
+
+    public void SetCameraName(int index, string name)
+        => Preferences.Default.Set($"MultiCamera.{index}.Name", name);
+
+    public string GetCameraDeviceId(int index)
+        => Preferences.Default.Get($"MultiCamera.{index}.DeviceId", string.Empty);
+
+    public void SetCameraDeviceId(int index, string deviceId)
+        => Preferences.Default.Set($"MultiCamera.{index}.DeviceId", deviceId);
+
+    public string GetCameraScanType(int index)
+        => Preferences.Default.Get($"MultiCamera.{index}.ScanType", "ENTRY");
+
+    public void SetCameraScanType(int index, string scanType)
+        => Preferences.Default.Set($"MultiCamera.{index}.ScanType", scanType);
+
+    public bool GetCameraEnabled(int index)
+        => Preferences.Default.Get($"MultiCamera.{index}.Enabled", true);
+
+    public void SetCameraEnabled(int index, bool enabled)
+        => Preferences.Default.Set($"MultiCamera.{index}.Enabled", enabled);
+
+    #endregion
 }

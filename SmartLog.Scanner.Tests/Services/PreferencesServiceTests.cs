@@ -45,6 +45,18 @@ public class PreferencesServiceTests
         public string GetSelectedCameraId() => Get("SelectedCameraId", string.Empty);
         public void SetSelectedCameraId(string deviceId) => _store["SelectedCameraId"] = deviceId;
 
+        // EP0011: Multi-camera config
+        public int GetCameraCount() => Get("CameraCount", 1);
+        public void SetCameraCount(int count) => _store["CameraCount"] = count;
+        public string GetCameraName(int index) => Get($"Camera.{index}.Name", $"Camera {index + 1}");
+        public void SetCameraName(int index, string name) => _store[$"Camera.{index}.Name"] = name;
+        public string GetCameraDeviceId(int index) => Get($"Camera.{index}.DeviceId", string.Empty);
+        public void SetCameraDeviceId(int index, string deviceId) => _store[$"Camera.{index}.DeviceId"] = deviceId;
+        public string GetCameraScanType(int index) => Get($"Camera.{index}.ScanType", "ENTRY");
+        public void SetCameraScanType(int index, string scanType) => _store[$"Camera.{index}.ScanType"] = scanType;
+        public bool GetCameraEnabled(int index) => Get($"Camera.{index}.Enabled", true);
+        public void SetCameraEnabled(int index, bool enabled) => _store[$"Camera.{index}.Enabled"] = enabled;
+
         public void ClearAll() => _store.Clear();
 
         private T Get<T>(string key, T defaultValue)

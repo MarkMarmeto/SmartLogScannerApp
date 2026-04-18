@@ -51,6 +51,7 @@ public class ScanApiService : IScanApiService
         string qrPayload,
         DateTimeOffset scannedAt,
         string scanType,
+        int? cameraIndex = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -127,7 +128,8 @@ public class ScanApiService : IScanApiService
             {
                 qrPayload,
                 scannedAt = scannedAt.ToString("o"), // ISO 8601 format
-                scanType
+                scanType,
+                cameraIndex  // null for single-camera devices; server stores as nullable
             };
 
             var requestJson = JsonSerializer.Serialize(requestBody, _jsonOptions);

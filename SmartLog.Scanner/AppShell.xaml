@@ -6,7 +6,8 @@
     xmlns:local="clr-namespace:SmartLog.Scanner.Views"
     Shell.FlyoutBehavior="Disabled"
     Shell.NavBarIsVisible="False"
-    Shell.TabBarIsVisible="False">
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="#F8F9FA">
 
     <TabBar>
         <ShellContent

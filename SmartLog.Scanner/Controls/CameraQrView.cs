@@ -6,6 +6,32 @@ namespace SmartLog.Scanner.Controls;
 /// </summary>
 public class CameraQrView : View
 {
+    /// <summary>
+    /// EP0011: Zero-based index of this camera in the multi-camera grid.
+    /// Used by the shared BarcodeDetected handler in MainPage to route events to the correct camera.
+    /// </summary>
+    public static readonly BindableProperty CameraIndexProperty =
+        BindableProperty.Create(nameof(CameraIndex), typeof(int), typeof(CameraQrView), 0);
+
+    public int CameraIndex
+    {
+        get => (int)GetValue(CameraIndexProperty);
+        set => SetValue(CameraIndexProperty, value);
+    }
+
+    /// <summary>
+    /// EP0011: Frame skip count for adaptive decode throttle.
+    /// Platform handler reads this value and only forwards a barcode event every N-th frame.
+    /// </summary>
+    public static readonly BindableProperty ThrottleFramesProperty =
+        BindableProperty.Create(nameof(ThrottleFrames), typeof(int), typeof(CameraQrView), 5);
+
+    public int ThrottleFrames
+    {
+        get => (int)GetValue(ThrottleFramesProperty);
+        set => SetValue(ThrottleFramesProperty, value);
+    }
+
     public static readonly BindableProperty IsDetectingProperty =
         BindableProperty.Create(nameof(IsDetecting), typeof(bool), typeof(CameraQrView), false,
             propertyChanged: OnIsDetectingChanged);
