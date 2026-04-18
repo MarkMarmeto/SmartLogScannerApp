@@ -1,6 +1,6 @@
 # Story Registry
 
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-04-18
 **Personas Reference:** [User Personas](../personas.md)
 
 ## Summary
@@ -12,8 +12,8 @@
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 1 |
-| Done | 0 |
-| **Total** | **17** |
+| Done | 6 |
+| **Total** | **23** |
 
 ## Stories by Epic
 
