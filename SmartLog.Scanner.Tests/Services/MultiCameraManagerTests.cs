@@ -61,8 +61,12 @@ public class MultiCameraManagerTests
 
         var sp = services.BuildServiceProvider();
 
+        var workerFactoryMock = new Mock<ICameraWorkerFactory>();
+        workerFactoryMock.Setup(f => f.Create()).Returns(new Mock<ICameraWorker>().Object);
+
         var manager = new MultiCameraManager(
             sp,
+            workerFactoryMock.Object,
             prefsMock.Object,
             NullLogger<MultiCameraManager>.Instance);
 
