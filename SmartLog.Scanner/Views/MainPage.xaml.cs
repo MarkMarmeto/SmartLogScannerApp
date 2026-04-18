@@ -3,13 +3,14 @@ using SmartLog.Scanner.ViewModels;
 namespace SmartLog.Scanner.Views;
 
 /// <summary>
-/// US0007/US0008: Main scanning page with camera QR code detection and USB keyboard wedge input.
-/// Modern UI with visual feedback for scan results.
+/// US0007/US0008/EP0011: Main scanning page.
+/// Supports multi-camera QR scanning (1–8 cameras) and USB keyboard-wedge input.
 /// </summary>
 public partial class MainPage : ContentPage
 {
     private MainViewModel? _viewModel;
     private string _scannerMode = "Camera";
+    private bool _windowDestroyingHooked;
 
     // Parameterless constructor for DataTemplate
     public MainPage()
@@ -40,21 +41,58 @@ public partial class MainPage : ContentPage
         {
             await _viewModel.InitializeAsync();
 
+            // EP0011: Attach camera 0 preview layer after cameras are running
+#if MACCATALYST
+            if (_scannerMode == "Camera")
+                AttachCameraPreview();
+#endif
+
             // Focus the page for keyboard input in USB mode
             if (_scannerMode == "USB")
-            {
                 this.Focus();
-            }
+        }
+
+        // EP0011: Hook Window.Destroying once to ensure StopAllAsync is called on app close
+        if (!_windowDestroyingHooked && Window is not null)
+        {
+            Window.Destroying += OnWindowDestroying;
+            _windowDestroyingHooked = true;
         }
     }
+
+#if MACCATALYST
+    /// <summary>
+    /// EP0011: Attaches the AVCaptureVideoPreviewLayer from camera 0's headless worker
+    /// to the CameraPreview0 view. Called after InitializeAsync so the capture session exists.
+    /// </summary>
+    private void AttachCameraPreview()
+    {
+        if (CameraPreview0?.Handler is Platforms.MacCatalyst.CameraPreviewHandler handler
+            && _viewModel != null)
+        {
+            _viewModel.ConfigureCameraPreview(0, worker =>
+            {
+                if (worker is Platforms.MacCatalyst.CameraHeadlessWorker macWorker)
+                    handler.AttachWorkerPreview(macWorker);
+            });
+        }
+    }
+#endif
 
     protected override async void OnDisappearing()
     {
         base.OnDisappearing();
         if (_viewModel != null)
-        {
             await _viewModel.DisposeAsync();
-        }
+    }
+
+    /// <summary>
+    /// EP0011: Ensures all camera threads are stopped when the app window closes.
+    /// </summary>
+    private async void OnWindowDestroying(object? sender, EventArgs e)
+    {
+        if (_viewModel != null)
+            await _viewModel.StopCamerasAsync();
     }
 
     /// <summary>
@@ -84,43 +122,6 @@ public partial class MainPage : ContentPage
     private async void OnViewQueueClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//queue");
-    }
-
-    /// <summary>
-    /// US0007: Handle QR code detection from camera.
-    /// </summary>
-    private void OnBarcodeDetected(object? sender, string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            System.Diagnostics.Debug.WriteLine("[MainPage] OnBarcodeDetected called with null/empty value");
-            return;
-        }
-
-        System.Diagnostics.Debug.WriteLine($"[MainPage] OnBarcodeDetected called with value: {value.Substring(0, Math.Min(50, value.Length))}...");
-
-        // Only process in Camera mode
-        if (_scannerMode != "Camera")
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Not in Camera mode (current: {_scannerMode}), ignoring barcode");
-            return;
-        }
-
-        System.Diagnostics.Debug.WriteLine("[MainPage] Processing QR code via ViewModel...");
-
-        // Process the QR code payload via ViewModel
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            if (_viewModel != null)
-            {
-                System.Diagnostics.Debug.WriteLine("[MainPage] Calling ProcessCameraQrCodeAsync...");
-                await _viewModel.ProcessCameraQrCodeAsync(value);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[MainPage] ERROR: ViewModel is null!");
-            }
-        });
     }
 
     /// <summary>

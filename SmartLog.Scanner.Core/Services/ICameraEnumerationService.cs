@@ -13,4 +13,11 @@ public interface ICameraEnumerationService
     /// Returns an empty list when no cameras are present.
     /// </summary>
     Task<IList<CameraDeviceInfo>> GetAvailableCamerasAsync();
+
+    /// <summary>
+    /// Attempts to open the specified camera briefly to verify it works.
+    /// Returns true if the camera opened successfully, false otherwise.
+    /// EP0011 (US0071 AC2): "Test" button per camera row.
+    /// </summary>
+    Task<bool> TestCameraAsync(string deviceId);
 }

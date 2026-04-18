@@ -16,4 +16,20 @@ public class CameraEnumerationService : ICameraEnumerationService
             .Select(d => new CameraDeviceInfo(d.Id, d.Name))
             .ToList();
     }
+
+    /// <summary>
+    /// EP0011 (US0071): Tests that a camera device ID is still accessible via WinRT DeviceInformation.
+    /// </summary>
+    public async Task<bool> TestCameraAsync(string deviceId)
+    {
+        try
+        {
+            var device = await DeviceInformation.CreateFromIdAsync(deviceId);
+            return device != null && device.IsEnabled;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

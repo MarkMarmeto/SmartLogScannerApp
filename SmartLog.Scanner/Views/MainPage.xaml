@@ -8,8 +8,8 @@
              Title="SmartLog Scanner"
              BackgroundColor="#F8F9FA">
 
-    <!-- Modern Grid Layout -->
-    <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <!-- Main layout: StatusBar / CameraGrid / CardArea / Feedback / Stats -->
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
         <!-- Top Status Bar -->
         <Border Grid.Row="0"
@@ -152,45 +152,115 @@
             </Grid>
         </Border>
 
-        <!-- Student ID Card Area -->
-        <Grid Grid.Row="1" BackgroundColor="#F8F9FA">
+        <!-- EP0011: Camera row (Row 1) — preview on the left, status cards on the right.
+             Hidden in USB mode. -->
+        <Grid Grid.Row="1"
+              IsVisible="{Binding IsCameraMode}"
+              ColumnDefinitions="320,*"
+              Padding="12,8">
 
-            <!-- Small Camera Preview Window -->
-            <Border WidthRequest="200"
-                    HeightRequest="150"
+            <!-- Camera 0 live preview — single AVCaptureVideoPreviewLayer attached after start -->
+            <Border Grid.Column="0"
+                    WidthRequest="320"
+                    HeightRequest="240"
+                    BackgroundColor="Black"
+                    Stroke="#2C5F5D"
                     StrokeThickness="2"
-                    Stroke="#4D9B91"
-                    HorizontalOptions="End"
-                    VerticalOptions="End"
-                    Margin="0,0,24,24">
+                    Margin="0,6,8,6">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
+                    <RoundRectangle CornerRadius="10" />
                 </Border.StrokeShape>
                 <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.2" Radius="10" Offset="0,4" />
+                    <Shadow Brush="Black" Opacity="0.15" Radius="10" Offset="0,3" />
                 </Border.Shadow>
-                <Grid>
-                    <controls:CameraQrView x:Name="cameraView"
-                                           IsDetecting="{Binding IsScanning}"
-                                           SelectedCameraId="{Binding SelectedCameraId}"
-                                           BarcodeDetected="OnBarcodeDetected" />
-                    <!-- Camera label overlay -->
-                    <Border BackgroundColor="#99000000"
-                            Padding="8,4"
-                            StrokeThickness="0"
-                            HorizontalOptions="Center"
-                            VerticalOptions="End"
-                            Margin="0,0,0,6">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8" />
-                        </Border.StrokeShape>
-                        <Label Text="📷 Scanner"
-                               FontSize="10"
-                               TextColor="White"
-                               HorizontalOptions="Center" />
-                    </Border>
-                </Grid>
+                <controls:CameraPreviewView x:Name="CameraPreview0" />
             </Border>
+
+            <!-- Status cards for all cameras (including camera 0) -->
+            <FlexLayout Grid.Column="1"
+                        BindableLayout.ItemsSource="{Binding CameraSlots}"
+                        Wrap="Wrap"
+                        Direction="Row"
+                        JustifyContent="Start"
+                        AlignItems="Start">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CameraSlotState">
+                        <Border IsVisible="{Binding IsVisible}"
+                                WidthRequest="200"
+                                Margin="6"
+                                BackgroundColor="White"
+                                Stroke="{Binding StatusBrush}"
+                                StrokeThickness="2"
+                                Padding="14,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Opacity="0.07" Radius="8" Offset="0,2" />
+                            </Border.Shadow>
+
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
+                                <!-- Camera name + scan type badge -->
+                                <Grid Grid.Row="0"
+                                      ColumnDefinitions="*,Auto"
+                                      Margin="0,0,0,4">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#2C5F5D"
+                                           VerticalOptions="Center"
+                                           LineBreakMode="TailTruncation" />
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="{Binding ScanTypeBadgeColor}"
+                                            Padding="7,2"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="4" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding ScanType}"
+                                               FontSize="10"
+                                               FontAttributes="Bold"
+                                               TextColor="White" />
+                                    </Border>
+                                </Grid>
+
+                                <!-- Status text -->
+                                <Label Grid.Row="1"
+                                       Text="{Binding StatusText}"
+                                       FontSize="12"
+                                       TextColor="#666666" />
+
+                                <!-- Last scan name (shown briefly after a successful scan) -->
+                                <Label Grid.Row="2"
+                                       Text="{Binding FlashStudentName}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#4CAF50"
+                                       IsVisible="{Binding ShowFlash}" />
+
+                                <!-- Restart button — only when error/offline -->
+                                <Button Grid.Row="3"
+                                        Text="↺ Restart"
+                                        Command="{Binding RestartCommand}"
+                                        IsVisible="{Binding CanRestart}"
+                                        FontSize="11"
+                                        Padding="10,5"
+                                        Margin="0,4,0,0"
+                                        BackgroundColor="#F44336"
+                                        TextColor="White"
+                                        CornerRadius="6"
+                                        HorizontalOptions="Start" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+        </Grid>
+
+        <!-- Student ID Card Area (Row 2) -->
+        <Grid Grid.Row="2" BackgroundColor="#F8F9FA">
 
             <!-- Centered Student ID Card -->
             <Border x:Name="studentCard"
@@ -418,7 +488,7 @@
         </Grid>
 
         <!-- Enhanced Bottom Feedback Panel with Modern Design -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 IsVisible="{Binding ShowFeedback}"
                 BackgroundColor="{Binding FeedbackColor}"
                 Padding="24,20"
@@ -488,7 +558,7 @@
         </Border>
 
         <!-- Modern Ready State with Pulsing Animation Hint -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 IsVisible="{Binding ShowFeedback, Converter={StaticResource InvertedBoolConverter}}"
                 BackgroundColor="White"
                 Padding="24,20"
@@ -529,7 +599,7 @@
         </Border>
 
         <!-- US0013: Modern Statistics Footer with Card Design -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 BackgroundColor="#2C5F5D"
                 Padding="24,16"
                 StrokeThickness="0">

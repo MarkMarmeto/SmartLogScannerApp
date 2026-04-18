@@ -167,13 +167,19 @@ public partial class SetupViewModel : ObservableObject
 
 			CameraPickerMessage = $"{cameras.Count} camera(s) found.";
 
-			// Restore previously saved selection
+			// Restore previously saved selection (single-camera mode)
 			var savedId = _preferences.GetSelectedCameraId();
 			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId)
 				?? cameras[0];
 
 			_logger.LogInformation("Camera enumeration complete: {Count} camera(s), selected={Name}",
 				cameras.Count, SelectedCamera?.Name);
+
+			// EP0011: Store all cameras and load multi-camera config
+			_allAvailableCameras = cameras.ToList();
+			LoadMultiCameraConfig();
+			foreach (var slot in CameraSlots)
+				slot.PopulateDevices(_allAvailableCameras);
 		}
 		catch (Exception ex)
 		{
@@ -231,6 +237,10 @@ public partial class SetupViewModel : ObservableObject
 			_preferences.SetDefaultScanType(SelectedScanType);
 			_preferences.SetAcceptSelfSignedCerts(AcceptSelfSignedCerts);
 			_preferences.SetSelectedCameraId(SelectedCamera?.Id ?? string.Empty);
+
+			// EP0011: Save multi-camera config
+			SaveMultiCameraConfig();
+
 			_preferences.SetSetupCompleted(true);
 			_logger.LogInformation("Configuration saved to preferences");
 
@@ -335,6 +345,85 @@ public partial class SetupViewModel : ObservableObject
 	private async Task CancelAsync()
 	{
 		await _navigation.GoToAsync("//main");
+	}
+
+	// ── EP0011: Multi-Camera Config ─────────────────────────────────────────
+
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(ShowUsb3Warning))]
+	private int _cameraCount = 1;
+
+	public ObservableCollection<CameraSlotViewModel> CameraSlots { get; } = new();
+
+	/// <summary>Shows a USB 3.0 recommendation banner when 3+ cameras are configured.</summary>
+	public bool ShowUsb3Warning => CameraCount >= 3;
+
+	partial void OnCameraCountChanged(int value)
+	{
+		var count = Math.Clamp(value, 1, 8);
+		if (count != value) { CameraCount = count; return; }
+
+		// Add missing slots
+		while (CameraSlots.Count < count)
+		{
+			var idx = CameraSlots.Count;
+			var slot = CreateSlot(idx);
+			CameraSlots.Add(slot);
+		}
+
+		// Remove excess slots (trim from end)
+		while (CameraSlots.Count > count)
+			CameraSlots.RemoveAt(CameraSlots.Count - 1);
+
+		// Re-populate available devices for new slots
+		if (_allAvailableCameras.Count > 0)
+		{
+			foreach (var slot in CameraSlots)
+				slot.PopulateDevices(_allAvailableCameras);
+		}
+	}
+
+	private List<CameraDeviceInfo> _allAvailableCameras = new();
+
+	private CameraSlotViewModel CreateSlot(int index)
+	{
+		var slot = new CameraSlotViewModel(
+			index,
+			_cameraEnumeration,
+			Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance);
+
+		// Restore saved config
+		slot.DisplayName = _preferences.GetCameraName(index);
+		slot.ScanType = _preferences.GetCameraScanType(index);
+		slot.IsEnabled = _preferences.GetCameraEnabled(index);
+
+		var savedDeviceId = _preferences.GetCameraDeviceId(index);
+		if (!string.IsNullOrEmpty(savedDeviceId) && _allAvailableCameras.Count > 0)
+			slot.SelectedDevice = _allAvailableCameras.FirstOrDefault(c => c.Id == savedDeviceId);
+
+		return slot;
+	}
+
+	private void LoadMultiCameraConfig()
+	{
+		CameraCount = Math.Clamp(_preferences.GetCameraCount(), 1, 8);
+
+		CameraSlots.Clear();
+		for (var i = 0; i < CameraCount; i++)
+			CameraSlots.Add(CreateSlot(i));
+	}
+
+	private void SaveMultiCameraConfig()
+	{
+		_preferences.SetCameraCount(CameraCount);
+		for (var i = 0; i < CameraSlots.Count; i++)
+		{
+			var slot = CameraSlots[i];
+			_preferences.SetCameraName(i, slot.DisplayName);
+			_preferences.SetCameraDeviceId(i, slot.SelectedDevice?.Id ?? string.Empty);
+			_preferences.SetCameraScanType(i, slot.ScanType);
+			_preferences.SetCameraEnabled(i, slot.IsEnabled);
+		}
 	}
 
 	/// <summary>

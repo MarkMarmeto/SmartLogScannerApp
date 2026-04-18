@@ -1,7 +1,7 @@
 # Implementation Plans Index
 
-> **Total Plans:** 5
-> **Status:** Planned (0) | In Progress (0) | Completed (5)
+> **Total Plans:** 6
+> **Status:** Planned (1) | In Progress (0) | Completed (5)
 
 ## All Plans
 
@@ -12,11 +12,12 @@
 | [PL0003](./PL0003-global-exception-handling-and-logging.md) | [US0003](../stories/US0003-global-exception-handling-and-logging.md) | Global Exception Handling and Logging | Completed | 2026-02-14 |
 | [PL0004](./PL0004-device-setup-wizard-page.md) | [US0004](../stories/US0004-device-setup-wizard-page.md) | Device Setup Wizard Page | Completed | 2026-02-14 |
 | [PL0005](./PL0005-setup-connection-validation.md) | [US0005](../stories/US0005-setup-connection-validation.md) | Setup Connection Validation | Completed | 2026-02-14 |
+| [PL0006](./PL0006-ep0011-multi-camera-scanning.md) | US0066–US0071 | EP0011 Multi-Camera Scanning (epic plan) | Planned | 2026-04-18 |
 
 ## By Status
 
-### Planned (0)
-None
+### Planned (1)
+- [PL0006](./PL0006-ep0011-multi-camera-scanning.md) - EP0011 Multi-Camera Scanning (US0066–US0071)
 
 ### In Progress (0)
 None

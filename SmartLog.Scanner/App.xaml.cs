@@ -28,6 +28,23 @@ public partial class App : Application
 		MainPage = new AppShell();
 	}
 
+	protected override Window CreateWindow(IActivationState? activationState)
+	{
+		var window = base.CreateWindow(activationState);
+		// Set a sensible default window size so the window is visible on first launch
+		window.MinimumWidth = 960;
+		window.MinimumHeight = 640;
+		window.Width = 1280;
+		window.Height = 820;
+
+		// NOTE: Do NOT hook window.Activated here for the background fix.
+		// On Mac Catalyst, Activated fires during scene initialization (before the scene
+		// is ready), causing an unrecognized-selector crash on UIWindowScene.
+		// The fix is applied via AppShell.Loaded with explicit delays instead.
+
+		return window;
+	}
+
 	protected override async void OnStart()
 	{
 		base.OnStart();
