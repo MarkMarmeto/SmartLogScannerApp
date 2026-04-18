@@ -527,7 +527,9 @@ public class ScanApiService : IScanApiService
             ScanType = response.ScanType,
             ScannedAt = response.ScannedAt ?? scannedAt ?? DateTimeOffset.UtcNow,
             OriginalScanId = originalScanId,
-            Message = message
+            Message = message,
+            PassCode = response.PassCode,
+            PassNumber = response.PassNumber
         };
     }
 
@@ -541,6 +543,7 @@ public class ScanApiService : IScanApiService
             "ACCEPTED" => ScanStatus.Accepted,
             "DUPLICATE" => ScanStatus.Duplicate,
             "REJECTED" => ScanStatus.Rejected,
+            "REJECTED_PASS_INACTIVE" => ScanStatus.Rejected,
             _ => ScanStatus.Error
         };
     }
@@ -560,6 +563,9 @@ public class ScanApiService : IScanApiService
         public string? Status { get; set; }
         public string? OriginalScanId { get; set; }
         public string? Message { get; set; }
+        // US0076: Visitor pass fields (null for student scans)
+        public string? PassCode { get; set; }
+        public int? PassNumber { get; set; }
     }
 
     private class ServerErrorResponse
