@@ -76,8 +76,19 @@
 | [US0016](US0016-background-sync-service.md) | Background Sync Service | [EP0004](../epics/EP0004-offline-resilience-and-sync.md) | Draft | 8 | System |
 | [US0017](US0017-seamless-online-offline-transitions.md) | Seamless Online/Offline State Transitions | [EP0004](../epics/EP0004-offline-resilience-and-sync.md) | Draft | 5 | Guard Gary |
 
+### EP0011: Multi-Camera Scanning
+
+| ID | Title | Status | Points | Owner |
+|----|-------|--------|--------|-------|
+| [US0066](US0066-multi-camera-manager-core.md) | Multi-Camera Manager Core | Done | 8 | Unassigned |
+| [US0067](US0067-adaptive-decode-throttle.md) | Adaptive Decode Throttle | Done | 2 | Unassigned |
+| [US0068](US0068-main-page-camera-grid-ui.md) | Main Page Camera Grid UI | Done | 5 | Unassigned |
+| [US0069](US0069-per-camera-scan-type.md) | Per-Camera Scan Type | Done | 3 | Unassigned |
+| [US0070](US0070-error-isolation-and-recovery.md) | Error Isolation and Auto-Recovery | Done | 5 | Unassigned |
+| [US0071](US0071-multi-camera-setup-configuration.md) | Multi-Camera Setup Configuration | Done | 5 | Unassigned |
+
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
 - Story points should be assigned during team refinement
-- Total story points: 89
+- Total story points: 117
