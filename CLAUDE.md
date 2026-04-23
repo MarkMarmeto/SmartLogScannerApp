@@ -91,7 +91,17 @@ All services are registered via `Microsoft.Extensions.DependencyInjection`. Plat
 | `BackgroundSyncService` | Background worker that flushes queue when connectivity is restored |
 | `HealthCheckService` | 15-second server health polling; publishes connectivity status |
 | `ScanDeduplicationService` | Tiered time-window dedup: 3s / 60s / 300s |
-| `PreferencesService` | Non-sensitive config (server URL, scan type, scanner mode) via MAUI Preferences |
+| `PreferencesService` | Non-sensitive config (server URL, scan type, scanner mode, multi-camera config) via MAUI Preferences |
+
+#### Multi-Camera Services (EP0011)
+
+| Service | Role |
+|---------|------|
+| `IMultiCameraManager` / `MultiCameraManager` | Orchestrates 1–8 concurrent camera workers; starts/stops per-camera decode loops; broadcasts unified scan events |
+| `ICameraEnumerationService` | Platform-specific camera discovery (Windows MediaFoundation / macOS AVFoundation) |
+| `ICameraWorker` / `ICameraWorkerFactory` | Per-camera decode worker with isolated lifecycle; factory creates workers bound to a camera slot index |
+| `AdaptiveDecodeThrottle` | Dynamically adjusts per-worker decode frame rate based on CPU/decode pressure to prevent thermal throttling |
+| `CameraQrScannerService` | Single-camera decode primitive; still used as prototype by `MultiCameraManager` workers |
 
 ### Data Layer
 - **EF Core + SQLite** in `SmartLog.Scanner.Core/Data/ScannerDbContext.cs`
@@ -99,12 +109,18 @@ All services are registered via `Microsoft.Extensions.DependencyInjection`. Plat
 - DB file: `{AppDataDirectory}/smartlog-scanner.db`
 
 ### UI Layer (SmartLog.Scanner)
-MVVM via `CommunityToolkit.Mvvm`. Shared ViewModels (`SetupViewModel`, `ScanLogsViewModel`) live in Core; app-specific ones (`MainViewModel`, `OfflineQueueViewModel`) are in the Scanner project.
+MVVM via `CommunityToolkit.Mvvm`. Shared ViewModels (`SetupViewModel`, `ScanLogsViewModel`, `CameraSlotViewModel`) live in Core; app-specific ones (`MainViewModel`, `OfflineQueueViewModel`) are in the Scanner project.
 
-Pages: `MainPage` (scan), `SetupPage` (wizard), `ScanLogsPage` (history), `OfflineQueuePage` (queue management), `AboutPage`.
+Pages: `MainPage` (multi-camera scan grid + statistics footer), `SetupPage` (wizard — includes multi-camera configuration), `ScanLogsPage` (history), `OfflineQueuePage` (queue management), `AboutPage`.
+
+`MainPage` renders a responsive grid of `CameraSlotViewModel` instances (one per active camera, 1–8 configurable). Each slot has its own ENTRY/EXIT toggle and isolated error state — a crashed camera worker does not affect other slots.
 
 ### QR Code Format
 QR payloads are HMAC-SHA256 signed. The `HmacValidator` in Core is responsible for verification — see `SmartLog.Scanner.Core/Services/HmacValidator.cs` for the expected format.
+
+Two payload families are supported:
+- **Student QR:** `SMARTLOG:{studentId}:{timestamp}:{hmac}` — produces a student `ScanResult` with `Lrn`, `Grade`, `Section`.
+- **Visitor Pass QR:** `SMARTLOG-V:{passCode}:{hmac}` — produces a visitor `ScanResult` where `IsVisitorScan = true` and `PassCode` is set. The UI branches on `IsVisitorScan` to display a neutral visitor card (no student metadata, no SMS).
 
 ## Configuration
 
