@@ -167,10 +167,10 @@ No scan is ever lost. The system degrades gracefully — switching from live sub
 
 ## Story Breakdown
 
-- [ ] [US0014: Implement SQLite Offline Scan Queue](../stories/US0014-sqlite-offline-scan-queue.md)
-- [ ] [US0015: Implement Health Check Monitoring Service](../stories/US0015-health-check-monitoring-service.md)
-- [ ] [US0016: Implement Background Sync Service](../stories/US0016-background-sync-service.md)
-- [ ] [US0017: Implement Seamless Online/Offline State Transitions](../stories/US0017-seamless-online-offline-transitions.md)
+- [x] [US0014: Implement SQLite Offline Scan Queue](../stories/US0014-sqlite-offline-scan-queue.md)
+- [x] [US0015: Implement Health Check Monitoring Service](../stories/US0015-health-check-monitoring-service.md)
+- [x] [US0016: Implement Background Sync Service](../stories/US0016-background-sync-service.md)
+- [x] [US0017: Implement Seamless Online/Offline State Transitions](../stories/US0017-seamless-online-offline-transitions.md)
 
 ---
 
