@@ -35,13 +35,15 @@ public class ShellNavigationService : INavigationService
 			try
 			{
 				_logger.LogInformation(
-					"Nav[{Route}] before GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}, navStack={NavStack}, modalStack={ModalStack}",
+					"Nav[{Route}] before GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}, shell.CurrentPage={CurrentPage}, navStack={NavStack}, modalStack={ModalStack}, sectionStacks={SectionStacks}",
 					route,
 					DescribeItem(shell.CurrentItem),
 					DescribeItem(shell.CurrentItem?.CurrentItem),
 					DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem),
+					shell.CurrentPage == null ? "null" : $"{shell.CurrentPage.GetType().Name}#{shell.CurrentPage.GetHashCode():x}",
 					DescribeStack(shell.Navigation.NavigationStack),
-					DescribeStack(shell.Navigation.ModalStack));
+					DescribeStack(shell.Navigation.ModalStack),
+					DescribeAllSectionStacks(shell));
 
 				// Windows MAUI sometimes pushes a "//route" target onto the navigation
 				// stack instead of switching ShellSections (so the model thinks we're
@@ -157,6 +159,21 @@ public class ShellNavigationService : INavigationService
 		if (item is null) return "null";
 		var route = Routing.GetRoute(item) ?? "(no-route)";
 		return $"{item.GetType().Name}#{item.GetHashCode():x}({route})";
+	}
+
+	private static string DescribeAllSectionStacks(Shell shell)
+	{
+		var parts = new List<string>();
+		foreach (var i in shell.Items)
+		{
+			foreach (var s in i.Items)
+			{
+				var stack = s.Navigation?.NavigationStack;
+				if (stack != null && stack.Count > 0)
+					parts.Add($"{Routing.GetRoute(s) ?? s.Route}={DescribeStack(stack)}");
+			}
+		}
+		return parts.Count == 0 ? "(none)" : string.Join(" | ", parts);
 	}
 
 	private static string DescribeStack(IReadOnlyList<Page> stack)
