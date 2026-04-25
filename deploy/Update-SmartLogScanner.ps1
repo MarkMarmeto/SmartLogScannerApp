@@ -212,8 +212,8 @@ else {
     Write-Success "Backup created ($($backupSize) MB)"
 
     # Clean up old backups (keep last 5)
-    $oldBackups = Get-ChildItem $Script:BackupDir -Directory | Sort-Object Name -Descending | Select-Object -Skip 5
-    if ($oldBackups) {
+    $oldBackups = @(Get-ChildItem $Script:BackupDir -Directory | Sort-Object Name -Descending | Select-Object -Skip 5)
+    if ($oldBackups.Count -gt 0) {
         $oldBackups | Remove-Item -Recurse -Force
         Write-Detail "Cleaned up $($oldBackups.Count) old backup(s)"
     }
