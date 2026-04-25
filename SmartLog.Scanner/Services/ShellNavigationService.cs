@@ -1,22 +1,56 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Services;
+using SmartLog.Scanner.Views;
 
 namespace SmartLog.Scanner.Services;
 
 /// <summary>
-/// US0004: MAUI Shell implementation of INavigationService.
-/// Wraps Shell.Current.GoToAsync for dependency injection.
+/// US0004: Implementation of INavigationService.
+///
+/// SetupPage lives outside AppShell because the Windows MAUI Shell platform
+/// handler renders whichever ShellContent is at index 0 and silently ignores
+/// later CurrentItem changes -- which made Setup &lt;-&gt; Main navigation
+/// impossible. So GoToAsync("//setup") and GoToAsync("//main") swap
+/// Application.Current.MainPage between SetupPage and a fresh AppShell.
+/// All other routes (//logs, //queue, //about) stay inside AppShell and use
+/// Shell.Current.GoToAsync as normal.
 /// </summary>
 public class ShellNavigationService : INavigationService
 {
 	private readonly ILogger<ShellNavigationService> _logger;
+	private readonly IServiceProvider _services;
 
-	public ShellNavigationService(ILogger<ShellNavigationService> logger)
+	public ShellNavigationService(
+		ILogger<ShellNavigationService> logger,
+		IServiceProvider services)
 	{
 		_logger = logger;
+		_services = services;
 	}
 
 	public Task GoToAsync(string route)
+	{
+		// Setup is always outside AppShell -- swap MainPage.
+		if (string.Equals(route, "//setup", StringComparison.OrdinalIgnoreCase))
+			return SwapMainPageAsync(() => _services.GetRequiredService<SetupPage>(), "setup");
+
+		// Going to //main: if we're currently on SetupPage, swap to a fresh
+		// AppShell (which renders MainPage as its first/default ShellContent).
+		// If we're already inside AppShell (e.g. coming back from Logs/Queue/
+		// About), use Shell navigation -- those tab switches work fine on
+		// Windows since AppShell is already initialized with Main at index 0.
+		if (string.Equals(route, "//main", StringComparison.OrdinalIgnoreCase))
+		{
+			if (Application.Current?.MainPage is AppShell)
+				return ShellGoToAsync(route);
+			return SwapMainPageAsync(() => new AppShell(), "main");
+		}
+
+		return ShellGoToAsync(route);
+	}
+
+	private Task ShellGoToAsync(string route)
 	{
 		var shell = Shell.Current;
 		if (shell is null)
@@ -25,124 +59,12 @@ public class ShellNavigationService : INavigationService
 			return Task.CompletedTask;
 		}
 
-		// Windows MAUI Shell occasionally no-ops a "//route" navigation when called
-		// inline from a RelayCommand's awaited handler (e.g. Setup -> Main after
-		// SaveCommand). Dispatching onto the next UI cycle gives Shell a chance to
-		// release the prior handler state before switching the active ShellContent.
 		var tcs = new TaskCompletionSource();
 		shell.Dispatcher.Dispatch(async () =>
 		{
 			try
 			{
-				_logger.LogInformation(
-					"Nav[{Route}] before GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}, shell.CurrentPage={CurrentPage}, navStack={NavStack}, modalStack={ModalStack}, sectionStacks={SectionStacks}",
-					route,
-					DescribeItem(shell.CurrentItem),
-					DescribeItem(shell.CurrentItem?.CurrentItem),
-					DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem),
-					shell.CurrentPage == null ? "null" : $"{shell.CurrentPage.GetType().Name}#{shell.CurrentPage.GetHashCode():x}",
-					DescribeStack(shell.Navigation.NavigationStack),
-					DescribeStack(shell.Navigation.ModalStack),
-					DescribeAllSectionStacks(shell));
-
-				// Windows MAUI sometimes pushes a "//route" target onto the navigation
-				// stack instead of switching ShellSections (so the model thinks we're
-				// still on the previous tab and the new page is a stack entry on top).
-				// Pop the stack down to the section root before navigating, otherwise
-				// our section-toggle below has nothing to redraw against.
-				while (shell.Navigation.NavigationStack.Count > 1)
-				{
-					_logger.LogInformation("Nav[{Route}] popping NavigationStack entry: {Page}",
-						route, shell.Navigation.NavigationStack[^1]?.GetType().Name ?? "null");
-					await shell.Navigation.PopAsync(false);
-				}
-				while (shell.Navigation.ModalStack.Count > 0)
-				{
-					_logger.LogInformation("Nav[{Route}] popping ModalStack entry: {Page}",
-						route, shell.Navigation.ModalStack[^1]?.GetType().Name ?? "null");
-					await shell.Navigation.PopModalAsync(false);
-				}
-
 				await shell.GoToAsync(route);
-
-				_logger.LogInformation(
-					"Nav[{Route}] after GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}",
-					route,
-					DescribeItem(shell.CurrentItem),
-					DescribeItem(shell.CurrentItem?.CurrentItem),
-					DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem));
-
-				// Defensive fallback for the same Windows Shell bug. AppShell.xaml
-				// uses a single <TabBar> with multiple <ShellContent> children, so
-				// MAUI wraps each ShellContent in an implicit Tab (ShellSection)
-				// under one ShellItem. shell.CurrentItem is always that TabBar --
-				// switching tabs means setting CurrentItem.CurrentItem (the
-				// active ShellSection), not CurrentItem itself.
-				if (route.StartsWith("//"))
-				{
-					var targetRoute = route.Substring(2);
-					var dump = DumpShellHierarchy(shell);
-					if (TryFindRoute(shell, targetRoute, out var item, out var section, out var content))
-					{
-						_logger.LogInformation(
-							"Nav[{Route}] resolved hierarchy: item={Item}, section={Section}, content={Content}. Tree: {Tree}",
-							route, DescribeItem(item), DescribeItem(section), DescribeItem(content), dump);
-
-						if (!ReferenceEquals(shell.CurrentItem, item))
-						{
-							_logger.LogInformation("Nav[{Route}] setting shell.CurrentItem -> {Item}", route, DescribeItem(item));
-							shell.CurrentItem = item;
-						}
-
-						// Windows MAUI Shell desync: a prior raw Shell.GoToAsync (e.g. from
-						// MainPage's Settings button) can render a different ShellContent
-						// without updating item.CurrentItem. When that happens, the model
-						// claims we're already at the target, so re-assigning the same
-						// reference is a no-op and the visual never updates. Force a real
-						// PropertyChanged by toggling through a different section first.
-						if (ReferenceEquals(item!.CurrentItem, section))
-						{
-							ShellSection? bypass = null;
-							foreach (var s in item.Items)
-							{
-								if (!ReferenceEquals(s, section))
-								{
-									bypass = s;
-									break;
-								}
-							}
-							if (bypass != null)
-							{
-								_logger.LogInformation(
-									"Nav[{Route}] item.CurrentItem already == target; toggling through {Bypass} to force change",
-									route, DescribeItem(bypass));
-								item.CurrentItem = bypass;
-							}
-						}
-						_logger.LogInformation("Nav[{Route}] setting item.CurrentItem -> {Section}", route, DescribeItem(section));
-						item.CurrentItem = section;
-
-						if (!ReferenceEquals(section!.CurrentItem, content))
-						{
-							_logger.LogInformation("Nav[{Route}] setting section.CurrentItem -> {Content}", route, DescribeItem(content));
-							section.CurrentItem = content;
-						}
-
-						_logger.LogInformation(
-							"Nav[{Route}] after fallback: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}",
-							route,
-							DescribeItem(shell.CurrentItem),
-							DescribeItem(shell.CurrentItem?.CurrentItem),
-							DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem));
-					}
-					else
-					{
-						_logger.LogWarning(
-							"Nav[{Route}] TryFindRoute did NOT find a matching ShellContent. Tree: {Tree}",
-							route, dump);
-					}
-				}
-
 				tcs.TrySetResult();
 			}
 			catch (Exception ex)
@@ -154,84 +76,30 @@ public class ShellNavigationService : INavigationService
 		return tcs.Task;
 	}
 
-	private static string DescribeItem(BaseShellItem? item)
+	private Task SwapMainPageAsync(Func<Page> pageFactory, string label)
 	{
-		if (item is null) return "null";
-		var route = Routing.GetRoute(item) ?? "(no-route)";
-		return $"{item.GetType().Name}#{item.GetHashCode():x}({route})";
-	}
-
-	private static string DescribeAllSectionStacks(Shell shell)
-	{
-		var parts = new List<string>();
-		foreach (var i in shell.Items)
+		var app = Application.Current;
+		if (app is null)
 		{
-			foreach (var s in i.Items)
+			_logger.LogWarning("Nav[{Label}]: Application.Current is null", label);
+			return Task.CompletedTask;
+		}
+
+		var tcs = new TaskCompletionSource();
+		app.Dispatcher.Dispatch(() =>
+		{
+			try
 			{
-				var stack = s.Navigation?.NavigationStack;
-				if (stack != null && stack.Count > 0)
-					parts.Add($"{Routing.GetRoute(s) ?? s.Route}={DescribeStack(stack)}");
+				_logger.LogInformation("Nav[{Label}]: swapping Application.MainPage", label);
+				app.MainPage = pageFactory();
+				tcs.TrySetResult();
 			}
-		}
-		return parts.Count == 0 ? "(none)" : string.Join(" | ", parts);
-	}
-
-	private static string DescribeStack(IReadOnlyList<Page> stack)
-	{
-		if (stack == null || stack.Count == 0) return "[]";
-		var parts = new List<string>(stack.Count);
-		for (int i = 0; i < stack.Count; i++)
-		{
-			var p = stack[i];
-			parts.Add(p == null ? "null" : $"{p.GetType().Name}#{p.GetHashCode():x}");
-		}
-		return "[" + string.Join(", ", parts) + "]";
-	}
-
-	private static string DumpShellHierarchy(Shell shell)
-	{
-		var lines = new List<string>();
-		foreach (var i in shell.Items)
-		{
-			lines.Add($"item={DescribeItem(i)}");
-			foreach (var s in i.Items)
+			catch (Exception ex)
 			{
-				lines.Add($"  section={DescribeItem(s)}");
-				foreach (var c in s.Items)
-					lines.Add($"    content={DescribeItem(c)}");
+				_logger.LogError(ex, "Nav[{Label}]: failed to swap MainPage", label);
+				tcs.TrySetException(ex);
 			}
-		}
-		return string.Join(" | ", lines);
-	}
-
-	private static bool TryFindRoute(
-		Shell shell,
-		string route,
-		out ShellItem? item,
-		out ShellSection? section,
-		out ShellContent? content)
-	{
-		foreach (var i in shell.Items)
-		{
-			foreach (var s in i.Items)
-			{
-				foreach (var c in s.Items)
-				{
-					var contentRoute = Routing.GetRoute(c) ?? c.Route;
-					if (string.Equals(contentRoute, route, StringComparison.OrdinalIgnoreCase) ||
-					    string.Equals(c.Title, route, StringComparison.OrdinalIgnoreCase))
-					{
-						item = i;
-						section = s;
-						content = c;
-						return true;
-					}
-				}
-			}
-		}
-		item = null;
-		section = null;
-		content = null;
-		return false;
+		});
+		return tcs.Task;
 	}
 }

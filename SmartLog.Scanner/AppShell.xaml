@@ -9,12 +9,16 @@
     Shell.TabBarIsVisible="False"
     BackgroundColor="#F8F9FA">
 
+    <!--
+        SetupPage is intentionally NOT a ShellContent here. On Windows,
+        the MAUI Shell platform handler renders the first ShellContent
+        and ignores subsequent CurrentItem changes, which made
+        Setup <-> Main navigation impossible. Setup is shown by swapping
+        Application.MainPage in INavigationService instead. Within
+        AppShell, Main is the first (default) ShellContent and the
+        remaining tabs navigate via Shell.GoToAsync as normal.
+    -->
     <TabBar>
-        <ShellContent
-            Title="Setup"
-            Route="setup"
-            ContentTemplate="{DataTemplate local:SetupPage}" />
-
         <ShellContent
             Title="Main"
             Route="main"

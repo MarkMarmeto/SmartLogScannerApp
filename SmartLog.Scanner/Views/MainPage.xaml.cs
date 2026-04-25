@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using SmartLog.Scanner.Core.Services;
 using SmartLog.Scanner.ViewModels;
 
 namespace SmartLog.Scanner.Views;
@@ -97,10 +99,16 @@ public partial class MainPage : ContentPage
 
     /// <summary>
     /// Navigate to setup/settings page to edit configuration.
+    /// SetupPage is outside AppShell, so this goes through INavigationService
+    /// which swaps Application.MainPage rather than using Shell navigation.
     /// </summary>
     private async void OnSettingsClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("//setup");
+        var nav = Handler?.MauiContext?.Services.GetService<INavigationService>();
+        if (nav != null)
+            await nav.GoToAsync("//setup");
+        else
+            await Shell.Current.GoToAsync("//setup");
     }
 
     private async void OnAboutClicked(object sender, EventArgs e)
