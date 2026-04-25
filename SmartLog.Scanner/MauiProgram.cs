@@ -32,6 +32,7 @@ public static class MauiProgram
 				handlers.AddHandler<Controls.CameraPreviewView, Platforms.MacCatalyst.CameraPreviewHandler>();
 #elif WINDOWS
 				handlers.AddHandler<Controls.CameraQrView, Platforms.Windows.CameraQrViewHandler>();
+				handlers.AddHandler<Controls.CameraPreviewView, Platforms.Windows.CameraPreviewStubHandler>();
 #endif
 			});
 
