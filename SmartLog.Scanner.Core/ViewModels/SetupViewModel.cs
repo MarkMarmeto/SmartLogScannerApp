@@ -245,7 +245,9 @@ public partial class SetupViewModel : ObservableObject
 			_logger.LogInformation("Configuration saved to preferences");
 
 			// Navigate to main page
+			_logger.LogInformation("Navigating to //main");
 			await _navigation.GoToAsync("//main");
+			_logger.LogInformation("Navigation to //main returned");
 		}
 		catch (Exception ex)
 		{
