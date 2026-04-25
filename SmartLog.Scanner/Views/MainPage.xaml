@@ -267,9 +267,12 @@
         <Grid Grid.Row="2" BackgroundColor="#F8F9FA">
 
             <!-- Centered Student ID Card -->
+            <!-- No fixed height: card sizes to content. On 1920x1080 the
+                 row above (camera + cards) plus the feedback/stats panels
+                 leave roughly ~530 px for this row, which the previous
+                 580 px fixed height clipped. -->
             <Border x:Name="studentCard"
                     WidthRequest="480"
-                    HeightRequest="580"
                     BackgroundColor="White"
                     Stroke="{Binding CardBorderColor}"
                     StrokeThickness="3"
@@ -290,7 +293,7 @@
                     <!-- Card Header (school teal banner) -->
                     <Border Grid.Row="0"
                             BackgroundColor="#2C5F5D"
-                            Padding="20,16"
+                            Padding="20,12"
                             StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="17,17,0,0" />
@@ -312,35 +315,35 @@
                     <!-- Avatar -->
                     <Grid Grid.Row="1"
                           HorizontalOptions="Center"
-                          Margin="0,24,0,8">
+                          Margin="0,12,0,4">
                         <!-- Skeleton avatar (no data) -->
-                        <Border WidthRequest="120"
-                                HeightRequest="120"
+                        <Border WidthRequest="92"
+                                HeightRequest="92"
                                 BackgroundColor="#EEEEEE"
                                 Stroke="#D0D0D0"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent, Converter={StaticResource InvertedBoolConverter}}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="60" />
+                                <RoundRectangle CornerRadius="46" />
                             </Border.StrokeShape>
                             <Label Text="👤"
-                                   FontSize="54"
+                                   FontSize="42"
                                    Opacity="0.3"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                         </Border>
                         <!-- Active avatar (has data) -->
-                        <Border WidthRequest="120"
-                                HeightRequest="120"
+                        <Border WidthRequest="92"
+                                HeightRequest="92"
                                 BackgroundColor="#E0F2F1"
                                 Stroke="#4D9B91"
                                 StrokeThickness="2"
                                 IsVisible="{Binding HasScannedStudent}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="60" />
+                                <RoundRectangle CornerRadius="46" />
                             </Border.StrokeShape>
                             <Label Text="👤"
-                                   FontSize="54"
+                                   FontSize="42"
                                    Opacity="0.85"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
@@ -349,8 +352,8 @@
 
                     <!-- Card Fields -->
                     <VerticalStackLayout Grid.Row="2"
-                                         Spacing="20"
-                                         Padding="40,16,40,0"
+                                         Spacing="12"
+                                         Padding="36,8,36,0"
                                          VerticalOptions="Start">
 
                         <!-- Student Number -->
@@ -455,7 +458,7 @@
                     <!-- Card Footer -->
                     <Border Grid.Row="3"
                             BackgroundColor="#FAFAFA"
-                            Padding="16,14"
+                            Padding="16,10"
                             StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="0,0,17,17" />
