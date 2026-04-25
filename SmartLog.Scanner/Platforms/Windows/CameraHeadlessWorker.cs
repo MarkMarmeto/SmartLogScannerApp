@@ -1,4 +1,5 @@
 using SmartLog.Scanner.Core.Services;
+using Windows.Graphics.Imaging;
 
 namespace SmartLog.Scanner.Platforms.Windows;
 
@@ -28,6 +29,13 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         if (_scanner.IsScanning)
             await _scanner.StopAsync();
     }
+
+    /// <summary>
+    /// Dequeues the latest captured frame so a UI handler (e.g. CameraPreviewHandler)
+    /// can render it. The caller owns the returned SoftwareBitmap and must dispose it.
+    /// Returns null if no frame is currently buffered.
+    /// </summary>
+    public SoftwareBitmap? TakeLatestFrame() => _scanner.TakeLatestFrame();
 
     public ValueTask DisposeAsync()
     {
