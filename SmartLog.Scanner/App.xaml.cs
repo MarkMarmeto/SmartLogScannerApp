@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Services;
 using SmartLog.Scanner.Views;
@@ -17,6 +18,8 @@ public partial class App : Application
 		ScanTypeMigrationService scanTypeMigration,
 		DatabaseInitializationService databaseInit,
 		IBackgroundSyncService backgroundSync,
+		IPreferencesService preferences,
+		IServiceProvider services,
 		ILogger<App> logger)
 	{
 		InitializeComponent();
@@ -27,8 +30,19 @@ public partial class App : Application
 		_backgroundSync = backgroundSync;
 		_logger = logger;
 
-		// Start with AppShell - it will handle navigation to setup if needed
-		MainPage = new AppShell();
+		// Choose the initial page based on whether setup has been completed.
+		// SetupPage is intentionally outside AppShell to avoid the Windows
+		// Shell handler bug where the first ShellContent wins regardless of
+		// CurrentItem changes; transitions Setup <-> Main happen by swapping
+		// Application.MainPage in INavigationService.
+		if (preferences.GetSetupCompleted())
+		{
+			MainPage = new AppShell();
+		}
+		else
+		{
+			MainPage = services.GetRequiredService<SetupPage>();
+		}
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
