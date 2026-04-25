@@ -25,16 +25,23 @@ public class ShellNavigationService : INavigationService
 			{
 				await shell.GoToAsync(route);
 
-				// Defensive fallback for the same Windows Shell bug: if the route
-				// targets a TabBar ShellContent and the active ShellItem didn't
-				// change, switch CurrentItem explicitly.
+				// Defensive fallback for the same Windows Shell bug. AppShell.xaml
+				// uses a single <TabBar> with multiple <ShellContent> children, so
+				// MAUI wraps each ShellContent in an implicit Tab (ShellSection)
+				// under one ShellItem. shell.CurrentItem is always that TabBar --
+				// switching tabs means setting CurrentItem.CurrentItem (the
+				// active ShellSection), not CurrentItem itself.
 				if (route.StartsWith("//"))
 				{
 					var targetRoute = route.Substring(2);
-					var match = FindShellItem(shell, targetRoute);
-					if (match is not null && !ReferenceEquals(shell.CurrentItem, match))
+					if (TryFindRoute(shell, targetRoute, out var item, out var section, out var content))
 					{
-						shell.CurrentItem = match;
+						if (!ReferenceEquals(shell.CurrentItem, item))
+							shell.CurrentItem = item;
+						if (!ReferenceEquals(item!.CurrentItem, section))
+							item.CurrentItem = section;
+						if (!ReferenceEquals(section!.CurrentItem, content))
+							section.CurrentItem = content;
 					}
 				}
 
@@ -48,19 +55,32 @@ public class ShellNavigationService : INavigationService
 		return tcs.Task;
 	}
 
-	private static ShellItem? FindShellItem(Shell shell, string route)
+	private static bool TryFindRoute(
+		Shell shell,
+		string route,
+		out ShellItem? item,
+		out ShellSection? section,
+		out ShellContent? content)
 	{
-		foreach (var item in shell.Items)
+		foreach (var i in shell.Items)
 		{
-			foreach (var section in item.Items)
+			foreach (var s in i.Items)
 			{
-				foreach (var content in section.Items)
+				foreach (var c in s.Items)
 				{
-					if (string.Equals(content.Route, route, StringComparison.OrdinalIgnoreCase))
-						return item;
+					if (string.Equals(c.Route, route, StringComparison.OrdinalIgnoreCase))
+					{
+						item = i;
+						section = s;
+						content = c;
+						return true;
+					}
 				}
 			}
 		}
-		return null;
+		item = null;
+		section = null;
+		content = null;
+		return false;
 	}
 }
