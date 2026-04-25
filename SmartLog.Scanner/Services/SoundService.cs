@@ -33,30 +33,44 @@ public class SoundService : ISoundService
 
     /// <summary>
     /// AC8: Pre-load all sound files into memory on app startup.
+    /// Audio assets (success/duplicate/error/queued .wav) are optional — when absent
+    /// the service stays uninitialized and PlayResultSoundAsync becomes a no-op.
     /// </summary>
     public async Task InitializeAsync()
     {
+        _logger.LogInformation("Initializing audio players...");
+
+        _successPlayer   = await TryLoadAsync("success.wav");
+        _duplicatePlayer = await TryLoadAsync("duplicate.wav");
+        _errorPlayer     = await TryLoadAsync("error.wav");
+        _queuedPlayer    = await TryLoadAsync("queued.wav");
+
+        _initialized = _successPlayer != null
+                    || _duplicatePlayer != null
+                    || _errorPlayer != null
+                    || _queuedPlayer != null;
+
+        if (_initialized)
+            _logger.LogInformation("Audio players initialized successfully");
+        else
+            _logger.LogInformation("No audio assets bundled — audio feedback disabled");
+    }
+
+    private async Task<IAudioPlayer?> TryLoadAsync(string fileName)
+    {
         try
         {
-            _logger.LogInformation("Initializing audio players...");
-
-            // AC6: Load sound files from Resources/Raw
-            _successPlayer = _audioManager.CreatePlayer(
-                await FileSystem.OpenAppPackageFileAsync("success.wav"));
-            _duplicatePlayer = _audioManager.CreatePlayer(
-                await FileSystem.OpenAppPackageFileAsync("duplicate.wav"));
-            _errorPlayer = _audioManager.CreatePlayer(
-                await FileSystem.OpenAppPackageFileAsync("error.wav"));
-            _queuedPlayer = _audioManager.CreatePlayer(
-                await FileSystem.OpenAppPackageFileAsync("queued.wav"));
-
-            _initialized = true;
-            _logger.LogInformation("Audio players initialized successfully");
+            return _audioManager.CreatePlayer(await FileSystem.OpenAppPackageFileAsync(fileName));
+        }
+        catch (FileNotFoundException)
+        {
+            // Optional asset; silently skip so a missing wav doesn't dump a stack trace.
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize audio players - audio feedback will be disabled");
-            _initialized = false;
+            _logger.LogWarning(ex, "Could not load audio asset {File}", fileName);
+            return null;
         }
     }
 
