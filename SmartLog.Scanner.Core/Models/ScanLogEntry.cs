@@ -76,6 +76,25 @@ public class ScanLogEntry
     public string ScanMethod { get; set; } = "Unknown";
 
     /// <summary>
+    /// EP0011/US0090: Zero-based index of the camera that captured this scan. Null for USB.
+    /// </summary>
+    public int? CameraIndex { get; set; }
+
+    /// <summary>
+    /// EP0011/US0090: User-assigned display name of the camera slot. Null for USB.
+    /// </summary>
+    public string? CameraName { get; set; }
+
+    /// <summary>
+    /// Display string for the camera source: "Camera 1 — Gate A", "Camera 2", or null for USB.
+    /// </summary>
+    public string? CameraDisplay => CameraIndex.HasValue
+        ? string.IsNullOrWhiteSpace(CameraName)
+            ? $"Camera {CameraIndex + 1}"
+            : $"Camera {CameraIndex + 1} — {CameraName}"
+        : null;
+
+    /// <summary>
     /// Display-friendly status text with color
     /// </summary>
     public string StatusDisplay => Status switch

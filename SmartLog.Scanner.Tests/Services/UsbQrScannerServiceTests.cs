@@ -41,8 +41,9 @@ public class UsbQrScannerServiceTests
         _healthCheckMock.SetupGet(h => h.IsOnline).Returns(true);
         _scanApiMock
             .Setup(s => s.SubmitScanAsync(
-                It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns((string payload, DateTimeOffset scannedAt, string scanType, CancellationToken _) =>
+                It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(),
+                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns((string payload, DateTimeOffset scannedAt, string scanType, int? cameraIndex, string? cameraName, CancellationToken _) =>
                 Task.FromResult(new ScanResult
                 {
                     RawPayload = payload,

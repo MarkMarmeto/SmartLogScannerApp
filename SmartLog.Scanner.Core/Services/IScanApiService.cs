@@ -14,11 +14,15 @@ public interface IScanApiService
     /// <param name="qrPayload">Complete QR code payload (SMARTLOG:...)</param>
     /// <param name="scannedAt">Timestamp when the QR was scanned</param>
     /// <param name="scanType">Scan direction: "ENTRY" or "EXIT"</param>
+    /// <param name="cameraIndex">Zero-based index of the camera that captured the scan. Null for single-camera devices.</param>
+    /// <param name="cameraName">User-assigned name for the camera slot (e.g. "Gate A"). Null for USB scanner.</param>
     /// <param name="cancellationToken">Cancellation token (default 10s timeout)</param>
     /// <returns>Scan result with server response or offline queued status</returns>
     Task<ScanResult> SubmitScanAsync(
         string qrPayload,
         DateTimeOffset scannedAt,
         string scanType,
+        int? cameraIndex = null,
+        string? cameraName = null,
         CancellationToken cancellationToken = default);
 }

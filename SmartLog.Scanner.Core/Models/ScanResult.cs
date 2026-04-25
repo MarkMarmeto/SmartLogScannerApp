@@ -52,6 +52,11 @@ public record ScanResult
     public string? Section { get; init; }
 
     /// <summary>
+    /// US0091: Student program / strand (e.g., "STEM", "ABM", "REGULAR"). Null if not returned.
+    /// </summary>
+    public string? Program { get; init; }
+
+    /// <summary>
     /// US0010: Scan type (ENTRY or EXIT).
     /// </summary>
     public string? ScanType { get; init; }
@@ -86,6 +91,31 @@ public record ScanResult
     /// The UI shows it immediately; ScanUpdated will fire with the real server result.
     /// </summary>
     public bool IsOptimistic { get; init; }
+
+    /// <summary>
+    /// US0076: Visitor pass code (e.g., "VISITOR-005"). Null for student scans.
+    /// </summary>
+    public string? PassCode { get; init; }
+
+    /// <summary>
+    /// US0076: Visitor pass number (e.g., 5). Null for student scans.
+    /// </summary>
+    public int? PassNumber { get; init; }
+
+    /// <summary>
+    /// US0076: True if this is a visitor scan (PassCode is present).
+    /// </summary>
+    public bool IsVisitorScan => PassCode != null;
+
+    /// <summary>
+    /// EP0011/US0090: Zero-based index of the camera that captured this scan. Null for USB scanner.
+    /// </summary>
+    public int? CameraIndex { get; init; }
+
+    /// <summary>
+    /// EP0011/US0090: User-assigned display name of the camera slot. Null for USB scanner.
+    /// </summary>
+    public string? CameraName { get; init; }
 
     /// <summary>
     /// True if the QR code passed HMAC validation.

@@ -34,6 +34,7 @@ public static class MauiProgram
 			{
 #if MACCATALYST
 				handlers.AddHandler<Controls.CameraQrView, Platforms.MacCatalyst.CameraQrViewHandler>();
+				handlers.AddHandler<Controls.CameraPreviewView, Platforms.MacCatalyst.CameraPreviewHandler>();
 #elif WINDOWS
 				handlers.AddHandler<Controls.CameraQrView, Platforms.Windows.CameraQrViewHandler>();
 #endif
@@ -264,13 +265,21 @@ public static class MauiProgram
 		// SECURITY FIX (CRITICAL-01): Register security migration service
 		builder.Services.AddSingleton<Core.Services.SecurityMigrationService>();
 
+		// US0089: Register scan type migration service
+		builder.Services.AddSingleton<Core.Services.IMigrationStore, Core.Services.MauiMigrationStore>();
+		builder.Services.AddSingleton<Core.Services.ScanTypeMigrationService>();
+
 		// Device detection service (automatic camera/USB detection) - Platform-specific
 #if MACCATALYST
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();
 		builder.Services.AddSingleton<ICameraEnumerationService, Platforms.MacCatalyst.CameraEnumerationService>();
+		// EP0011: Headless camera worker factory — no native views, no preview layers
+		builder.Services.AddSingleton<ICameraWorkerFactory, Platforms.MacCatalyst.CameraWorkerFactory>();
 #elif WINDOWS
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.Windows.DeviceDetectionService>();
 		builder.Services.AddSingleton<ICameraEnumerationService, Platforms.Windows.CameraEnumerationService>();
+		// EP0011: Headless camera worker factory
+		builder.Services.AddSingleton<ICameraWorkerFactory, Platforms.Windows.CameraWorkerFactory>();
 #else
 		// Fallback: Default to USB scanner only
 		builder.Services.AddSingleton<IDeviceDetectionService, Core.Services.DefaultDeviceDetectionService>();
@@ -290,11 +299,15 @@ public static class MauiProgram
 		// Register scan deduplication service (student-level dedup with tiered time windows)
 		builder.Services.AddSingleton<IScanDeduplicationService, ScanDeduplicationService>();
 
-		// US0007: Register camera QR scanner service
-		builder.Services.AddSingleton<CameraQrScannerService>();
+		// US0007: Register camera QR scanner service (still used as prototype by MultiCameraManager)
+		builder.Services.AddTransient<CameraQrScannerService>();
 
 		// US0008: Register USB keyboard wedge scanner service
 		builder.Services.AddSingleton<UsbQrScannerService>();
+
+		// EP0011: Register multi-camera manager + adaptive throttle
+		builder.Services.AddSingleton<AdaptiveDecodeThrottle>();
+		builder.Services.AddSingleton<IMultiCameraManager, MultiCameraManager>();
 
 		// US0010: Register scan submission service
 		builder.Services.AddSingleton<IScanApiService, ScanApiService>();

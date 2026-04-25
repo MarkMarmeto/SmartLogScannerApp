@@ -25,6 +25,28 @@ public class CameraQrScannerService : IQrScannerService
     private DateTime _lastProcessedTime = DateTime.MinValue;
     private string? _lastProcessedPayload;
 
+    // EP0011: Camera index and name for multi-camera attribution.
+    private int? _cameraIndex;
+    private string? _cameraName;
+
+    /// <summary>
+    /// Sets the camera index for scan attribution. Called by MultiCameraManager after construction.
+    /// </summary>
+    public void SetCameraIndex(int? cameraIndex) => _cameraIndex = cameraIndex;
+
+    /// <summary>
+    /// Sets the user-assigned camera name for scan attribution. Called by MultiCameraManager.
+    /// </summary>
+    public void SetCameraName(string? cameraName) => _cameraName = cameraName;
+
+    // EP0011: Per-camera scan type override. When set, used instead of _preferences.GetDefaultScanType().
+    private string? _scanTypeOverride;
+
+    /// <summary>
+    /// Sets a scan type override for this camera instance. Called by MultiCameraManager.
+    /// </summary>
+    public void SetScanTypeOverride(string? scanType) => _scanTypeOverride = scanType;
+
     // How long to lock out the same QR payload after processing.
     // Matches the UI feedback duration (3s) so the scanner is ready the moment feedback clears.
     // The student-level dedup service handles repeat-student protection beyond this window.
@@ -122,7 +144,7 @@ public class CameraQrScannerService : IQrScannerService
 
         _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
 
-        var scanType = _preferences.GetDefaultScanType();
+        var scanType = _scanTypeOverride ?? _preferences.GetDefaultScanType();
         var scannedAt = _timeService.UtcNow;
 
         // Student-level deduplication check (~2ms)
@@ -165,7 +187,9 @@ public class CameraQrScannerService : IQrScannerService
             StudentId = validationResult.StudentId,
             ScanType = scanType,
             ScannedAt = scannedAt,
-            IsOptimistic = true
+            IsOptimistic = true,
+            CameraIndex = _cameraIndex,
+            CameraName = _cameraName
         });
 
         // Background: submit to server, then fire ScanUpdated so UI can update student info
@@ -175,7 +199,7 @@ public class CameraQrScannerService : IQrScannerService
         {
             try
             {
-                var serverResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
+                var serverResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType, _cameraIndex, _cameraName);
 
                 if (serverResult.Status == ScanStatus.Error || serverResult.Status == ScanStatus.RateLimited)
                 {
@@ -185,7 +209,13 @@ public class CameraQrScannerService : IQrScannerService
                     return;
                 }
 
-                ScanUpdated?.Invoke(this, serverResult with { ValidationResult = validationResult, ScannedAt = scannedAt });
+                ScanUpdated?.Invoke(this, serverResult with
+                {
+                    ValidationResult = validationResult,
+                    ScannedAt = scannedAt,
+                    CameraIndex = _cameraIndex,
+                    CameraName = _cameraName
+                });
             }
             catch (Exception ex)
             {
@@ -212,7 +242,7 @@ public class CameraQrScannerService : IQrScannerService
 
             if (!alreadyQueued)
             {
-                await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
+                await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType, _cameraIndex, _cameraName);
                 _logger.LogWarning("Camera scan queued offline: StudentId={StudentId}", validationResult.StudentId);
             }
             else
@@ -228,7 +258,9 @@ public class CameraQrScannerService : IQrScannerService
                 Message = "Scan queued (offline)",
                 StudentId = validationResult.StudentId,
                 ScanType = scanType,
-                ScannedAt = scannedAt
+                ScannedAt = scannedAt,
+                CameraIndex = _cameraIndex,
+                CameraName = _cameraName
             });
         }
         catch (Exception ex)

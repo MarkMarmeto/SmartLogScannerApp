@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SmartLog.Scanner.Core.ViewModels;assembly=SmartLog.Scanner.Core"
+             xmlns:cvm="clr-namespace:SmartLog.Scanner.Core.ViewModels;assembly=SmartLog.Scanner.Core"
              x:Class="SmartLog.Scanner.Views.SetupPage"
              x:DataType="vm:SetupViewModel"
              Title="Device Setup"
@@ -338,6 +339,128 @@
                                     TextColor="#333333" />
                         </Border>
                     </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- EP0011: Multi-Camera Configuration Card -->
+            <Border BackgroundColor="White"
+                    Padding="20"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="🎥 Camera Configuration"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#2C5F5D" />
+
+                    <!-- Number of Cameras -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Number of Cameras (1–8)"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#333333" />
+                        <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                            <Stepper Minimum="1"
+                                     Maximum="8"
+                                     Increment="1"
+                                     Value="{Binding CameraCount, Mode=TwoWay}"
+                                     VerticalOptions="Center" />
+                            <Label Text="{Binding CameraCount, StringFormat='{0} camera(s)'}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#2C5F5D"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- USB 3.0 Warning -->
+                    <Border BackgroundColor="#FFF3E0"
+                            StrokeThickness="1"
+                            Stroke="#FF9800"
+                            Padding="12,10"
+                            IsVisible="{Binding ShowUsb3Warning}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6" />
+                        </Border.StrokeShape>
+                        <Label Text="⚠️ 3+ cameras require USB 3.0 ports for optimal performance. Using USB 2.0 hubs may cause dropped frames or camera failures."
+                               FontSize="13"
+                               TextColor="#E65100"
+                               LineBreakMode="WordWrap" />
+                    </Border>
+
+                    <!-- Per-Camera Rows -->
+                    <CollectionView ItemsSource="{Binding CameraSlots}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="cvm:CameraSlotViewModel">
+                                <Border BackgroundColor="#F9F9F9"
+                                        StrokeThickness="1"
+                                        Stroke="#E0E0E0"
+                                        Padding="12"
+                                        Margin="0,4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+
+                                    <VerticalStackLayout Spacing="8">
+
+                                        <!-- Camera Header Row -->
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label Text="{Binding DisplayNumber, StringFormat='Camera {0}'}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#2C5F5D"
+                                                   VerticalOptions="Center" />
+                                            <Switch IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                                    VerticalOptions="Center" />
+                                            <Label Text="Enabled"
+                                                   FontSize="12"
+                                                   TextColor="#666666"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+
+                                        <!-- Display Name -->
+                                        <Entry Text="{Binding DisplayName, Mode=TwoWay}"
+                                               Placeholder="Display name (e.g. Gate A)"
+                                               FontSize="13"
+                                               BackgroundColor="White" />
+
+                                        <!-- Device Picker -->
+                                        <Picker ItemsSource="{Binding AvailableDevices}"
+                                                SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                                ItemDisplayBinding="{Binding Name}"
+                                                Title="Select camera device"
+                                                TextColor="#333333"
+                                                BackgroundColor="White" />
+
+                                        <Button Text="Test"
+                                                Command="{Binding TestCameraCommand}"
+                                                IsEnabled="{Binding IsTestRunning, Converter={StaticResource InvertedBoolConverter}}"
+                                                BackgroundColor="#4D9B91"
+                                                TextColor="White"
+                                                CornerRadius="6"
+                                                Padding="10,6"
+                                                FontSize="13"
+                                                HorizontalOptions="Start" />
+
+                                        <!-- Test Result -->
+                                        <Label Text="{Binding TestResult}"
+                                               IsVisible="{Binding TestResult, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                               FontSize="12"
+                                               TextColor="#666666" />
+
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                 </VerticalStackLayout>
             </Border>
 

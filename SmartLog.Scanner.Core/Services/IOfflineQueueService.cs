@@ -13,7 +13,10 @@ public interface IOfflineQueueService
     /// <param name="qrPayload">Complete QR code payload</param>
     /// <param name="scannedAt">Timestamp when the QR was scanned</param>
     /// <param name="scanType">Scan direction: "ENTRY" or "EXIT"</param>
-    Task EnqueueScanAsync(string qrPayload, DateTimeOffset scannedAt, string scanType);
+    /// <param name="cameraIndex">Zero-based camera index. Null for USB scanner.</param>
+    /// <param name="cameraName">User-assigned camera name. Null for USB scanner.</param>
+    Task EnqueueScanAsync(string qrPayload, DateTimeOffset scannedAt, string scanType,
+        int? cameraIndex = null, string? cameraName = null);
 
     /// <summary>
     /// Gets the count of pending queued scans (SyncStatus = "PENDING").

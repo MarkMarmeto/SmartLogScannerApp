@@ -72,4 +72,19 @@
         </Setter>
     </Style>
 
+    <!-- US0092: Header date/time labels -->
+    <Style x:Key="HeaderTimeLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="#1A1A1A" />
+        <Setter Property="LineBreakMode" Value="NoWrap" />
+    </Style>
+
+    <Style x:Key="HeaderDateLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontAttributes" Value="None" />
+        <Setter Property="TextColor" Value="#666666" />
+        <Setter Property="LineBreakMode" Value="NoWrap" />
+    </Style>
+
 </ResourceDictionary>

@@ -26,7 +26,8 @@ public class OfflineQueueService : IOfflineQueueService
     /// US0014 AC1: Enqueue scan to SQLite database.
     /// Extracts StudentId from QR payload for deduplication queries.
     /// </summary>
-    public async Task EnqueueScanAsync(string qrPayload, DateTimeOffset scannedAt, string scanType)
+    public async Task EnqueueScanAsync(string qrPayload, DateTimeOffset scannedAt, string scanType,
+        int? cameraIndex = null, string? cameraName = null)
     {
         try
         {
@@ -43,7 +44,9 @@ public class OfflineQueueService : IOfflineQueueService
                 ScanType = scanType,
                 CreatedAt = DateTimeOffset.UtcNow.ToString("o"),
                 SyncStatus = "PENDING",
-                SyncAttempts = 0
+                SyncAttempts = 0,
+                CameraIndex = cameraIndex,
+                CameraName = cameraName
             };
 
             context.QueuedScans.Add(queuedScan);

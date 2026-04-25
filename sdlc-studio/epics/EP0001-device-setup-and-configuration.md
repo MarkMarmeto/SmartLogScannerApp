@@ -154,11 +154,11 @@ A robust setup and configuration layer means IT Admin Ian configures each gate d
 
 ## Story Breakdown
 
-- [ ] [US0001: Implement Secure Configuration Storage Service](../stories/US0001-secure-configuration-storage-service.md)
-- [ ] [US0002: Configure Self-Signed TLS and HTTP Client Infrastructure](../stories/US0002-self-signed-tls-and-http-client-infrastructure.md)
-- [ ] [US0003: Implement Global Exception Handling and Logging](../stories/US0003-global-exception-handling-and-logging.md)
-- [ ] [US0004: Build Device Setup Wizard Page](../stories/US0004-device-setup-wizard-page.md)
-- [ ] [US0005: Implement Setup Connection Validation](../stories/US0005-setup-connection-validation.md)
+- [x] [US0001: Implement Secure Configuration Storage Service](../stories/US0001-secure-configuration-storage-service.md)
+- [x] [US0002: Configure Self-Signed TLS and HTTP Client Infrastructure](../stories/US0002-self-signed-tls-and-http-client-infrastructure.md)
+- [x] [US0003: Implement Global Exception Handling and Logging](../stories/US0003-global-exception-handling-and-logging.md)
+- [x] [US0004: Build Device Setup Wizard Page](../stories/US0004-device-setup-wizard-page.md)
+- [x] [US0005: Implement Setup Connection Validation](../stories/US0005-setup-connection-validation.md)
 
 ---
 

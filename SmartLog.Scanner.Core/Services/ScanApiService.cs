@@ -51,6 +51,8 @@ public class ScanApiService : IScanApiService
         string qrPayload,
         DateTimeOffset scannedAt,
         string scanType,
+        int? cameraIndex = null,
+        string? cameraName = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -127,7 +129,9 @@ public class ScanApiService : IScanApiService
             {
                 qrPayload,
                 scannedAt = scannedAt.ToString("o"), // ISO 8601 format
-                scanType
+                scanType,
+                cameraIndex = cameraIndex.HasValue ? cameraIndex + 1 : (int?)null, // 0-based → 1-based wire format
+                cameraName
             };
 
             var requestJson = JsonSerializer.Serialize(requestBody, _jsonOptions);
@@ -420,7 +424,7 @@ public class ScanApiService : IScanApiService
         // Maximum string lengths to prevent DoS attacks
         const int MaxNameLength = 200;
         const int MaxGradeLength = 20;
-        const int MaxSectionLength = 10;
+        const int MaxSectionLength = 100;
         const int MaxMessageLength = 500;
         const int MaxScanIdLength = 100;
 
@@ -488,6 +492,9 @@ public class ScanApiService : IScanApiService
             section = section.Substring(0, MaxSectionLength);
         }
 
+        // Program (strand code, e.g. STEM, ABM, REGULAR) — optional, no truncation needed
+        var program = response.Program;
+
         // Validate and truncate ScanId
         var scanId = response.ScanId;
         if (scanId?.Length > MaxScanIdLength)
@@ -522,10 +529,13 @@ public class ScanApiService : IScanApiService
             StudentName = studentName,
             Grade = grade,
             Section = section,
+            Program = program,
             ScanType = response.ScanType,
             ScannedAt = response.ScannedAt ?? scannedAt ?? DateTimeOffset.UtcNow,
             OriginalScanId = originalScanId,
-            Message = message
+            Message = message,
+            PassCode = response.PassCode,
+            PassNumber = response.PassNumber
         };
     }
 
@@ -539,6 +549,7 @@ public class ScanApiService : IScanApiService
             "ACCEPTED" => ScanStatus.Accepted,
             "DUPLICATE" => ScanStatus.Duplicate,
             "REJECTED" => ScanStatus.Rejected,
+            "REJECTED_PASS_INACTIVE" => ScanStatus.Rejected,
             _ => ScanStatus.Error
         };
     }
@@ -553,11 +564,15 @@ public class ScanApiService : IScanApiService
         public string? StudentName { get; set; }
         public string? Grade { get; set; }
         public string? Section { get; set; }
+        public string? Program { get; set; }
         public string? ScanType { get; set; }
         public DateTimeOffset? ScannedAt { get; set; }
         public string? Status { get; set; }
         public string? OriginalScanId { get; set; }
         public string? Message { get; set; }
+        // US0076: Visitor pass fields (null for student scans)
+        public string? PassCode { get; set; }
+        public int? PassNumber { get; set; }
     }
 
     private class ServerErrorResponse

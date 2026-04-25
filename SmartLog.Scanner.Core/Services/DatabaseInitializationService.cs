@@ -76,7 +76,9 @@ public class DatabaseInitializationService
                 SyncAttempts INTEGER NOT NULL DEFAULT 0,
                 LastSyncError TEXT,
                 ServerScanId TEXT,
-                LastAttemptAt TEXT
+                LastAttemptAt TEXT,
+                CameraIndex INTEGER,
+                CameraName TEXT
             )");
 
         // ScanLogs — added after initial release; existing DBs may not have this table
@@ -95,7 +97,9 @@ public class DatabaseInitializationService
                 ProcessingTimeMs INTEGER NOT NULL DEFAULT 0,
                 GradeSection TEXT,
                 ErrorDetails TEXT,
-                ScanMethod TEXT NOT NULL DEFAULT 'Unknown'
+                ScanMethod TEXT NOT NULL DEFAULT 'Unknown',
+                CameraIndex INTEGER,
+                CameraName TEXT
             )");
 
         await context.Database.ExecuteSqlRawAsync(
@@ -110,6 +114,17 @@ public class DatabaseInitializationService
             "CREATE INDEX IF NOT EXISTS IX_ScanLogs_Status ON ScanLogs (Status)");
         await context.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS IX_ScanLogs_StudentId ON ScanLogs (StudentId)");
+
+        // EP0011/US0090: Camera identity columns — added after initial release.
+        // ALTER TABLE ADD COLUMN IF NOT EXISTS requires SQLite 3.37.0+ (bundled via EF Core 8).
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE QueuedScans ADD COLUMN IF NOT EXISTS CameraIndex INTEGER");
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE QueuedScans ADD COLUMN IF NOT EXISTS CameraName TEXT");
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE ScanLogs ADD COLUMN IF NOT EXISTS CameraIndex INTEGER");
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE ScanLogs ADD COLUMN IF NOT EXISTS CameraName TEXT");
 
         _logger.LogInformation("Schema check complete");
     }

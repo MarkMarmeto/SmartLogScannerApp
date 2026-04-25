@@ -147,4 +147,38 @@ public interface IPreferencesService
     void ClearAll();
 
     #endregion
+
+    #region Multi-Camera Config (EP0011)
+
+    /// <summary>Gets the configured number of cameras (1–8). Default: 1.</summary>
+    int GetCameraCount();
+
+    /// <summary>Sets the configured number of cameras (1–8).</summary>
+    void SetCameraCount(int count);
+
+    /// <summary>Gets the display name for camera at index. Default: "Camera {index+1}".</summary>
+    string GetCameraName(int index);
+
+    /// <summary>Sets the display name for camera at index.</summary>
+    void SetCameraName(int index, string name);
+
+    /// <summary>Gets the device ID assigned to camera at index. Default: "".</summary>
+    string GetCameraDeviceId(int index);
+
+    /// <summary>Sets the device ID for camera at index.</summary>
+    void SetCameraDeviceId(int index, string deviceId);
+
+    /// <summary>Gets the scan type for camera at index. Default: "ENTRY".</summary>
+    string GetCameraScanType(int index);
+
+    /// <summary>Sets the scan type for camera at index ("ENTRY" or "EXIT").</summary>
+    void SetCameraScanType(int index, string scanType);
+
+    /// <summary>Gets whether camera at index is enabled. Default: true.</summary>
+    bool GetCameraEnabled(int index);
+
+    /// <summary>Sets whether camera at index is enabled.</summary>
+    void SetCameraEnabled(int index, bool enabled);
+
+    #endregion
 }
