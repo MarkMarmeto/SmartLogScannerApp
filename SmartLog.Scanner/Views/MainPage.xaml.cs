@@ -43,8 +43,11 @@ public partial class MainPage : ContentPage
         {
             await _viewModel.InitializeAsync();
 
-            // EP0011: Attach camera 0 preview layer after cameras are running
+            // EP0011: Attach camera 0 preview after cameras are running
 #if MACCATALYST
+            if (_scannerMode == "Camera")
+                AttachCameraPreview();
+#elif WINDOWS
             if (_scannerMode == "Camera")
                 AttachCameraPreview();
 #endif
@@ -76,6 +79,23 @@ public partial class MainPage : ContentPage
             {
                 if (worker is Platforms.MacCatalyst.CameraHeadlessWorker macWorker)
                     handler.AttachWorkerPreview(macWorker);
+            });
+        }
+    }
+#elif WINDOWS
+    /// <summary>
+    /// EP0011: Attaches camera 0's headless worker to the CameraPreview0 view's
+    /// frame pump (~15 fps). Called after InitializeAsync so the capture session exists.
+    /// </summary>
+    private void AttachCameraPreview()
+    {
+        if (CameraPreview0?.Handler is Platforms.Windows.CameraPreviewHandler handler
+            && _viewModel != null)
+        {
+            _viewModel.ConfigureCameraPreview(0, worker =>
+            {
+                if (worker is Platforms.Windows.CameraHeadlessWorker winWorker)
+                    handler.AttachWorker(winWorker);
             });
         }
     }
