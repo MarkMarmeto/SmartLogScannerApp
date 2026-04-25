@@ -25,6 +25,21 @@ public class SecureConfigService : ISecureConfigService
         _platform = DeviceInfo.Current.Platform.ToString();
     }
 
+    /// <summary>
+    /// Whether to fall back to <see cref="Preferences"/> when <see cref="SecureStorage"/> is
+    /// unavailable. DEBUG builds always allow it; Release allows it on Windows only because
+    /// unpackaged MAUI apps frequently fail SecureStorage at first use (DPAPI quirks under
+    /// roaming profiles, AppContainer restrictions, etc.). macOS Release still fails fast.
+    /// </summary>
+    private static bool ShouldFallBackToPreferences()
+    {
+#if DEBUG
+        return true;
+#else
+        return DeviceInfo.Current.Platform == DevicePlatform.WinUI;
+#endif
+    }
+
     #region API Key
 
     public async Task<string?> GetApiKeyAsync()
@@ -32,44 +47,38 @@ public class SecureConfigService : ISecureConfigService
         try
         {
             var value = await SecureStorage.Default.GetAsync(ConfigKeys.ApiKey);
-#if DEBUG
-            // If SecureStorage returned null, also check Preferences fallback
-            // (key may have been saved to Preferences when SecureStorage threw on Set)
-            if (value == null)
+
+            // If SecureStorage returned null, check Preferences fallback (the key may have been
+            // stored there if SecureStorage threw during a previous Set on this platform).
+            if (value == null && ShouldFallBackToPreferences())
             {
-                value = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
-                if (!string.IsNullOrEmpty(value))
+                var fallback = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
+                if (!string.IsNullOrEmpty(fallback))
                 {
-                    _logger.LogDebug("API key retrieved from Preferences fallback (DEBUG mode)");
-                }
-                else
-                {
-                    value = null;
+                    _logger.LogDebug("API key retrieved from Preferences fallback");
+                    return fallback;
                 }
             }
-#endif
             return value;
         }
         catch (Exception ex)
         {
-#if DEBUG
-            // SECURITY: Fallback to Preferences for development builds ONLY
-            // In production, we fail fast to prevent insecure storage
-            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetApiKey");
-            try
+            if (ShouldFallBackToPreferences())
             {
-                var fallback = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
-                return string.IsNullOrEmpty(fallback) ? null : fallback;
+                _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, checking Preferences fallback. Operation: GetApiKey", _platform);
+                try
+                {
+                    var fallback = Preferences.Default.Get<string>(ConfigKeys.ApiKey, string.Empty);
+                    return string.IsNullOrEmpty(fallback) ? null : fallback;
+                }
+                catch
+                {
+                    return null;
+                }
             }
-            catch
-            {
-                return null;
-            }
-#else
-            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+
             _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot retrieve API key securely. Operation: GetApiKey", _platform);
             return null;
-#endif
         }
     }
 
@@ -90,29 +99,28 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-#if DEBUG
-            // SECURITY: Fallback to Preferences for development builds ONLY without proper entitlements
-            // In production, we fail fast to prevent insecure storage
-            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - DEBUG mode only). Operation: SetApiKey. Exception: {ExceptionType}",
-                _platform, ex.GetType().Name);
+            if (ShouldFallBackToPreferences())
+            {
+                _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (less secure than DPAPI/Keychain). Operation: SetApiKey. Exception: {ExceptionType}",
+                    _platform, ex.GetType().Name);
 
-            try
-            {
-                Preferences.Default.Set(ConfigKeys.ApiKey, apiKey);
-                _logger.LogInformation("API key stored in Preferences (fallback storage - DEBUG mode)");
+                try
+                {
+                    Preferences.Default.Set(ConfigKeys.ApiKey, apiKey);
+                    _logger.LogInformation("API key stored in Preferences (fallback storage)");
+                    return;
+                }
+                catch (Exception prefEx)
+                {
+                    _logger.LogError(prefEx, "Both SecureStorage and Preferences failed");
+                    throw new SecureStorageUnavailableException(_platform, "SetApiKey",
+                        $"Failed to store API key on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
+                }
             }
-            catch (Exception prefEx)
-            {
-                _logger.LogError(prefEx, "Both SecureStorage and Preferences failed");
-                throw new SecureStorageUnavailableException(_platform, "SetApiKey",
-                    $"Failed to store API key on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
-            }
-#else
-            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+
             _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot store API key securely. Operation: SetApiKey", _platform);
             throw new SecureStorageUnavailableException(_platform, "SetApiKey",
-                $"Failed to store API key securely on {_platform}. Preferences fallback is disabled in production builds.", ex);
-#endif
+                $"Failed to store API key securely on {_platform}. Preferences fallback is disabled on this platform.", ex);
         }
     }
 
@@ -128,6 +136,9 @@ public class SecureConfigService : ISecureConfigService
             _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}: Failed to remove API key. Operation: RemoveApiKey", _platform);
             // Don't throw on remove failures - best effort
         }
+
+        // Also clear the Preferences fallback so a stale value isn't picked up later.
+        try { Preferences.Default.Remove(ConfigKeys.ApiKey); } catch { }
     }
 
     #endregion
@@ -139,44 +150,36 @@ public class SecureConfigService : ISecureConfigService
         try
         {
             var value = await SecureStorage.Default.GetAsync(ConfigKeys.HmacSecretKey);
-#if DEBUG
-            // If SecureStorage returned null, also check Preferences fallback
-            // (key may have been saved to Preferences when SecureStorage threw on Set)
-            if (value == null)
+
+            if (value == null && ShouldFallBackToPreferences())
             {
-                value = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
-                if (!string.IsNullOrEmpty(value))
+                var fallback = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
+                if (!string.IsNullOrEmpty(fallback))
                 {
-                    _logger.LogDebug("HMAC secret retrieved from Preferences fallback (DEBUG mode)");
-                }
-                else
-                {
-                    value = null;
+                    _logger.LogDebug("HMAC secret retrieved from Preferences fallback");
+                    return fallback;
                 }
             }
-#endif
             return value;
         }
         catch (Exception ex)
         {
-#if DEBUG
-            // SECURITY: Fallback to Preferences for development builds ONLY
-            // In production, we fail fast to prevent insecure storage
-            _logger.LogWarning(ex, "SecureStorage unavailable, checking Preferences fallback (DEBUG mode only). Operation: GetHmacSecret");
-            try
+            if (ShouldFallBackToPreferences())
             {
-                var fallback = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
-                return string.IsNullOrEmpty(fallback) ? null : fallback;
+                _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, checking Preferences fallback. Operation: GetHmacSecret", _platform);
+                try
+                {
+                    var fallback = Preferences.Default.Get<string>(ConfigKeys.HmacSecretKey, string.Empty);
+                    return string.IsNullOrEmpty(fallback) ? null : fallback;
+                }
+                catch
+                {
+                    return null;
+                }
             }
-            catch
-            {
-                return null;
-            }
-#else
-            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+
             _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot retrieve HMAC secret securely. Operation: GetHmacSecret", _platform);
             return null;
-#endif
         }
     }
 
@@ -199,29 +202,28 @@ public class SecureConfigService : ISecureConfigService
         }
         catch (Exception ex)
         {
-#if DEBUG
-            // SECURITY: Fallback to Preferences for development builds ONLY without proper entitlements
-            // In production, we fail fast to prevent insecure storage
-            _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (INSECURE - DEBUG mode only). Operation: SetHmacSecret",
-                _platform);
+            if (ShouldFallBackToPreferences())
+            {
+                _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}, falling back to Preferences (less secure than DPAPI/Keychain). Operation: SetHmacSecret. Exception: {ExceptionType}",
+                    _platform, ex.GetType().Name);
 
-            try
-            {
-                Preferences.Default.Set(ConfigKeys.HmacSecretKey, hmacSecret);
-                _logger.LogInformation("HMAC secret stored in Preferences (fallback storage - DEBUG mode)");
+                try
+                {
+                    Preferences.Default.Set(ConfigKeys.HmacSecretKey, hmacSecret);
+                    _logger.LogInformation("HMAC secret stored in Preferences (fallback storage)");
+                    return;
+                }
+                catch (Exception prefEx)
+                {
+                    _logger.LogError(prefEx, "Both SecureStorage and Preferences failed");
+                    throw new SecureStorageUnavailableException(_platform, "SetHmacSecret",
+                        $"Failed to store HMAC secret on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
+                }
             }
-            catch (Exception prefEx)
-            {
-                _logger.LogError(prefEx, "Both SecureStorage and Preferences failed");
-                throw new SecureStorageUnavailableException(_platform, "SetHmacSecret",
-                    $"Failed to store HMAC secret on {_platform}. SecureStorage: {ex.GetType().Name}, Preferences: {prefEx.GetType().Name}", ex);
-            }
-#else
-            // PRODUCTION: Fail fast - do not use insecure Preferences storage
+
             _logger.LogError(ex, "SecureStorage unavailable on {Platform}. Cannot store HMAC secret securely. Operation: SetHmacSecret", _platform);
             throw new SecureStorageUnavailableException(_platform, "SetHmacSecret",
-                $"Failed to store HMAC secret securely on {_platform}. Preferences fallback is disabled in production builds.", ex);
-#endif
+                $"Failed to store HMAC secret securely on {_platform}. Preferences fallback is disabled on this platform.", ex);
         }
     }
 
@@ -237,6 +239,8 @@ public class SecureConfigService : ISecureConfigService
             _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}: Failed to remove HMAC secret. Operation: RemoveHmacSecret", _platform);
             // Don't throw on remove failures - best effort
         }
+
+        try { Preferences.Default.Remove(ConfigKeys.HmacSecretKey); } catch { }
     }
 
     #endregion
@@ -258,6 +262,9 @@ public class SecureConfigService : ISecureConfigService
             _logger.LogWarning(ex, "SecureStorage unavailable on {Platform}: Failed to remove all credentials. Operation: RemoveAll", _platform);
             // Don't throw on remove failures - best effort
         }
+
+        try { Preferences.Default.Remove(ConfigKeys.ApiKey); } catch { }
+        try { Preferences.Default.Remove(ConfigKeys.HmacSecretKey); } catch { }
     }
 
     #endregion
