@@ -116,16 +116,44 @@ public class DatabaseInitializationService
             "CREATE INDEX IF NOT EXISTS IX_ScanLogs_StudentId ON ScanLogs (StudentId)");
 
         // EP0011/US0090: Camera identity columns — added after initial release.
-        // ALTER TABLE ADD COLUMN IF NOT EXISTS requires SQLite 3.37.0+ (bundled via EF Core 8).
-        await context.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE QueuedScans ADD COLUMN IF NOT EXISTS CameraIndex INTEGER");
-        await context.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE QueuedScans ADD COLUMN IF NOT EXISTS CameraName TEXT");
-        await context.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE ScanLogs ADD COLUMN IF NOT EXISTS CameraIndex INTEGER");
-        await context.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE ScanLogs ADD COLUMN IF NOT EXISTS CameraName TEXT");
+        // SQLite does not support "ADD COLUMN IF NOT EXISTS", so query PRAGMA table_info
+        // for the existing columns and only ALTER when the column is missing.
+        await EnsureColumnAsync(context, "QueuedScans", "CameraIndex", "INTEGER");
+        await EnsureColumnAsync(context, "QueuedScans", "CameraName", "TEXT");
+        await EnsureColumnAsync(context, "ScanLogs", "CameraIndex", "INTEGER");
+        await EnsureColumnAsync(context, "ScanLogs", "CameraName", "TEXT");
 
         _logger.LogInformation("Schema check complete");
+    }
+
+    private async Task EnsureColumnAsync(ScannerDbContext context, string table, string column, string type)
+    {
+        var columns = await GetColumnNamesAsync(context, table);
+        if (columns.Contains(column))
+            return;
+
+        // EF1002: identifiers here are hard-coded literals from this file, not user input.
+#pragma warning disable EF1002
+        await context.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ADD COLUMN {column} {type}");
+#pragma warning restore EF1002
+        _logger.LogInformation("Added column {Column} ({Type}) to {Table}", column, type, table);
+    }
+
+    private static async Task<HashSet<string>> GetColumnNamesAsync(ScannerDbContext context, string table)
+    {
+        var connection = context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = $"PRAGMA table_info({table})";
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            // PRAGMA table_info columns: cid, name, type, notnull, dflt_value, pk
+            columns.Add(reader.GetString(1));
+        }
+        return columns;
     }
 }
