@@ -1,6 +1,6 @@
 # Epic Registry
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 **PRD Reference:** [Product Requirements Document](../prd.md)
 
 ## Summary
@@ -22,7 +22,7 @@
 | [EP0002](EP0002-qr-code-scanning-and-validation.md) | QR Code Scanning and Validation | Done | AI Assistant | 3 | 1.0.0 |
 | [EP0003](EP0003-scan-processing-and-feedback.md) | Scan Processing and Feedback | Done | AI Assistant | 5 | 1.0.0 |
 | [EP0004](EP0004-offline-resilience-and-sync.md) | Offline Resilience and Sync | Done | AI Assistant | 4 | 1.0.0 |
-| EP0011 (cross-project, see WebApp) | Multi-Camera Scanning | Done | AI Assistant | 6 | 2.0.0 |
+| EP0011 (cross-project, see WebApp) | Multi-Camera Scanning | In Progress | AI Assistant | 11 | 2.0.0 / 2.1.0 |
 
 ## Feature-to-Epic Mapping
 
@@ -68,3 +68,4 @@ EP0001 (Setup & Config)
 | 2026-02-13 | Initial epic registry created (EP0001-EP0004, Draft) |
 | 2026-02-16 | All 4 V1 epics completed (see PROJECT-COMPLETION-REPORT.md) |
 | 2026-04-22 | Status reconciliation — registry updated from Draft to Done; added EP0011 reference row |
+| 2026-04-24 | EP0011 re-opened for V2.1 scanner-side additions (US0088-US0092). Scanner story count: 23 Done + 5 Draft = 28 total |

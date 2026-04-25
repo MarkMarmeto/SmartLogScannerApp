@@ -265,6 +265,10 @@ public static class MauiProgram
 		// SECURITY FIX (CRITICAL-01): Register security migration service
 		builder.Services.AddSingleton<Core.Services.SecurityMigrationService>();
 
+		// US0089: Register scan type migration service
+		builder.Services.AddSingleton<Core.Services.IMigrationStore, Core.Services.MauiMigrationStore>();
+		builder.Services.AddSingleton<Core.Services.ScanTypeMigrationService>();
+
 		// Device detection service (automatic camera/USB detection) - Platform-specific
 #if MACCATALYST
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();

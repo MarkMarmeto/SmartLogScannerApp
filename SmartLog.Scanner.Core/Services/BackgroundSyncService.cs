@@ -213,14 +213,14 @@ public class BackgroundSyncService : IBackgroundSyncService, IAsyncDisposable
                 var scanType = scan.ScanType;
                 var scannedAt = DateTimeOffset.Parse(scan.ScannedAt);
 
-                // US0016: Submit via existing ScanApiService
-                // cameraIndex is null for offline-queued scans (camera attribution not available at queue time)
+                // US0016/US0090: Submit via ScanApiService, forwarding camera attribution from queue record.
                 var result = await _scanApi.SubmitScanAsync(
                     scan.QrPayload,
                     scannedAt,
                     scanType,
-                    cameraIndex: null,
-                    CancellationToken.None);
+                    cameraIndex: scan.CameraIndex,
+                    cameraName: scan.CameraName,
+                    cancellationToken: CancellationToken.None);
 
                 // US0016 AC4: Mark as SYNCED on success (ACCEPTED or DUPLICATE)
                 if (result.Status == Models.ScanStatus.Accepted || result.Status == Models.ScanStatus.Duplicate)

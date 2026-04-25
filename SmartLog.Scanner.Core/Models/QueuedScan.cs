@@ -68,4 +68,14 @@ public class QueuedScan
     /// US0016: Timestamp of last sync attempt (for exponential backoff calculation)
     /// </summary>
     public string? LastAttemptAt { get; set; }
+
+    /// <summary>
+    /// EP0011/US0090: Zero-based index of the camera that captured this scan. Null for USB.
+    /// </summary>
+    public int? CameraIndex { get; set; }
+
+    /// <summary>
+    /// EP0011/US0090: User-assigned display name of the camera slot (e.g. "Gate A"). Null for USB.
+    /// </summary>
+    public string? CameraName { get; set; }
 }

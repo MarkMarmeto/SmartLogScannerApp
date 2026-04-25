@@ -1,19 +1,19 @@
 # Story Registry
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 **Personas Reference:** [User Personas](../personas.md)
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Draft | 0 |
+| Draft | 5 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
 | Done | 23 |
-| **Total** | **23** |
+| **Total** | **28** |
 
 ## Stories by Epic
 
@@ -66,6 +66,11 @@
 | [US0069](US0069-per-camera-scan-type.md) | Per-Camera Scan Type | Done | 3 | AI Assistant |
 | [US0070](US0070-error-isolation-and-recovery.md) | Error Isolation and Auto-Recovery | Done | 5 | AI Assistant |
 | [US0071](US0071-multi-camera-setup-configuration.md) | Multi-Camera Setup Configuration | Done | 5 | AI Assistant |
+| [US0088](US0088-multi-camera-windows-compatibility.md) | Multi-Camera — Windows Platform Compatibility Verification | Draft | 3 | AI Assistant |
+| [US0089](US0089-unify-scan-type-to-device-level.md) | Unify Scan Type to Device-Level (Deprecates US0069) | Draft | 3 | AI Assistant |
+| [US0090](US0090-scan-payload-camera-identity.md) | Scan Payload — Include Camera Index and Camera Name | Draft | 3 | AI Assistant |
+| [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Fix Section Name Trimming, Show Program Code | Draft | 2 | AI Assistant |
+| [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Enlarge Date/Time, Anchor Left-Most | Draft | 1 | AI Assistant |
 
 ## All Stories
 
@@ -94,11 +99,16 @@
 | [US0069](US0069-per-camera-scan-type.md) | Per-Camera Scan Type | EP0011 (WebApp) | Done | 3 | Guard Gary |
 | [US0070](US0070-error-isolation-and-recovery.md) | Error Isolation and Auto-Recovery | EP0011 (WebApp) | Done | 5 | Guard Gary |
 | [US0071](US0071-multi-camera-setup-configuration.md) | Multi-Camera Setup Configuration | EP0011 (WebApp) | Done | 5 | Guard Gary |
+| [US0088](US0088-multi-camera-windows-compatibility.md) | Multi-Camera Windows Compatibility | EP0011 (WebApp) | Draft | 3 | IT Admin Ian |
+| [US0089](US0089-unify-scan-type-to-device-level.md) | Unify Scan Type to Device-Level | EP0011 (WebApp) | Draft | 3 | Guard Gary |
+| [US0090](US0090-scan-payload-camera-identity.md) | Scan Payload — Camera Index + Name | EP0011 (WebApp) | Draft | 3 | Admin Amy |
+| [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Section + Program | EP0011 (WebApp) | Draft | 2 | Guard Gary |
+| [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Date/Time Prominent | EP0011 (WebApp) | Draft | 1 | Guard Gary |
 
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
-- Total story points: 117 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 28 pts across 6 stories)
+- Total story points: 129 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft)
 
 ## Changelog
 
@@ -108,3 +118,4 @@
 | 2026-02-16 | All 17 V1 stories completed (see PROJECT-COMPLETION-REPORT.md) |
 | 2026-03-09 | 6 multi-camera stories (US0066-US0071) completed under cross-project EP0011 |
 | 2026-04-22 | Status reconciliation — registry updated from stale Draft/Ready/Review markers to Done for all 23 stories |
+| 2026-04-24 | Added 5 scanner-side stories (US0088-US0092) under re-opened cross-project EP0011 — V2.1 feature/bugfix additions from WebApp planning session |

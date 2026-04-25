@@ -63,6 +63,9 @@ public class ScannerDbContext : DbContext
             entity.Property(e => e.LastAttemptAt)
                 .HasMaxLength(50);
 
+            entity.Property(e => e.CameraName)
+                .HasMaxLength(100);
+
             // Index for efficient pending scan queries
             entity.HasIndex(e => e.SyncStatus);
 
@@ -113,6 +116,9 @@ public class ScannerDbContext : DbContext
 
             entity.Property(e => e.ScanMethod)
                 .HasMaxLength(20);
+
+            entity.Property(e => e.CameraName)
+                .HasMaxLength(100);
 
             // Index for efficient timestamp queries
             entity.HasIndex(e => e.Timestamp);

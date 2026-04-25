@@ -65,6 +65,7 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
             // QR processing service — pure business logic, no hardware ownership
             var service = ActivatorUtilities.CreateInstance<CameraQrScannerService>(_serviceProvider);
             service.SetCameraIndex(cam.Index);
+            service.SetCameraName(cam.DisplayName);
             service.SetScanTypeOverride(cam.ScanType);
             service.ScanCompleted += (_, result) => ScanCompleted?.Invoke(this, (cam.Index, result));
             service.ScanUpdated  += (_, result) => ScanUpdated?.Invoke(this, (cam.Index, result));
@@ -188,18 +189,28 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public void UpdateScanTypes()
+    public void UpdateScanTypes(string scanType)
     {
         foreach (var cam in _cameras)
         {
-            var scanType = _preferences.GetCameraScanType(cam.Index);
             cam.ScanType = scanType;
 
             if (_services.TryGetValue(cam.Index, out var service))
                 service.SetScanTypeOverride(scanType);
         }
 
-        _logger.LogDebug("Scan types updated for all cameras");
+        _logger.LogDebug("Scan type updated for all cameras: {ScanType}", scanType);
+    }
+
+    /// <inheritdoc/>
+    public void UpdateCameraName(int cameraIndex, string name)
+    {
+        if (_services.TryGetValue(cameraIndex, out var service))
+            service.SetCameraName(name);
+
+        var cam = GetCamera(cameraIndex);
+        if (cam != null)
+            cam.DisplayName = name;
     }
 
     /// <inheritdoc/>

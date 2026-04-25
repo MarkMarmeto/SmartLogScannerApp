@@ -238,7 +238,7 @@ public class UsbQrScannerService : IQrScannerService
             {
                 // US0017 AC1: Online path - submit to server
                 _logger.LogDebug("Server online - submitting USB scan to API");
-                scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType);
+                scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType, cameraName: "USB Scanner");
 
                 // US0017 AC3: Mid-request failure fallback to queue (also covers rate limiting)
                 if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error
@@ -254,7 +254,7 @@ public class UsbQrScannerService : IQrScannerService
 
                         if (!alreadyQueued)
                         {
-                            await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
+                            await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType, cameraName: "USB Scanner");
                         }
                         else
                         {
@@ -312,7 +312,7 @@ public class UsbQrScannerService : IQrScannerService
                     else
                     {
                         // Not queued yet - enqueue it
-                        await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType);
+                        await _offlineQueue.EnqueueScanAsync(payload, scannedAt, scanType, cameraName: "USB Scanner");
 
                         scanResult = new ScanResult
                         {

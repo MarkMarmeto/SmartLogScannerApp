@@ -392,9 +392,8 @@ public partial class SetupViewModel : ObservableObject
 			_cameraEnumeration,
 			Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance);
 
-		// Restore saved config
+		// Restore saved config (ScanType is device-level — not per-camera)
 		slot.DisplayName = _preferences.GetCameraName(index);
-		slot.ScanType = _preferences.GetCameraScanType(index);
 		slot.IsEnabled = _preferences.GetCameraEnabled(index);
 
 		var savedDeviceId = _preferences.GetCameraDeviceId(index);
@@ -421,7 +420,6 @@ public partial class SetupViewModel : ObservableObject
 			var slot = CameraSlots[i];
 			_preferences.SetCameraName(i, slot.DisplayName);
 			_preferences.SetCameraDeviceId(i, slot.SelectedDevice?.Id ?? string.Empty);
-			_preferences.SetCameraScanType(i, slot.ScanType);
 			_preferences.SetCameraEnabled(i, slot.IsEnabled);
 		}
 	}

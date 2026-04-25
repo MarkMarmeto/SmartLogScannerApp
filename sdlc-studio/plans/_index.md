@@ -1,7 +1,7 @@
 # Implementation Plans Index
 
-> **Total Plans:** 12
-> **Status:** Planned (0) | In Progress (0) | Completed (12)
+> **Total Plans:** 17
+> **Status:** Planned (5) | In Progress (0) | Completed (12)
 
 ## All Plans
 
@@ -19,11 +19,20 @@
 | [PL0010](./PL0010-main-page-camera-grid-ui.md) | [US0068](../stories/US0068-main-page-camera-grid-ui.md) | Main Page Camera Grid UI | Complete | 2026-04-18 |
 | [PL0011](./PL0011-per-camera-scan-type.md) | [US0069](../stories/US0069-per-camera-scan-type.md) | Per-Camera Scan Type | Complete | 2026-04-18 |
 | [PL0012](./PL0012-error-isolation-and-recovery.md) | [US0070](../stories/US0070-error-isolation-and-recovery.md) | Error Isolation and Auto-Recovery | Complete | 2026-04-18 |
+| [PL0013](./PL0013-scan-payload-camera-identity.md) | [US0090](../stories/US0090-scan-payload-camera-identity.md) | Scan Payload — Camera Identity | Draft | 2026-04-24 |
+| [PL0014](./PL0014-multi-camera-windows-compatibility.md) | [US0088](../stories/US0088-multi-camera-windows-compatibility.md) | Multi-Camera Windows Compatibility Verification | Draft | 2026-04-25 |
+| [PL0015](./PL0015-unify-scan-type-to-device-level.md) | [US0089](../stories/US0089-unify-scan-type-to-device-level.md) | Unify Scan Type to Device-Level | Draft | 2026-04-25 |
+| [PL0016](./PL0016-scanner-tile-section-name-and-program-code.md) | [US0091](../stories/US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Section Name Trim & Program Code | Draft | 2026-04-25 |
+| [PL0017](./PL0017-scanner-header-datetime-prominent.md) | [US0092](../stories/US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Enlarge Date/Time, Anchor Left-Most | Draft | 2026-04-25 |
 
 ## By Status
 
-### Planned (0)
-None
+### Planned (Draft) (5)
+- [PL0013](./PL0013-scan-payload-camera-identity.md) - Scan Payload — Camera Identity (US0090)
+- [PL0014](./PL0014-multi-camera-windows-compatibility.md) - Multi-Camera Windows Compatibility Verification (US0088)
+- [PL0015](./PL0015-unify-scan-type-to-device-level.md) - Unify Scan Type to Device-Level (US0089)
+- [PL0016](./PL0016-scanner-tile-section-name-and-program-code.md) - Scanner Tile — Section Name Trim & Program Code (US0091)
+- [PL0017](./PL0017-scanner-header-datetime-prominent.md) - Scanner Header — Enlarge Date/Time, Anchor Left-Most (US0092)
 
 ### In Progress (0)
 None

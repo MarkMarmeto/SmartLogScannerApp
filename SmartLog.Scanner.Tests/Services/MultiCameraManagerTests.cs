@@ -163,18 +163,15 @@ public class MultiCameraManagerTests
     // ── UpdateScanTypes ───────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateScanTypes_UpdatesCameraInstanceScanType()
+    public async Task UpdateScanTypes_PropagatesDeviceLevelScanTypeToAllCameras()
     {
-        var (manager, prefsMock) = CreateManager();
+        var (manager, _) = CreateManager();
         await manager.InitializeAsync(MakeCameras(2));
 
-        prefsMock.Setup(p => p.GetCameraScanType(0)).Returns("EXIT");
-        prefsMock.Setup(p => p.GetCameraScanType(1)).Returns("ENTRY");
-
-        manager.UpdateScanTypes();
+        manager.UpdateScanTypes("EXIT");
 
         Assert.Equal("EXIT", manager.Cameras[0].ScanType);
-        Assert.Equal("ENTRY", manager.Cameras[1].ScanType);
+        Assert.Equal("EXIT", manager.Cameras[1].ScanType);
     }
 
     // ── CameraStatusChanged events ────────────────────────────────────────────
