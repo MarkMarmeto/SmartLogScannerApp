@@ -71,11 +71,35 @@ public class ShellNavigationService : INavigationService
 							_logger.LogInformation("Nav[{Route}] setting shell.CurrentItem -> {Item}", route, DescribeItem(item));
 							shell.CurrentItem = item;
 						}
-						if (!ReferenceEquals(item!.CurrentItem, section))
+
+						// Windows MAUI Shell desync: a prior raw Shell.GoToAsync (e.g. from
+						// MainPage's Settings button) can render a different ShellContent
+						// without updating item.CurrentItem. When that happens, the model
+						// claims we're already at the target, so re-assigning the same
+						// reference is a no-op and the visual never updates. Force a real
+						// PropertyChanged by toggling through a different section first.
+						if (ReferenceEquals(item!.CurrentItem, section))
 						{
-							_logger.LogInformation("Nav[{Route}] setting item.CurrentItem -> {Section}", route, DescribeItem(section));
-							item.CurrentItem = section;
+							ShellSection? bypass = null;
+							foreach (var s in item.Items)
+							{
+								if (!ReferenceEquals(s, section))
+								{
+									bypass = s;
+									break;
+								}
+							}
+							if (bypass != null)
+							{
+								_logger.LogInformation(
+									"Nav[{Route}] item.CurrentItem already == target; toggling through {Bypass} to force change",
+									route, DescribeItem(bypass));
+								item.CurrentItem = bypass;
+							}
 						}
+						_logger.LogInformation("Nav[{Route}] setting item.CurrentItem -> {Section}", route, DescribeItem(section));
+						item.CurrentItem = section;
+
 						if (!ReferenceEquals(section!.CurrentItem, content))
 						{
 							_logger.LogInformation("Nav[{Route}] setting section.CurrentItem -> {Content}", route, DescribeItem(content));
