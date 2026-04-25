@@ -7,12 +7,14 @@ namespace SmartLog.Scanner;
 public partial class App : Application
 {
 	private readonly SecurityMigrationService _securityMigration;
+	private readonly ScanTypeMigrationService _scanTypeMigration;
 	private readonly DatabaseInitializationService _databaseInit;
 	private readonly IBackgroundSyncService _backgroundSync;
 	private readonly ILogger<App> _logger;
 
 	public App(
 		SecurityMigrationService securityMigration,
+		ScanTypeMigrationService scanTypeMigration,
 		DatabaseInitializationService databaseInit,
 		IBackgroundSyncService backgroundSync,
 		ILogger<App> logger)
@@ -20,6 +22,7 @@ public partial class App : Application
 		InitializeComponent();
 
 		_securityMigration = securityMigration;
+		_scanTypeMigration = scanTypeMigration;
 		_databaseInit = databaseInit;
 		_backgroundSync = backgroundSync;
 		_logger = logger;
@@ -59,6 +62,16 @@ public partial class App : Application
 		{
 			_logger.LogError(ex, "Security migration failed");
 			System.Diagnostics.Debug.WriteLine($"Security migration failed: {ex.Message}");
+		}
+
+		// US0089: Migrate per-camera ScanType prefs to single device-level key (idempotent)
+		try
+		{
+			_scanTypeMigration.MigrateIfNeeded();
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "ScanType migration failed");
 		}
 
 		// US0014 AC7: Initialize SQLite database on app startup

@@ -445,6 +445,14 @@
                                                TextColor="#2C5F5D" />
                                     </Border>
 
+                                    <Border BackgroundColor="#EDE7F6" Padding="8,4" StrokeThickness="0"
+                                            IsVisible="{Binding CameraDisplay, Converter={StaticResource IsNotNullConverter}}">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="6"/></Border.StrokeShape>
+                                        <Label Text="{Binding CameraDisplay}"
+                                               FontSize="10" FontAttributes="Bold"
+                                               TextColor="#4527A0" />
+                                    </Border>
+
                                 </HorizontalStackLayout>
 
                             </Grid>

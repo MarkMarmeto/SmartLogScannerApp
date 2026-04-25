@@ -52,6 +52,11 @@ public record ScanResult
     public string? Section { get; init; }
 
     /// <summary>
+    /// US0091: Student program / strand (e.g., "STEM", "ABM", "REGULAR"). Null if not returned.
+    /// </summary>
+    public string? Program { get; init; }
+
+    /// <summary>
     /// US0010: Scan type (ENTRY or EXIT).
     /// </summary>
     public string? ScanType { get; init; }
@@ -101,6 +106,16 @@ public record ScanResult
     /// US0076: True if this is a visitor scan (PassCode is present).
     /// </summary>
     public bool IsVisitorScan => PassCode != null;
+
+    /// <summary>
+    /// EP0011/US0090: Zero-based index of the camera that captured this scan. Null for USB scanner.
+    /// </summary>
+    public int? CameraIndex { get; init; }
+
+    /// <summary>
+    /// EP0011/US0090: User-assigned display name of the camera slot. Null for USB scanner.
+    /// </summary>
+    public string? CameraName { get; init; }
 
     /// <summary>
     /// True if the QR code passed HMAC validation.

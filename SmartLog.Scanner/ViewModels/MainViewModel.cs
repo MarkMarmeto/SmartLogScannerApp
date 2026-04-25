@@ -45,20 +45,31 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string? _lastStudentName;
     [ObservableProperty] private string? _lastGrade;
     [ObservableProperty] private string? _lastSection;
+    [ObservableProperty] private string? _lastProgram;
     [ObservableProperty] private bool _hasScannedStudent;
     [ObservableProperty] private Color _cardBorderColor = Color.FromArgb("#E0E0E0");
 
     // EP0011: Camera that produced the most recent scan
     [ObservableProperty] private string? _lastScanCameraName;
 
-    // Computed: Grade & Section combined display
-    public string? LastGradeSection =>
-        !string.IsNullOrEmpty(LastGrade) && !string.IsNullOrEmpty(LastSection)
-            ? $"{LastGrade} - {LastSection}"
-            : LastGrade ?? LastSection;
+    // Computed: Grade · Program · Section (Program omitted when null/empty)
+    public string? LastGradeSection
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(LastGrade) && string.IsNullOrEmpty(LastSection))
+                return null;
+            var grade = LastGrade ?? string.Empty;
+            var section = LastSection ?? string.Empty;
+            return string.IsNullOrEmpty(LastProgram)
+                ? $"{grade} · {section}".Trim(' ', '·')
+                : $"{grade} · {LastProgram} · {section}".Trim(' ', '·');
+        }
+    }
 
     partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
     partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastProgramChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
 
     // Visual feedback colors
     [ObservableProperty] private Color _feedbackColor = Colors.Transparent;
@@ -79,8 +90,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _connectivityIcon = "⚪";
     [ObservableProperty] private Color _connectivityColor = Color.FromArgb("#9E9E9E"); // Gray
 
-    // Live clock display
-    [ObservableProperty] private string _currentDateTime = string.Empty;
+    // Live clock display (US0092: split into time + date for two-line header)
+    [ObservableProperty] private string _currentTime = string.Empty;
+    [ObservableProperty] private string _currentDate = string.Empty;
     private IDispatcherTimer? _clockTimer;
 
     // Selected camera device ID (single-camera legacy; multi-camera uses CameraSlots)
@@ -166,11 +178,10 @@ public partial class MainViewModel : ObservableObject
         // the corrected time from the very first tick.
         await _timeService.SyncAsync();
 
-        CurrentDateTime = _timeService.UtcNow.ToLocalTime().ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+        UpdateClock();
         _clockTimer = Application.Current!.Dispatcher.CreateTimer();
         _clockTimer.Interval = TimeSpan.FromSeconds(1);
-        _clockTimer.Tick += (_, _) =>
-            CurrentDateTime = _timeService.UtcNow.ToLocalTime().ToString("ddd, MMM dd yyyy   hh:mm:ss tt");
+        _clockTimer.Tick += (_, _) => UpdateClock();
         _clockTimer.Start();
 
         // US0012: Initialize audio service (pre-load sound files)
@@ -234,6 +245,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private List<CameraInstance> BuildCameraConfigs(int count)
     {
+        var scanType = _preferences.GetDefaultScanType();
         var configs = new List<CameraInstance>();
         for (var i = 0; i < count; i++)
         {
@@ -248,7 +260,7 @@ public partial class MainViewModel : ObservableObject
                 Index = i,
                 CameraDeviceId = deviceId,
                 DisplayName = _preferences.GetCameraName(i),
-                ScanType = _preferences.GetCameraScanType(i),
+                ScanType = scanType,
                 IsEnabled = _preferences.GetCameraEnabled(i),
                 DecodeThrottleFrames = AdaptiveDecodeThrottle.Calculate(count)
             });
@@ -440,6 +452,7 @@ public partial class MainViewModel : ObservableObject
                         : result.StudentName;
                     LastGrade = result.IsVisitorScan ? null : result.Grade;
                     LastSection = result.IsVisitorScan ? null : result.Section;
+                    LastProgram = result.IsVisitorScan ? null : result.Program;
                     HasScannedStudent = true;
                     // US0076-AC2: Blue for visitors, green for students
                     CardBorderColor = result.IsVisitorScan
@@ -467,6 +480,7 @@ public partial class MainViewModel : ObservableObject
                         : result.StudentName;
                     LastGrade = result.IsVisitorScan ? null : result.Grade;
                     LastSection = result.IsVisitorScan ? null : result.Section;
+                    LastProgram = result.IsVisitorScan ? null : result.Program;
                     HasScannedStudent = result.IsVisitorScan || !string.IsNullOrEmpty(result.StudentId);
                     CardBorderColor = Color.FromArgb("#FF9800");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -486,6 +500,7 @@ public partial class MainViewModel : ObservableObject
                         : null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     HasScannedStudent = result.IsVisitorScan;
                     CardBorderColor = Color.FromArgb("#F44336");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -503,6 +518,7 @@ public partial class MainViewModel : ObservableObject
                     LastStudentName = null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     HasScannedStudent = false;
                     CardBorderColor = Color.FromArgb("#4D9B91");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -520,6 +536,7 @@ public partial class MainViewModel : ObservableObject
                     LastStudentName = null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     HasScannedStudent = false;
                     CardBorderColor = Color.FromArgb("#F44336");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -537,6 +554,7 @@ public partial class MainViewModel : ObservableObject
                     LastStudentName = null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     HasScannedStudent = false;
                     CardBorderColor = Color.FromArgb("#FF9800");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -554,6 +572,7 @@ public partial class MainViewModel : ObservableObject
                     LastStudentName = null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     HasScannedStudent = false;
                     CardBorderColor = Color.FromArgb("#FF9800");
                     LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -583,6 +602,7 @@ public partial class MainViewModel : ObservableObject
                     LastStudentName = null;
                     LastGrade = null;
                     LastSection = null;
+                    LastProgram = null;
                     CardBorderColor = Color.FromArgb("#E0E0E0");
                     if (_scannerMode == "Camera")
                     {
@@ -624,6 +644,7 @@ public partial class MainViewModel : ObservableObject
                         LastLrn = result.Lrn;
                         LastGrade = result.Grade;
                         LastSection = result.Section;
+                        LastProgram = result.Program;
                         LastScanMessage = ToFriendlyMessage(result);
                     }
                     break;
@@ -807,6 +828,13 @@ public partial class MainViewModel : ObservableObject
             await _usbScanner!.ProcessQrCodeAsync(payload);
     }
 
+    private void UpdateClock()
+    {
+        var now = _timeService.UtcNow.ToLocalTime();
+        CurrentTime = now.ToString("HH:mm");
+        CurrentDate = now.ToString("ddd, dd MMM yyyy");
+    }
+
     public async ValueTask DisposeAsync()
     {
         _clockTimer?.Stop();
@@ -835,7 +863,7 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// US0009: AC2/AC3 - Toggle scan type between ENTRY and EXIT.
-    /// Persists change to preferences and propagates to all running cameras immediately.
+    /// Persists device-level change to preferences and propagates to all running cameras immediately.
     /// </summary>
     [RelayCommand]
     private void ToggleScanType()
@@ -845,15 +873,8 @@ public partial class MainViewModel : ObservableObject
 
         if (_scannerMode == "Camera")
         {
-            // EP0011: Write new scan type to every camera's per-camera preference so
-            // UpdateScanTypes() (which reads per-camera prefs) picks up the change.
-            // This makes the toolbar toggle a "set all cameras" action.
-            var count = _multiCameraManager.Cameras.Count;
-            for (var i = 0; i < count; i++)
-                _preferences.SetCameraScanType(i, CurrentScanType);
-
             // Propagate to running CameraQrScannerService instances
-            _multiCameraManager.UpdateScanTypes();
+            _multiCameraManager.UpdateScanTypes(CurrentScanType);
 
             // Sync the observable CameraSlots so the status card badges update immediately
             foreach (var cam in _multiCameraManager.Cameras)
@@ -1018,7 +1039,9 @@ public partial class MainViewModel : ObservableObject
                     ? $"{result.Grade} - {result.Section}"
                     : null,
                 ErrorDetails = BuildTechnicalDetail(result),
-                ScanMethod = _scannerMode
+                ScanMethod = _scannerMode,
+                CameraIndex = result.CameraIndex,
+                CameraName = result.CameraName
             };
 
             await _scanHistory.LogScanAsync(logEntry);

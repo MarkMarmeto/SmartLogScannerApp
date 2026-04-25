@@ -439,23 +439,15 @@
                                                 TextColor="#333333"
                                                 BackgroundColor="White" />
 
-                                        <!-- Scan Type + Test Row -->
-                                        <HorizontalStackLayout Spacing="10">
-                                            <Picker ItemsSource="{Binding ScanTypeOptions}"
-                                                    SelectedItem="{Binding ScanType, Mode=TwoWay}"
-                                                    Title="Scan type"
-                                                    BackgroundColor="White"
-                                                    HorizontalOptions="FillAndExpand" />
-                                            <Button Text="Test"
-                                                    Command="{Binding TestCameraCommand}"
-                                                    IsEnabled="{Binding IsTestRunning, Converter={StaticResource InvertedBoolConverter}}"
-                                                    BackgroundColor="#4D9B91"
-                                                    TextColor="White"
-                                                    CornerRadius="6"
-                                                    Padding="10,6"
-                                                    FontSize="13"
-                                                    VerticalOptions="Center" />
-                                        </HorizontalStackLayout>
+                                        <Button Text="Test"
+                                                Command="{Binding TestCameraCommand}"
+                                                IsEnabled="{Binding IsTestRunning, Converter={StaticResource InvertedBoolConverter}}"
+                                                BackgroundColor="#4D9B91"
+                                                TextColor="White"
+                                                CornerRadius="6"
+                                                Padding="10,6"
+                                                FontSize="13"
+                                                HorizontalOptions="Start" />
 
                                         <!-- Test Result -->
                                         <Label Text="{Binding TestResult}"

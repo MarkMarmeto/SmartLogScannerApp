@@ -69,10 +69,16 @@ public interface IMultiCameraManager
     void UpdateThrottleValues();
 
     /// <summary>
-    /// Re-reads per-camera scan type preferences and calls SetScanTypeOverride on each running
-    /// CameraQrScannerService. Takes effect on the next scan — no restart required.
+    /// Pushes the supplied device-level scan type to all running CameraQrScannerService instances.
+    /// Takes effect on the next scan — no restart required.
     /// </summary>
-    void UpdateScanTypes();
+    void UpdateScanTypes(string scanType);
+
+    /// <summary>
+    /// Propagates a renamed camera name to the running CameraQrScannerService for that slot.
+    /// Call after the admin saves a new name in Setup so the next scan uses the updated name.
+    /// </summary>
+    void UpdateCameraName(int cameraIndex, string name);
 
     /// <summary>
     /// Passes the worker for the given camera index to the supplied action.

@@ -27,7 +27,6 @@ public partial class CameraSlotViewModel : ObservableObject
     [ObservableProperty] private string? _testResult;
 
     public ObservableCollection<CameraDeviceInfo> AvailableDevices { get; } = new();
-    public List<string> ScanTypeOptions { get; } = new() { "ENTRY", "EXIT" };
 
     public CameraSlotViewModel(
         int index,
