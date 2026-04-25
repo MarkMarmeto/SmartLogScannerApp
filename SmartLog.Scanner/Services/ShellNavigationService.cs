@@ -35,11 +35,31 @@ public class ShellNavigationService : INavigationService
 			try
 			{
 				_logger.LogInformation(
-					"Nav[{Route}] before GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}",
+					"Nav[{Route}] before GoToAsync: shell.CurrentItem={Item}, item.CurrentItem={Section}, section.CurrentItem={Content}, navStack={NavStack}, modalStack={ModalStack}",
 					route,
 					DescribeItem(shell.CurrentItem),
 					DescribeItem(shell.CurrentItem?.CurrentItem),
-					DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem));
+					DescribeItem(shell.CurrentItem?.CurrentItem?.CurrentItem),
+					DescribeStack(shell.Navigation.NavigationStack),
+					DescribeStack(shell.Navigation.ModalStack));
+
+				// Windows MAUI sometimes pushes a "//route" target onto the navigation
+				// stack instead of switching ShellSections (so the model thinks we're
+				// still on the previous tab and the new page is a stack entry on top).
+				// Pop the stack down to the section root before navigating, otherwise
+				// our section-toggle below has nothing to redraw against.
+				while (shell.Navigation.NavigationStack.Count > 1)
+				{
+					_logger.LogInformation("Nav[{Route}] popping NavigationStack entry: {Page}",
+						route, shell.Navigation.NavigationStack[^1]?.GetType().Name ?? "null");
+					await shell.Navigation.PopAsync(false);
+				}
+				while (shell.Navigation.ModalStack.Count > 0)
+				{
+					_logger.LogInformation("Nav[{Route}] popping ModalStack entry: {Page}",
+						route, shell.Navigation.ModalStack[^1]?.GetType().Name ?? "null");
+					await shell.Navigation.PopModalAsync(false);
+				}
 
 				await shell.GoToAsync(route);
 
@@ -137,6 +157,18 @@ public class ShellNavigationService : INavigationService
 		if (item is null) return "null";
 		var route = Routing.GetRoute(item) ?? "(no-route)";
 		return $"{item.GetType().Name}#{item.GetHashCode():x}({route})";
+	}
+
+	private static string DescribeStack(IReadOnlyList<Page> stack)
+	{
+		if (stack == null || stack.Count == 0) return "[]";
+		var parts = new List<string>(stack.Count);
+		for (int i = 0; i < stack.Count; i++)
+		{
+			var p = stack[i];
+			parts.Add(p == null ? "null" : $"{p.GetType().Name}#{p.GetHashCode():x}");
+		}
+		return "[" + string.Join(", ", parts) + "]";
 	}
 
 	private static string DumpShellHierarchy(Shell shell)
