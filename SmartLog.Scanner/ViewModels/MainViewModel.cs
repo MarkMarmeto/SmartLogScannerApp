@@ -307,15 +307,7 @@ public partial class MainViewModel : ObservableObject
             {
                 var slot = CameraSlots[e.CameraIndex];
                 LastScanCameraName = slot.DisplayName;
-
-                // Flash animation for the source camera cell
-                if (e.Result.Status == ScanStatus.Accepted)
-                {
-                    var flashName = e.Result.IsVisitorScan
-                        ? $"Visitor #{e.Result.PassNumber} — {e.Result.ScanType}"
-                        : e.Result.StudentName ?? e.Result.StudentId;
-                    TriggerSlotFlash(e.CameraIndex, flashName);
-                }
+                FlashSourceSlot(e.CameraIndex, e.Result);
             }
         });
 
@@ -323,11 +315,31 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Routes a multi-camera ScanUpdated event to the shared update display logic.
+    /// Routes a multi-camera ScanUpdated event to the shared update display logic,
+    /// and overwrites the source slot's optimistic flash with the server-confirmed outcome.
     /// </summary>
     private void OnMultiCameraScanUpdated(object? sender, (int CameraIndex, ScanResult Result) e)
     {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (e.CameraIndex >= 0 && e.CameraIndex < CameraSlots.Count)
+                FlashSourceSlot(e.CameraIndex, e.Result);
+        });
+
         OnScanUpdated(sender, e.Result);
+    }
+
+    /// <summary>
+    /// Updates the source camera card with the scan outcome (color, icon, message, name).
+    /// Called for both initial scan results and server-corrected updates so each camera
+    /// reflects only its own activity.
+    /// </summary>
+    private void FlashSourceSlot(int cameraIndex, ScanResult result)
+    {
+        var subjectName = result.IsVisitorScan
+            ? $"Visitor #{result.PassNumber} — {result.ScanType}"
+            : result.StudentName ?? result.StudentId;
+        TriggerSlotFlash(cameraIndex, result.Status, subjectName, ToFriendlyMessage(result));
     }
 
     /// <summary>
@@ -350,10 +362,11 @@ public partial class MainViewModel : ObservableObject
     // ── EP0011: Per-slot flash animation ────────────────────────────────────
 
     /// <summary>
-    /// Triggers a 1.5s scan-flash animation on the specified camera cell.
-    /// Cancels any in-progress flash for the same slot to prevent timer leaks.
+    /// Shows a 3s status flash on the specified camera card with the scan outcome.
+    /// A new scan on the same slot cancels the previous timer (the 3s window restarts),
+    /// so the card never resets while activity is ongoing.
     /// </summary>
-    private void TriggerSlotFlash(int cameraIndex, string? studentName)
+    private void TriggerSlotFlash(int cameraIndex, ScanStatus status, string? subjectName, string? message)
     {
         if (cameraIndex < 0 || cameraIndex >= CameraSlots.Count) return;
 
@@ -368,16 +381,20 @@ public partial class MainViewModel : ObservableObject
         _flashTimers[cameraIndex] = cts;
 
         var slot = CameraSlots[cameraIndex];
-        slot.FlashStudentName = studentName;
+        slot.LastScanStatus = status;
+        slot.LastScanMessage = message;
+        slot.FlashStudentName = subjectName;
         slot.ShowFlash = true;
 
-        _ = Task.Delay(1500, cts.Token).ContinueWith(t =>
+        _ = Task.Delay(3000, cts.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 slot.ShowFlash = false;
                 slot.FlashStudentName = null;
+                slot.LastScanMessage = null;
+                slot.LastScanStatus = null;
             });
         });
     }
@@ -467,9 +484,12 @@ public partial class MainViewModel : ObservableObject
                     ShowFeedback = true;
                     StatusMessage = "Accepted!";
                     StatusIcon = "✓";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
+                    // Audio waits for server confirmation (OnScanUpdated) so duplicates don't fire a false success beep.
                     if (!result.IsOptimistic)
+                    {
+                        _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
                         _ = UpdateStatisticsAsync(result.Status);
+                    }
                     break;
 
                 case ScanStatus.Duplicate:
@@ -647,6 +667,7 @@ public partial class MainViewModel : ObservableObject
                         LastProgram = result.Program;
                         LastScanMessage = ToFriendlyMessage(result);
                     }
+                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
                     break;
 
                 case ScanStatus.Duplicate:
