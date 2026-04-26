@@ -26,6 +26,12 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Student name displayed briefly after a successful scan.</summary>
     [ObservableProperty] private string? _flashStudentName;
 
+    /// <summary>Status of the last scan (drives flash color/icon).</summary>
+    [ObservableProperty] private ScanStatus? _lastScanStatus;
+
+    /// <summary>Friendly status message shown briefly under the camera name (e.g. "Already scanned").</summary>
+    [ObservableProperty] private string? _lastScanMessage;
+
     /// <summary>Formatted frame rate string. Updated by the 1s timer in MainViewModel.</summary>
     [ObservableProperty] private string _frameRateDisplay = "—";
 
@@ -65,6 +71,38 @@ public partial class CameraSlotState : ObservableObject
         _                     => Color.FromArgb("#E0E0E0")
     });
 
+    /// <summary>Color matching the central student card palette for the most recent scan outcome.</summary>
+    public Color FlashColor => LastScanStatus switch
+    {
+        ScanStatus.Accepted         => Color.FromArgb("#4CAF50"),
+        ScanStatus.Duplicate        => Color.FromArgb("#FF9800"),
+        ScanStatus.DebouncedLocally => Color.FromArgb("#FF9800"),
+        ScanStatus.RateLimited      => Color.FromArgb("#FF9800"),
+        ScanStatus.Queued           => Color.FromArgb("#4D9B91"),
+        ScanStatus.Rejected         => Color.FromArgb("#F44336"),
+        ScanStatus.Error            => Color.FromArgb("#F44336"),
+        _                           => Color.FromArgb("#4CAF50")
+    };
+
+    /// <summary>Brush wrapper for binding to Border.Stroke when ShowFlash is true.</summary>
+    public Brush FlashBrush => new SolidColorBrush(FlashColor);
+
+    /// <summary>Single-glyph status icon shown on the camera card during flash.</summary>
+    public string FlashIcon => LastScanStatus switch
+    {
+        ScanStatus.Accepted         => "✓",
+        ScanStatus.Duplicate        => "⚠",
+        ScanStatus.DebouncedLocally => "⚠",
+        ScanStatus.RateLimited      => "⏱",
+        ScanStatus.Queued           => "📥",
+        ScanStatus.Rejected         => "✗",
+        ScanStatus.Error            => "✗",
+        _                           => string.Empty
+    };
+
+    /// <summary>Border stroke that swaps to the flash color while a scan is being shown.</summary>
+    public Brush DisplayBrush => ShowFlash ? FlashBrush : StatusBrush;
+
     // Frame-rate measurement — incremented externally, read by 1s timer
     private int _frameCounter;
     public void IncrementFrameCount() => Interlocked.Increment(ref _frameCounter);
@@ -82,6 +120,7 @@ public partial class CameraSlotState : ObservableObject
         OnPropertyChanged(nameof(CanRestart));
         OnPropertyChanged(nameof(StatusBrush));
         OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(DisplayBrush));
     }
 
     partial void OnErrorMessageChanged(string? value) =>
@@ -89,6 +128,17 @@ public partial class CameraSlotState : ObservableObject
 
     partial void OnScanTypeChanged(string value) =>
         OnPropertyChanged(nameof(ScanTypeBadgeColor));
+
+    partial void OnLastScanStatusChanged(ScanStatus? value)
+    {
+        OnPropertyChanged(nameof(FlashColor));
+        OnPropertyChanged(nameof(FlashBrush));
+        OnPropertyChanged(nameof(FlashIcon));
+        OnPropertyChanged(nameof(DisplayBrush));
+    }
+
+    partial void OnShowFlashChanged(bool value) =>
+        OnPropertyChanged(nameof(DisplayBrush));
 
     // ── Commands ──────────────────────────────────────────────────────────────
 

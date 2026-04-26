@@ -200,10 +200,10 @@
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="vm:CameraSlotState">
                         <Border IsVisible="{Binding IsVisible}"
-                                WidthRequest="200"
+                                WidthRequest="220"
                                 Margin="6"
                                 BackgroundColor="White"
-                                Stroke="{Binding StatusBrush}"
+                                Stroke="{Binding DisplayBrush}"
                                 StrokeThickness="2"
                                 Padding="14,12">
                             <Border.StrokeShape>
@@ -213,19 +213,27 @@
                                 <Shadow Brush="Black" Opacity="0.07" Radius="8" Offset="0,2" />
                             </Border.Shadow>
 
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
-                                <!-- Camera name + scan type badge -->
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                                <!-- Camera name + scan type badge + flash icon -->
                                 <Grid Grid.Row="0"
-                                      ColumnDefinitions="*,Auto"
+                                      ColumnDefinitions="Auto,*,Auto"
                                       Margin="0,0,0,4">
                                     <Label Grid.Column="0"
+                                           Text="{Binding FlashIcon}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding FlashColor}"
+                                           VerticalOptions="Center"
+                                           Margin="0,0,6,0"
+                                           IsVisible="{Binding ShowFlash}" />
+                                    <Label Grid.Column="1"
                                            Text="{Binding DisplayName}"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            TextColor="#2C5F5D"
                                            VerticalOptions="Center"
                                            LineBreakMode="TailTruncation" />
-                                    <Border Grid.Column="1"
+                                    <Border Grid.Column="2"
                                             BackgroundColor="{Binding ScanTypeBadgeColor}"
                                             Padding="7,2"
                                             StrokeThickness="0"
@@ -240,22 +248,32 @@
                                     </Border>
                                 </Grid>
 
-                                <!-- Status text -->
+                                <!-- Status text (camera health) -->
                                 <Label Grid.Row="1"
                                        Text="{Binding StatusText}"
                                        FontSize="12"
                                        TextColor="#666666" />
 
-                                <!-- Last scan name (shown briefly after a successful scan) -->
+                                <!-- Last scan subject (student name / visitor pass) -->
                                 <Label Grid.Row="2"
                                        Text="{Binding FlashStudentName}"
                                        FontSize="12"
                                        FontAttributes="Bold"
-                                       TextColor="#4CAF50"
+                                       TextColor="{Binding FlashColor}"
+                                       LineBreakMode="TailTruncation"
+                                       IsVisible="{Binding ShowFlash}" />
+
+                                <!-- Last scan friendly message -->
+                                <Label Grid.Row="3"
+                                       Text="{Binding LastScanMessage}"
+                                       FontSize="11"
+                                       TextColor="#555555"
+                                       LineBreakMode="WordWrap"
+                                       MaxLines="2"
                                        IsVisible="{Binding ShowFlash}" />
 
                                 <!-- Restart button — only when error/offline -->
-                                <Button Grid.Row="3"
+                                <Button Grid.Row="4"
                                         Text="↺ Restart"
                                         Command="{Binding RestartCommand}"
                                         IsVisible="{Binding CanRestart}"
