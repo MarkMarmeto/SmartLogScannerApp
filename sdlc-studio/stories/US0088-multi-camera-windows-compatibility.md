@@ -1,6 +1,7 @@
 # US0088: Multi-Camera — Windows Platform Compatibility Verification
 
-> **Status:** In Progress
+> **Status:** Done
+> **Marked Done:** 2026-04-26
 > **Epic:** EP0011: Multi-Camera Scanning (cross-project)
 > **Owner:** Unassigned
 > **Reviewer:** Unassigned
