@@ -10,9 +10,9 @@
 | Draft | 0 |
 | Ready | 0 |
 | Planned | 0 |
-| In Progress | 1 |
+| In Progress | 0 |
 | Review | 0 |
-| Done | 27 |
+| Done | 28 |
 | **Total** | **28** |
 
 ## Stories by Epic
@@ -66,7 +66,7 @@
 | [US0069](US0069-per-camera-scan-type.md) | Per-Camera Scan Type | Done | 3 | AI Assistant |
 | [US0070](US0070-error-isolation-and-recovery.md) | Error Isolation and Auto-Recovery | Done | 5 | AI Assistant |
 | [US0071](US0071-multi-camera-setup-configuration.md) | Multi-Camera Setup Configuration | Done | 5 | AI Assistant |
-| [US0088](US0088-multi-camera-windows-compatibility.md) | Multi-Camera — Windows Platform Compatibility Verification | In Progress | 3 | AI Assistant |
+| [US0088](US0088-multi-camera-windows-compatibility.md) | Multi-Camera — Windows Platform Compatibility Verification | Done | 3 | AI Assistant |
 | [US0089](US0089-unify-scan-type-to-device-level.md) | Unify Scan Type to Device-Level (Deprecates US0069) | Done | 3 | AI Assistant |
 | [US0090](US0090-scan-payload-camera-identity.md) | Scan Payload — Include Camera Index and Camera Name | Done | 3 | AI Assistant |
 | [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Fix Section Name Trimming, Show Program Code | Done | 2 | AI Assistant |
