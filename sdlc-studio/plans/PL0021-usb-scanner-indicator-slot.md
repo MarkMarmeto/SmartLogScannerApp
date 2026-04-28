@@ -1,6 +1,6 @@
 # PL0021: USB Scanner Indicator Slot with Health Heuristic
 
-> **Status:** Draft
+> **Status:** Completed
 > **Story:** [US0123: USB Scanner Indicator Slot with Health Heuristic](../stories/US0123-usb-scanner-indicator-slot.md)
 > **Epic:** [EP0012: Concurrent Multi-Modal Scanning](../epics/EP0012-concurrent-multi-modal-scanning.md)
 > **Created:** 2026-04-28

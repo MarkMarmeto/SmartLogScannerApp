@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Models;
 using SmartLog.Scanner.Core.Services;
+using SmartLog.Scanner.Core.ViewModels;
 
 namespace SmartLog.Scanner.ViewModels;
 
@@ -102,13 +103,21 @@ public partial class MainViewModel : ObservableObject
     // EP0012/US0121: Mode helpers — supports "Camera", "USB", and concurrent "Both".
     public bool IsCameraMode => _scannerMode is "Camera" or "Both";
     public bool IsUsbMode => _scannerMode is "USB" or "Both";
+    // EP0012/US0123: Left column shown whenever any scan pipeline is active.
+    public bool ShowLeftColumn => IsCameraMode || IsUsbMode;
 
     // EP0011: Fixed 8-slot observable collection. Slots beyond configured count have IsVisible=false.
     // Initialized in constructor (after DI) so RestartCommand callbacks can reference _multiCameraManager.
     public ObservableCollection<CameraSlotState> CameraSlots { get; }
 
+    // EP0012/US0123: USB scanner indicator card state (visible only when IsUsbMode).
+    public UsbScannerSlotState UsbScannerSlot { get; } = new();
+
     // EP0011: Per-slot flash animation cancellation tokens (prevent timer leaks on rapid scans)
     private readonly Dictionary<int, CancellationTokenSource> _flashTimers = new();
+
+    // EP0012/US0123: Single CTS for the USB card flash (parallel to _flashTimers for cameras)
+    private CancellationTokenSource? _usbFlashCts;
 
     // EP0011: 1-second timer for per-slot frame rate display
     private IDispatcherTimer? _frameRateTimer;
@@ -234,6 +243,12 @@ public partial class MainViewModel : ObservableObject
         if (IsUsbMode)
         {
             await _usbScanner!.StartAsync();
+
+            // EP0012/US0123: activate indicator card and start the health heuristic
+            UsbScannerSlot.IsVisible = true;
+            UsbScannerSlot.ScanType = CurrentScanType;
+            UsbScannerSlot.StartListening();
+
             if (!IsCameraMode)
             {
                 StatusMessage = "Ready for USB scanner input";
@@ -414,12 +429,48 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    // ── EP0012/US0123: USB slot flash ────────────────────────────────────────
+
+    private void TriggerUsbSlotFlash(ScanResult result)
+    {
+        _usbFlashCts?.Cancel();
+        _usbFlashCts?.Dispose();
+        _usbFlashCts = new CancellationTokenSource();
+        var cts = _usbFlashCts;
+
+        var subjectName = result.IsVisitorScan
+            ? $"Visitor #{result.PassNumber} — {result.ScanType}"
+            : result.StudentName ?? result.StudentId;
+
+        UsbScannerSlot.LastScanStatus = result.Status;
+        UsbScannerSlot.LastScanMessage = ToFriendlyMessage(result);
+        UsbScannerSlot.FlashStudentName = subjectName;
+        UsbScannerSlot.ShowFlash = true;
+        UsbScannerSlot.LastScanAt = result.ScannedAt;
+        UsbScannerSlot.IsHealthWarning = false;
+
+        _ = Task.Delay(3000, cts.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                UsbScannerSlot.ShowFlash = false;
+                UsbScannerSlot.FlashStudentName = null;
+                UsbScannerSlot.LastScanMessage = null;
+                UsbScannerSlot.LastScanStatus = null;
+            });
+        });
+    }
+
     // ── EP0011: Frame rate timer ─────────────────────────────────────────────
 
     private void OnFrameRateTick(object? sender, EventArgs e)
     {
         foreach (var slot in CameraSlots)
             slot.UpdateFrameRate();
+
+        if (IsUsbMode)
+            UsbScannerSlot.Tick();
     }
 
     // ── EP0011: Public methods for MainPage code-behind ──────────────────────
@@ -472,6 +523,10 @@ public partial class MainViewModel : ObservableObject
         // For optimistic results, defer history/stats to OnScanUpdated (when server confirms).
         if (!result.IsOptimistic)
             _ = LogScanToHistoryAsync(result);
+
+        // EP0012/US0123: flash the USB indicator card for USB-sourced scans
+        if (result.Source == ScanSource.UsbScanner && IsUsbMode)
+            MainThread.BeginInvokeOnMainThread(() => TriggerUsbSlotFlash(result));
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -893,7 +948,13 @@ public partial class MainViewModel : ObservableObject
         if (IsCameraMode)
             await _multiCameraManager.StopAllAsync();
         if (IsUsbMode)
+        {
+            UsbScannerSlot.StopListening();
+            _usbFlashCts?.Cancel();
+            _usbFlashCts?.Dispose();
+            _usbFlashCts = null;
             await _usbScanner!.StopAsync();
+        }
     }
 
     /// <summary>
@@ -916,6 +977,9 @@ public partial class MainViewModel : ObservableObject
                     CameraSlots[cam.Index].ScanType = cam.ScanType;
             }
         }
+
+        if (IsUsbMode)
+            UsbScannerSlot.ScanType = CurrentScanType;
 
         _logger.LogInformation("Scan type toggled to: {ScanType}", CurrentScanType);
     }

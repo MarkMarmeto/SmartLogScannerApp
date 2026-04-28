@@ -1,6 +1,6 @@
 # US0123: USB Scanner Indicator Slot with Health Heuristic
 
-> **Status:** Draft
+> **Status:** Done
 > **Epic:** [EP0012: Concurrent Multi-Modal Scanning](../epics/EP0012-concurrent-multi-modal-scanning.md)
 > **Owner:** AI Assistant
 > **Reviewer:** Unassigned
