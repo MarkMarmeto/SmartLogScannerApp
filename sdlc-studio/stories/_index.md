@@ -7,13 +7,13 @@
 
 | Status | Count |
 |--------|-------|
-| Draft | 1 |
+| Draft | 3 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
 | Done | 31 |
-| **Total** | **32** |
+| **Total** | **34** |
 
 ## Stories by Epic
 
@@ -26,6 +26,7 @@
 | [US0003](US0003-global-exception-handling-and-logging.md) | Implement Global Exception Handling and Logging | Done | 3 | AI Assistant |
 | [US0004](US0004-device-setup-wizard-page.md) | Build Device Setup Wizard Page | Done | 5 | AI Assistant |
 | [US0005](US0005-setup-connection-validation.md) | Implement Setup Connection Validation | Done | 5 | AI Assistant |
+| [US0125](US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout (No Scroll, Sticky Save) | Draft | 3 | AI Assistant |
 
 ### [EP0002: QR Code Scanning and Validation](../epics/EP0002-qr-code-scanning-and-validation.md)
 
@@ -82,9 +83,10 @@
 
 | ID | Title | Status | Points | Owner |
 |----|-------|--------|--------|-------|
-| [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | Draft | 5 | AI Assistant |
-| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Draft | 3 | AI Assistant |
+| [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | Done | 5 | AI Assistant |
+| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Done | 3 | AI Assistant |
 | [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Done | 5 | AI Assistant |
+| [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 5 | AI Assistant |
 
 ## All Stories
 
@@ -122,11 +124,13 @@
 | [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 5 | Guard Gary |
 | [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 3 | IT Admin Ian |
 | [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 5 | Guard Gary |
+| [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 5 | Guard Gary |
+| [US0125](US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout (No Scroll, Sticky Save) | [EP0001](../epics/EP0001-device-setup-and-configuration.md) | Draft | 3 | IT Admin Ian |
 
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
-- Total story points: 145 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts; EP0012 Concurrent Multi-Modal: 13 pts across 3 stories)
+- Total story points: 153 (V1: 89 pts + 3 pts US0125 = 92 pts across 18 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts; EP0012 Concurrent Multi-Modal: 18 pts across 4 stories)
 
 ## Changelog
 
@@ -139,3 +143,5 @@
 | 2026-04-24 | Added 5 scanner-side stories (US0088-US0092) under re-opened cross-project EP0011 — V2.1 feature/bugfix additions from WebApp planning session |
 | 2026-04-28 | Added US0120 (Heartbeat Service) under cross-project EP0005 — companion to WebApp US0119 / PL0039 |
 | 2026-04-28 | Added US0121-US0123 under EP0012 (Concurrent Multi-Modal Scanning) — Draft, 13 points total. Enables `Both` scanner mode (camera + USB simultaneously), setup wizard opt-in, USB indicator slot card with 60s health heuristic |
+| 2026-04-28 | Added US0124 (Per-Station Student Detail Cards) under EP0012 — Draft, 5 pts. Eliminates the shared central student card; each scan station card (cameras + USB) shows full student details. Reconciled US0121/US0122 by-Epic status to Done (matched All Stories table). |
+| 2026-04-28 | Added US0125 (Setup Wizard Compact Layout) under EP0001 — Draft, 3 pts. Restructures SetupPage from single-column scroll to row-based grid (Server + Security side-by-side, Scanner Config full-width, Camera Config full-width) with sticky save bar at the bottom. |

@@ -1,7 +1,7 @@
 # Implementation Plans Index
 
-> **Total Plans:** 21
-> **Status:** Planned (6) | In Progress (0) | Completed (15)
+> **Total Plans:** 23
+> **Status:** Planned (8) | In Progress (0) | Completed (15)
 
 ## All Plans
 
@@ -28,16 +28,20 @@
 | [PL0019](./PL0019-concurrent-camera-usb-scanner-mode.md) | [US0121](../stories/US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | Completed | 2026-04-28 |
 | [PL0020](./PL0020-setup-wizard-concurrent-mode-config.md) | [US0122](../stories/US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Completed | 2026-04-28 |
 | [PL0021](./PL0021-usb-scanner-indicator-slot.md) | [US0123](../stories/US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Completed | 2026-04-28 |
+| [PL0022](./PL0022-per-station-student-detail-cards.md) | [US0124](../stories/US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 2026-04-28 |
+| [PL0023](./PL0023-setup-wizard-compact-layout.md) | [US0125](../stories/US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout | Draft | 2026-04-28 |
 
 ## By Status
 
-### Planned (Draft) (6)
+### Planned (Draft) (8)
 - [PL0013](./PL0013-scan-payload-camera-identity.md) - Scan Payload — Camera Identity (US0090)
 - [PL0014](./PL0014-multi-camera-windows-compatibility.md) - Multi-Camera Windows Compatibility Verification (US0088)
 - [PL0015](./PL0015-unify-scan-type-to-device-level.md) - Unify Scan Type to Device-Level (US0089)
 - [PL0016](./PL0016-scanner-tile-section-name-and-program-code.md) - Scanner Tile — Section Name Trim & Program Code (US0091)
 - [PL0017](./PL0017-scanner-header-datetime-prominent.md) - Scanner Header — Enlarge Date/Time, Anchor Left-Most (US0092)
 - [PL0018](./PL0018-heartbeat-service.md) - Scanner Heartbeat Service (US0120)
+- [PL0022](./PL0022-per-station-student-detail-cards.md) - Per-Station Student Detail Cards (US0124)
+- [PL0023](./PL0023-setup-wizard-compact-layout.md) - Setup Wizard Compact Layout (US0125)
 
 ### In Progress (0)
 

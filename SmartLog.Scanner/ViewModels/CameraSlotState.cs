@@ -32,6 +32,48 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Friendly status message shown briefly under the camera name (e.g. "Already scanned").</summary>
     [ObservableProperty] private string? _lastScanMessage;
 
+    // ── US0124: Student detail fields (populated during ShowFlash, cleared on reset) ─────────
+
+    /// <summary>Student number / ID. Visitor scans show "Visitor Pass #N" via FlashStudentName instead.</summary>
+    [ObservableProperty] private string? _lastStudentId;
+
+    /// <summary>Learner Reference Number (12-digit DepEd ID).</summary>
+    [ObservableProperty] private string? _lastLrn;
+
+    /// <summary>Grade level (e.g., "Grade 11").</summary>
+    [ObservableProperty] private string? _lastGrade;
+
+    /// <summary>Section (e.g., "Section A").</summary>
+    [ObservableProperty] private string? _lastSection;
+
+    /// <summary>Program / strand (e.g., "STEM"). Optional — omitted from LastGradeSection when null.</summary>
+    [ObservableProperty] private string? _lastProgram;
+
+    /// <summary>Local-time scan timestamp (HH:mm:ss) for the per-card bottom banner.</summary>
+    [ObservableProperty] private string? _lastScanTime;
+
+    /// <summary>True when the last scan was a visitor pass — drives header label and hides student-only rows.</summary>
+    [ObservableProperty] private bool _isVisitorScan;
+
+    /// <summary>Composed "Grade · Program · Section" string. Program omitted when null/empty.</summary>
+    public string? LastGradeSection
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(LastGrade) && string.IsNullOrEmpty(LastSection))
+                return null;
+            var grade = LastGrade ?? string.Empty;
+            var section = LastSection ?? string.Empty;
+            return string.IsNullOrEmpty(LastProgram)
+                ? $"{grade} · {section}".Trim(' ', '·')
+                : $"{grade} · {LastProgram} · {section}".Trim(' ', '·');
+        }
+    }
+
+    partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastProgramChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+
     /// <summary>Formatted frame rate string. Updated by the 1s timer in MainViewModel.</summary>
     [ObservableProperty] private string _frameRateDisplay = "—";
 

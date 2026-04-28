@@ -164,6 +164,16 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
+    /// US0124: Feeds body width into MainViewModel.BodyWidth so CardWidth recomputes
+    /// when the page resizes (window drag, fullscreen toggle, display attach/detach).
+    /// </summary>
+    private void OnBodyGridSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is VisualElement v && _viewModel != null && v.Width > 0)
+            _viewModel.BodyWidth = v.Width;
+    }
+
+    /// <summary>
     /// US0008: Handle page focus for USB scanner keyboard input.
     /// </summary>
     private void OnPageFocused(object? sender, FocusEventArgs e)

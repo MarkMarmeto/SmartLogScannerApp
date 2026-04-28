@@ -36,46 +36,8 @@ public partial class MainViewModel : ObservableObject
     // US0009: Scan type toggle (ENTRY/EXIT)
     [ObservableProperty] private string _currentScanType = "ENTRY";
 
-    // Last scan result
-    [ObservableProperty] private string? _lastStudentId;
-    [ObservableProperty] private string? _lastScanTime;
-    [ObservableProperty] private bool _lastScanValid;
-    [ObservableProperty] private string? _lastScanMessage;
-
-    // Student ID card data (populated on successful scan)
-    [ObservableProperty] private string? _lastLrn;
-    [ObservableProperty] private string? _lastStudentName;
-    [ObservableProperty] private string? _lastGrade;
-    [ObservableProperty] private string? _lastSection;
-    [ObservableProperty] private string? _lastProgram;
-    [ObservableProperty] private bool _hasScannedStudent;
-    [ObservableProperty] private Color _cardBorderColor = Color.FromArgb("#E0E0E0");
-
-    // EP0011: Camera that produced the most recent scan
+    // EP0011: Camera that produced the most recent scan (used by logs / heartbeat — not UI-bound after US0124)
     [ObservableProperty] private string? _lastScanCameraName;
-
-    // Computed: Grade · Program · Section (Program omitted when null/empty)
-    public string? LastGradeSection
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(LastGrade) && string.IsNullOrEmpty(LastSection))
-                return null;
-            var grade = LastGrade ?? string.Empty;
-            var section = LastSection ?? string.Empty;
-            return string.IsNullOrEmpty(LastProgram)
-                ? $"{grade} · {section}".Trim(' ', '·')
-                : $"{grade} · {LastProgram} · {section}".Trim(' ', '·');
-        }
-    }
-
-    partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
-    partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
-    partial void OnLastProgramChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
-
-    // Visual feedback colors
-    [ObservableProperty] private Color _feedbackColor = Colors.Transparent;
-    [ObservableProperty] private bool _showFeedback;
 
     // US0013: Statistics counters
     [ObservableProperty] private int _queuePendingCount;
@@ -83,9 +45,6 @@ public partial class MainViewModel : ObservableObject
 
     // Offline queue visibility
     [ObservableProperty] private bool _hasQueuedScans;
-
-    // Optimistic scan tracking: timestamp of the last optimistic result still on screen
-    private DateTimeOffset? _currentOptimisticScanAt;
 
     // US0015: Connectivity status indicator
     [ObservableProperty] private string _connectivityStatus = "Connecting...";
@@ -106,6 +65,38 @@ public partial class MainViewModel : ObservableObject
     // EP0012/US0123: Left column shown whenever any scan pipeline is active.
     public bool ShowLeftColumn => IsCameraMode || IsUsbMode;
 
+    // US0124: Body width fed by MainPage code-behind via SizeChanged. Drives CardWidth.
+    [ObservableProperty] private double _bodyWidth;
+
+    /// <summary>
+    /// US0124: Per-card width — divides the body width equally among active cards (visible cameras + USB).
+    /// 1 card = 100%; 2 cards = 50/50; 3 = 33×3; 4 = 25×4. Clamped to 260 px so FlexLayout wraps gracefully.
+    /// </summary>
+    public double CardWidth
+    {
+        get
+        {
+            var visibleCameras = CameraSlots.Count(s => s.IsVisible);
+            var totalActive = visibleCameras + (IsUsbMode ? 1 : 0);
+            if (totalActive == 0 || BodyWidth <= 0) return 320;
+            const double interCardSpacing = 12; // matches Margin="6" on each card side
+            var available = BodyWidth - (interCardSpacing * (totalActive + 1));
+            var perCard = available / totalActive;
+            return Math.Max(260, perCard);
+        }
+    }
+
+    partial void OnBodyWidthChanged(double value) => OnPropertyChanged(nameof(CardWidth));
+
+    // US0124: Inline sync / queue status message shown in the statistics footer (replaces deleted bottom feedback banner).
+    [ObservableProperty] private string? _syncStatusMessage;
+
+    public bool HasSyncStatusMessage => !string.IsNullOrEmpty(SyncStatusMessage);
+
+    partial void OnSyncStatusMessageChanged(string? value) => OnPropertyChanged(nameof(HasSyncStatusMessage));
+
+    private CancellationTokenSource? _syncStatusCts;
+
     // EP0011: Fixed 8-slot observable collection. Slots beyond configured count have IsVisible=false.
     // Initialized in constructor (after DI) so RestartCommand callbacks can reference _multiCameraManager.
     public ObservableCollection<CameraSlotState> CameraSlots { get; }
@@ -123,9 +114,6 @@ public partial class MainViewModel : ObservableObject
     // EP0012/US0123: Single CTS for the USB card flash (parallel to _flashTimers for cameras)
     private CancellationTokenSource? _usbFlashCts;
 
-    // Central student card feedback timer — replaced on every scan so Camera 2 at T=2.9s
-    // doesn't get wiped by Camera 1's still-running T+3s timer.
-    private CancellationTokenSource? _centralCardCts;
 
     // EP0011: 1-second timer for per-slot frame rate display
     private IDispatcherTimer? _frameRateTimer;
@@ -233,6 +221,12 @@ public partial class MainViewModel : ObservableObject
             ConnectivityIcon = "🔴";
             ConnectivityColor = Color.FromArgb("#F44336");
         }
+
+        // US0124: Subscribe to slot IsVisible flips so CardWidth recomputes when a slot's visibility
+        // toggles post-init (delayed enumeration / hot-add / recovery flow). Subscribe once for all
+        // 8 slots — handler filters by property name. Unsubscribed in DisposeAsync.
+        foreach (var slot in CameraSlots)
+            slot.PropertyChanged += OnCameraSlotPropertyChanged;
 
         // EP0012/US0121: Start each pipeline independently — both run in "Both" mode.
         if (IsCameraMode)
@@ -344,45 +338,21 @@ public partial class MainViewModel : ObservableObject
         if (e.CameraIndex >= 0 && e.CameraIndex < _cameraGated.Length && _cameraGated[e.CameraIndex])
             return;
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (e.CameraIndex >= 0 && e.CameraIndex < CameraSlots.Count)
-            {
-                var slot = CameraSlots[e.CameraIndex];
-                LastScanCameraName = slot.DisplayName;
-                FlashSourceSlot(e.CameraIndex, e.Result);
-            }
-        });
+        MainThread.BeginInvokeOnMainThread(() => TriggerSlotFlash(e.CameraIndex, e.Result));
 
         OnScanCompleted(sender, e.Result);
     }
 
     /// <summary>
-    /// Routes a multi-camera ScanUpdated event to the shared update display logic,
-    /// and overwrites the source slot's optimistic flash with the server-confirmed outcome.
+    /// Routes a multi-camera ScanUpdated event: server-confirmed result re-paints the source slot
+    /// (cancels the optimistic flash CTS and starts a fresh 1s window with the corrected data),
+    /// then delegates persistence/audio/stats to OnScanUpdated.
     /// </summary>
     private void OnMultiCameraScanUpdated(object? sender, (int CameraIndex, ScanResult Result) e)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (e.CameraIndex >= 0 && e.CameraIndex < CameraSlots.Count)
-                FlashSourceSlot(e.CameraIndex, e.Result);
-        });
+        MainThread.BeginInvokeOnMainThread(() => TriggerSlotFlash(e.CameraIndex, e.Result));
 
         OnScanUpdated(sender, e.Result);
-    }
-
-    /// <summary>
-    /// Updates the source camera card with the scan outcome (color, icon, message, name).
-    /// Called for both initial scan results and server-corrected updates so each camera
-    /// reflects only its own activity.
-    /// </summary>
-    private void FlashSourceSlot(int cameraIndex, ScanResult result)
-    {
-        var subjectName = result.IsVisitorScan
-            ? $"Visitor #{result.PassNumber} — {result.ScanType}"
-            : result.StudentName ?? result.StudentId;
-        TriggerSlotFlash(cameraIndex, result.Status, subjectName, ToFriendlyMessage(result));
     }
 
     /// <summary>
@@ -402,18 +372,29 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    /// <summary>
+    /// US0124: Recompute CardWidth when any slot's IsVisible flips (delayed enumeration,
+    /// hot-add, recovery). Subscribed in InitializeAsync, unsubscribed in DisposeAsync.
+    /// </summary>
+    private void OnCameraSlotPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CameraSlotState.IsVisible))
+            OnPropertyChanged(nameof(CardWidth));
+    }
+
     // ── EP0011: Per-slot flash animation ────────────────────────────────────
 
     /// <summary>
-    /// Shows a 3s status flash on the specified camera card with the scan outcome.
-    /// A new scan on the same slot cancels the previous timer (the 3s window restarts),
-    /// so the card never resets while activity is ongoing.
+    /// US0124: Shows a 1-second status flash on the specified camera station card with full
+    /// scan details (student number, name, LRN, grade · program · section, time, coloured banner).
+    /// A new scan on the same slot cancels the previous timer so the card never resets mid-flash.
+    /// While the flash is showing, _cameraGated[cameraIndex] is true and incoming scans are dropped
+    /// (see OnMultiCameraScanCompleted gate check).
     /// </summary>
-    private void TriggerSlotFlash(int cameraIndex, ScanStatus status, string? subjectName, string? message)
+    private void TriggerSlotFlash(int cameraIndex, ScanResult result)
     {
         if (cameraIndex < 0 || cameraIndex >= CameraSlots.Count) return;
 
-        // Cancel previous flash timer for this slot (prevents stale clear)
         if (_flashTimers.TryGetValue(cameraIndex, out var existing))
         {
             existing.Cancel();
@@ -423,21 +404,31 @@ public partial class MainViewModel : ObservableObject
         var cts = new CancellationTokenSource();
         _flashTimers[cameraIndex] = cts;
 
-        // Gate this camera slot: incoming scans are dropped until the flash resets.
         if (cameraIndex < _cameraGated.Length)
             _cameraGated[cameraIndex] = true;
 
         var slot = CameraSlots[cameraIndex];
-        slot.LastScanStatus = status;
-        slot.LastScanMessage = message;
+        // Q2 fallback: prefer name, then student ID, then empty (visitor scans use the pass label).
+        var subjectName = result.IsVisitorScan
+            ? $"Visitor Pass #{result.PassNumber}"
+            : result.StudentName ?? result.StudentId ?? string.Empty;
+
+        slot.LastScanStatus = result.Status;
+        slot.LastScanMessage = ToFriendlyMessage(result);
         slot.FlashStudentName = subjectName;
+        slot.LastStudentId = result.IsVisitorScan ? null : result.StudentId;
+        slot.LastLrn = result.IsVisitorScan ? null : result.Lrn;
+        slot.LastGrade = result.IsVisitorScan ? null : result.Grade;
+        slot.LastSection = result.IsVisitorScan ? null : result.Section;
+        slot.LastProgram = result.IsVisitorScan ? null : result.Program;
+        slot.LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
+        slot.IsVisitorScan = result.IsVisitorScan;
         slot.ShowFlash = true;
 
         _ = Task.Delay(1000, cts.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
 
-            // Lift gate before UI reset so the next scan is accepted the moment "Ready to Scan" appears.
             if (cameraIndex < _cameraGated.Length)
                 _cameraGated[cameraIndex] = false;
 
@@ -447,6 +438,13 @@ public partial class MainViewModel : ObservableObject
                 slot.FlashStudentName = null;
                 slot.LastScanMessage = null;
                 slot.LastScanStatus = null;
+                slot.LastStudentId = null;
+                slot.LastLrn = null;
+                slot.LastGrade = null;
+                slot.LastSection = null;
+                slot.LastProgram = null;
+                slot.LastScanTime = null;
+                slot.IsVisitorScan = false;
             });
         });
     }
@@ -461,12 +459,19 @@ public partial class MainViewModel : ObservableObject
         var cts = _usbFlashCts;
 
         var subjectName = result.IsVisitorScan
-            ? $"Visitor #{result.PassNumber} — {result.ScanType}"
-            : result.StudentName ?? result.StudentId;
+            ? $"Visitor Pass #{result.PassNumber}"
+            : result.StudentName ?? result.StudentId ?? string.Empty;
 
         UsbScannerSlot.LastScanStatus = result.Status;
         UsbScannerSlot.LastScanMessage = ToFriendlyMessage(result);
         UsbScannerSlot.FlashStudentName = subjectName;
+        UsbScannerSlot.LastStudentId = result.IsVisitorScan ? null : result.StudentId;
+        UsbScannerSlot.LastLrn = result.IsVisitorScan ? null : result.Lrn;
+        UsbScannerSlot.LastGrade = result.IsVisitorScan ? null : result.Grade;
+        UsbScannerSlot.LastSection = result.IsVisitorScan ? null : result.Section;
+        UsbScannerSlot.LastProgram = result.IsVisitorScan ? null : result.Program;
+        UsbScannerSlot.LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
+        UsbScannerSlot.IsVisitorScan = result.IsVisitorScan;
         UsbScannerSlot.ShowFlash = true;
         UsbScannerSlot.LastScanAt = result.ScannedAt;
         UsbScannerSlot.IsHealthWarning = false;
@@ -480,6 +485,13 @@ public partial class MainViewModel : ObservableObject
                 UsbScannerSlot.FlashStudentName = null;
                 UsbScannerSlot.LastScanMessage = null;
                 UsbScannerSlot.LastScanStatus = null;
+                UsbScannerSlot.LastStudentId = null;
+                UsbScannerSlot.LastLrn = null;
+                UsbScannerSlot.LastGrade = null;
+                UsbScannerSlot.LastSection = null;
+                UsbScannerSlot.LastProgram = null;
+                UsbScannerSlot.LastScanTime = null;
+                UsbScannerSlot.IsVisitorScan = false;
             });
         });
     }
@@ -546,200 +558,26 @@ public partial class MainViewModel : ObservableObject
         if (!result.IsOptimistic)
             _ = LogScanToHistoryAsync(result);
 
-        // EP0012/US0123: flash the USB indicator card for USB-sourced scans
+        // EP0012/US0123: route USB-sourced scans into the USB station card.
+        // Camera scans are flashed by OnMultiCameraScanCompleted (separate event handler).
         if (result.Source == ScanSource.UsbScanner && IsUsbMode)
             MainThread.BeginInvokeOnMainThread(() => TriggerUsbSlotFlash(result));
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        // Audio + statistics. Audio for optimistic Accepted is deferred to OnScanUpdated so
+        // a server-side downgrade (Duplicate / Rejected) doesn't fire a false success beep first.
+        if (!result.IsOptimistic)
         {
-            switch (result.Status)
-            {
-                case ScanStatus.Accepted:
-                    _currentOptimisticScanAt = result.IsOptimistic ? result.ScannedAt : null;
-                    LastStudentId = result.StudentId;
-                    LastLrn = result.IsVisitorScan ? null : result.Lrn;
-                    LastStudentName = result.IsVisitorScan
-                        ? $"Visitor Pass #{result.PassNumber}"
-                        : result.StudentName;
-                    LastGrade = result.IsVisitorScan ? null : result.Grade;
-                    LastSection = result.IsVisitorScan ? null : result.Section;
-                    LastProgram = result.IsVisitorScan ? null : result.Program;
-                    HasScannedStudent = true;
-                    // US0076-AC2: Blue for visitors, green for students
-                    CardBorderColor = result.IsVisitorScan
-                        ? Color.FromArgb("#2196F3")
-                        : Color.FromArgb("#4CAF50");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = true;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = result.IsVisitorScan
-                        ? Color.FromArgb("#2196F3")
-                        : Color.FromArgb("#4CAF50");
-                    ShowFeedback = true;
-                    StatusMessage = "Accepted!";
-                    StatusIcon = "✓";
-                    // Audio waits for server confirmation (OnScanUpdated) so duplicates don't fire a false success beep.
-                    if (!result.IsOptimistic)
-                    {
-                        _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
-                        _ = UpdateStatisticsAsync(result.Status);
-                    }
-                    break;
+            _ = _soundService.PlayResultSoundAsync(result.Status);
+            _ = UpdateStatisticsAsync(result.Status);
+        }
 
-                case ScanStatus.Duplicate:
-                    LastStudentId = result.StudentId;
-                    LastLrn = result.IsVisitorScan ? null : result.Lrn;
-                    LastStudentName = result.IsVisitorScan
-                        ? $"Visitor Pass #{result.PassNumber}"
-                        : result.StudentName;
-                    LastGrade = result.IsVisitorScan ? null : result.Grade;
-                    LastSection = result.IsVisitorScan ? null : result.Section;
-                    LastProgram = result.IsVisitorScan ? null : result.Program;
-                    HasScannedStudent = result.IsVisitorScan || !string.IsNullOrEmpty(result.StudentId);
-                    CardBorderColor = Color.FromArgb("#FF9800");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = true;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#FF9800");
-                    ShowFeedback = true;
-                    StatusMessage = "Already scanned";
-                    StatusIcon = "⚠";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
-                    break;
-
-                case ScanStatus.Rejected:
-                    LastStudentId = result.StudentId;
-                    LastStudentName = result.IsVisitorScan
-                        ? $"Visitor Pass #{result.PassNumber}"
-                        : null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    HasScannedStudent = result.IsVisitorScan;
-                    CardBorderColor = Color.FromArgb("#F44336");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = false;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#F44336");
-                    ShowFeedback = true;
-                    StatusMessage = result.IsVisitorScan ? "Pass Inactive" : "Rejected";
-                    StatusIcon = "✗";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
-                    break;
-
-                case ScanStatus.Queued:
-                    LastStudentId = result.StudentId;
-                    LastStudentName = null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#4D9B91");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = true;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#4D9B91");
-                    ShowFeedback = true;
-                    StatusMessage = "Queued offline";
-                    StatusIcon = "📥";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Queued);
-                    break;
-
-                case ScanStatus.Error:
-                    LastStudentId = null;
-                    LastStudentName = null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#F44336");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = false;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#F44336");
-                    ShowFeedback = true;
-                    StatusMessage = "Error";
-                    StatusIcon = "✗";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Error);
-                    break;
-
-                case ScanStatus.RateLimited:
-                    LastStudentId = null;
-                    LastStudentName = null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#FF9800");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = false;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#FF9800");
-                    ShowFeedback = true;
-                    StatusMessage = "Rate limited";
-                    StatusIcon = "⏱";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.RateLimited);
-                    break;
-
-                case ScanStatus.DebouncedLocally:
-                    LastStudentId = result.StudentId;
-                    LastStudentName = null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#FF9800");
-                    LastScanTime = result.ScannedAt.ToLocalTime().ToString("HH:mm:ss");
-                    LastScanValid = true;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    FeedbackColor = Color.FromArgb("#FF9800");
-                    ShowFeedback = true;
-                    StatusMessage = "Already scanned";
-                    StatusIcon = "⚠";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
-                    break;
-            }
-
-            // US0013: Update statistics (skipped for optimistic Accepted — handled in OnScanUpdated)
-            if (result.Status != ScanStatus.Accepted || !result.IsOptimistic)
-                _ = UpdateStatisticsAsync(result.Status);
-
-            // Cancel any pending reset from a previous scan (Camera 2 must not be wiped by Camera 1's timer).
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var centralCts = _centralCardCts = new CancellationTokenSource();
-
-            _ = Task.Delay(3000, centralCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    _currentOptimisticScanAt = null;
-                    ShowFeedback = false;
-                    HasScannedStudent = false;
-                    LastStudentId = null;
-                    LastStudentName = null;
-                    LastGrade = null;
-                    LastSection = null;
-                    LastProgram = null;
-                    CardBorderColor = Color.FromArgb("#E0E0E0");
-                    if (IsCameraMode)
-                    {
-                        StatusMessage = "Ready to scan QR codes";
-                        StatusIcon = "📷";
-                    }
-                    else
-                    {
-                        StatusMessage = "Ready for USB scanner input";
-                        StatusIcon = "⌨️";
-                    }
-                });
-            });
-        });
+        LastScanCameraName = result.CameraName;
     }
 
     /// <summary>
     /// Handles server confirmation or correction of an optimistic camera scan result.
+    /// The per-slot card is re-painted by OnMultiCameraScanUpdated → TriggerSlotFlash;
+    /// this method only persists, updates statistics, and corrects the result sound if needed.
     /// </summary>
     private void OnScanUpdated(object? sender, ScanResult result)
     {
@@ -749,62 +587,31 @@ public partial class MainViewModel : ObservableObject
         {
             _ = UpdateStatisticsAsync(result.Status);
 
-            if (!ShowFeedback || _currentOptimisticScanAt != result.ScannedAt)
-                return;
-
-            _currentOptimisticScanAt = null;
-
-            switch (result.Status)
-            {
-                case ScanStatus.Accepted:
-                    if (!string.IsNullOrEmpty(result.StudentName))
-                    {
-                        LastStudentName = result.StudentName;
-                        LastLrn = result.Lrn;
-                        LastGrade = result.Grade;
-                        LastSection = result.Section;
-                        LastProgram = result.Program;
-                        LastScanMessage = ToFriendlyMessage(result);
-                    }
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Accepted);
-                    break;
-
-                case ScanStatus.Duplicate:
-                    HasScannedStudent = !string.IsNullOrEmpty(result.StudentId);
-                    CardBorderColor = Color.FromArgb("#FF9800");
-                    FeedbackColor = Color.FromArgb("#FF9800");
-                    LastScanMessage = ToFriendlyMessage(result);
-                    StatusMessage = "Already scanned";
-                    StatusIcon = "⚠";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Duplicate);
-                    break;
-
-                case ScanStatus.Rejected:
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#F44336");
-                    FeedbackColor = Color.FromArgb("#F44336");
-                    LastScanValid = false;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    StatusMessage = "Rejected";
-                    StatusIcon = "✗";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Rejected);
-                    break;
-
-                case ScanStatus.Error:
-                    HasScannedStudent = false;
-                    CardBorderColor = Color.FromArgb("#F44336");
-                    FeedbackColor = Color.FromArgb("#F44336");
-                    LastScanValid = false;
-                    LastScanMessage = ToFriendlyMessage(result);
-                    StatusMessage = "Error";
-                    StatusIcon = "✗";
-                    _ = _soundService.PlayResultSoundAsync(ScanStatus.Error);
-                    break;
-            }
+            // Optimistic Accepted → confirmed result. Play the actual outcome sound.
+            // (For non-optimistic flows we already played sound in OnScanCompleted.)
+            _ = _soundService.PlayResultSoundAsync(result.Status);
         });
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// US0124: Sets the inline status message in the statistics footer with auto-clear after the
+    /// given timeout. Replaces the six fire-and-forget Task.Delay chains tied to the deleted
+    /// shared bottom feedback banner. New calls cancel the previous timer so messages don't stack.
+    /// </summary>
+    private void SetSyncStatus(string message, int autoclearMs = 3000)
+    {
+        SyncStatusMessage = message;
+        _syncStatusCts?.Cancel();
+        _syncStatusCts?.Dispose();
+        var cts = _syncStatusCts = new CancellationTokenSource();
+        _ = Task.Delay(autoclearMs, cts.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            MainThread.BeginInvokeOnMainThread(() => SyncStatusMessage = null);
+        });
+    }
 
     /// <summary>
     /// Clear all pending scans from the queue (with confirmation).
@@ -817,18 +624,7 @@ public partial class MainViewModel : ObservableObject
         var count = QueuePendingCount;
         if (count == 0)
         {
-            LastScanMessage = "ℹ️ Queue is already empty";
-            FeedbackColor = Color.FromArgb("#4D9B91");
-            ShowFeedback = true;
-
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var emptyQueueCts = _centralCardCts = new CancellationTokenSource();
-            _ = Task.Delay(3000, emptyQueueCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-            });
+            SetSyncStatus("ℹ️ Queue is already empty");
             return;
         }
 
@@ -840,43 +636,18 @@ public partial class MainViewModel : ObservableObject
 
         if (!confirmed) return;
 
-        LastScanMessage = "⏳ Clearing queue...";
-        FeedbackColor = Color.FromArgb("#FF9800");
-        ShowFeedback = true;
+        SetSyncStatus("⏳ Clearing queue...", autoclearMs: 60000);
 
         try
         {
             await _offlineQueue.ClearPendingScansAsync();
             QueuePendingCount = 0;
-
-            LastScanMessage = "✓ Queue cleared successfully";
-            FeedbackColor = Color.FromArgb("#4CAF50");
-            ShowFeedback = true;
-
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var clearedCts = _centralCardCts = new CancellationTokenSource();
-            _ = Task.Delay(3000, clearedCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-            });
+            SetSyncStatus("✓ Queue cleared successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to clear queue");
-            LastScanMessage = $"✗ Failed to clear queue: {ex.Message}";
-            FeedbackColor = Color.FromArgb("#F44336");
-            ShowFeedback = true;
-
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var clearFailCts = _centralCardCts = new CancellationTokenSource();
-            _ = Task.Delay(5000, clearFailCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-            });
+            SetSyncStatus($"✗ Failed to clear queue: {ex.Message}", autoclearMs: 5000);
         }
     }
 
@@ -887,30 +658,17 @@ public partial class MainViewModel : ObservableObject
     private async Task ManualSync()
     {
         _logger.LogInformation("Manual sync triggered by user");
-
-        LastScanMessage = "⏳ Syncing queued scans...";
-        FeedbackColor = Color.FromArgb("#2196F3");
-        ShowFeedback = true;
+        SetSyncStatus("⏳ Syncing queued scans...", autoclearMs: 60000);
 
         try
         {
             await _backgroundSync.TriggerSyncAsync();
+            // OnSyncCompleted will overwrite with the result message.
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Manual sync failed");
-            LastScanMessage = $"✗ Sync failed: {ex.Message}";
-            FeedbackColor = Color.FromArgb("#F44336");
-            ShowFeedback = true;
-
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var syncFailCts = _centralCardCts = new CancellationTokenSource();
-            _ = Task.Delay(5000, syncFailCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-            });
+            SetSyncStatus($"✗ Sync failed: {ex.Message}", autoclearMs: 5000);
         }
     }
 
@@ -924,17 +682,7 @@ public partial class MainViewModel : ObservableObject
         var secret = await _secureConfig.GetHmacSecretAsync();
         if (string.IsNullOrEmpty(secret))
         {
-            LastScanMessage = "⚠️ HMAC secret not configured. Complete setup first.";
-            FeedbackColor = Color.FromArgb("#FF9800");
-            ShowFeedback = true;
-            _centralCardCts?.Cancel();
-            _centralCardCts?.Dispose();
-            var noSecretCts = _centralCardCts = new CancellationTokenSource();
-            _ = Task.Delay(3000, noSecretCts.Token).ContinueWith(t =>
-            {
-                if (t.IsCanceled) return;
-                MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-            });
+            SetSyncStatus("⚠️ HMAC secret not configured. Complete setup first.");
             return;
         }
 
@@ -992,9 +740,12 @@ public partial class MainViewModel : ObservableObject
         _flashTimers.Clear();
         Array.Clear(_cameraGated, 0, _cameraGated.Length);
 
-        _centralCardCts?.Cancel();
-        _centralCardCts?.Dispose();
-        _centralCardCts = null;
+        _syncStatusCts?.Cancel();
+        _syncStatusCts?.Dispose();
+        _syncStatusCts = null;
+
+        foreach (var slot in CameraSlots)
+            slot.PropertyChanged -= OnCameraSlotPropertyChanged;
 
         // EP0012/US0121: Stop each active pipeline independently.
         if (IsCameraMode)
@@ -1145,18 +896,7 @@ public partial class MainViewModel : ObservableObject
                     if (!string.IsNullOrEmpty(e.FirstErrorMessage))
                         message += $"\nError: {e.FirstErrorMessage}";
 
-                    LastScanMessage = message;
-                    FeedbackColor = e.SyncedCount > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FF9800");
-                    ShowFeedback = true;
-
-                    _centralCardCts?.Cancel();
-                    _centralCardCts?.Dispose();
-                    var syncDoneCts = _centralCardCts = new CancellationTokenSource();
-                    _ = Task.Delay(8000, syncDoneCts.Token).ContinueWith(t =>
-                    {
-                        if (t.IsCanceled) return;
-                        MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
-                    });
+                    SetSyncStatus(message, autoclearMs: 8000);
                 }
             }
             catch (Exception ex)

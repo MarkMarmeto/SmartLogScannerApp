@@ -29,6 +29,33 @@ public partial class UsbScannerSlotState : ObservableObject
     [ObservableProperty] private bool _isVisible;
     [ObservableProperty] private bool _isHealthWarning;
 
+    // ── US0124: Student detail fields (populated during ShowFlash, cleared on reset) ─────────
+    [ObservableProperty] private string? _lastStudentId;
+    [ObservableProperty] private string? _lastLrn;
+    [ObservableProperty] private string? _lastGrade;
+    [ObservableProperty] private string? _lastSection;
+    [ObservableProperty] private string? _lastProgram;
+    [ObservableProperty] private string? _lastScanTime;
+    [ObservableProperty] private bool _isVisitorScan;
+
+    public string? LastGradeSection
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(LastGrade) && string.IsNullOrEmpty(LastSection))
+                return null;
+            var grade = LastGrade ?? string.Empty;
+            var section = LastSection ?? string.Empty;
+            return string.IsNullOrEmpty(LastProgram)
+                ? $"{grade} · {section}".Trim(' ', '·')
+                : $"{grade} · {LastProgram} · {section}".Trim(' ', '·');
+        }
+    }
+
+    partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastProgramChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+
     /// <summary>Locked wording per US0123 AC5.</summary>
     public string StatusText => IsHealthWarning
         ? "⚠ No recent scans (1m+)"
