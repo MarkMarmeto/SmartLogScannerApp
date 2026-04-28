@@ -99,8 +99,9 @@ public partial class MainViewModel : ObservableObject
     // Selected camera device ID (single-camera legacy; multi-camera uses CameraSlots)
     [ObservableProperty] private string _selectedCameraId = string.Empty;
 
-    // EP0011: True when the scanner is in Camera mode (shows camera grid).
-    public bool IsCameraMode => _scannerMode == "Camera";
+    // EP0012/US0121: Mode helpers — supports "Camera", "USB", and concurrent "Both".
+    public bool IsCameraMode => _scannerMode is "Camera" or "Both";
+    public bool IsUsbMode => _scannerMode is "USB" or "Both";
 
     // EP0011: Fixed 8-slot observable collection. Slots beyond configured count have IsVisible=false.
     // Initialized in constructor (after DI) so RestartCommand callbacks can reference _multiCameraManager.
@@ -151,18 +152,20 @@ public partial class MainViewModel : ObservableObject
         // US0009: AC4 - Load saved scan type from preferences
         CurrentScanType = _preferences.GetDefaultScanType();
 
-        if (_scannerMode == "Camera")
+        // EP0012/US0121: Subscribe independently per active pipeline (supports "Both" mode).
+        if (IsCameraMode)
         {
-            // EP0011: Subscribe to multi-camera events
             _multiCameraManager.ScanCompleted += OnMultiCameraScanCompleted;
             _multiCameraManager.ScanUpdated += OnMultiCameraScanUpdated;
             _multiCameraManager.CameraStatusChanged += OnMultiCameraStatusChanged;
             StatusIcon = "📷";
         }
-        else // USB
+
+        if (IsUsbMode)
         {
             _usbScanner.ScanCompleted += OnScanCompleted;
-            StatusIcon = "⌨️";
+            if (!IsCameraMode)
+                StatusIcon = "⌨️";
         }
 
         // US0015: Subscribe to connectivity changes
@@ -214,33 +217,39 @@ public partial class MainViewModel : ObservableObject
             ConnectivityColor = Color.FromArgb("#F44336");
         }
 
-        if (_scannerMode == "Camera")
+        // EP0012/US0121: Start each pipeline independently — both run in "Both" mode.
+        if (IsCameraMode)
         {
-            // EP0011: Build CameraInstance list from preferences and hand to manager
             var cameraCount = Math.Clamp(_preferences.GetCameraCount(), 1, 8);
             var cameraConfigs = BuildCameraConfigs(cameraCount);
-
-            // Apply config to the observable slot states (drives CameraQrView bindings)
             ApplyCameraConfigsToSlots(cameraConfigs, cameraCount);
 
             await _multiCameraManager.InitializeAsync(cameraConfigs);
             await _multiCameraManager.StartAllAsync();
 
-            // EP0011: 1-second timer — calls UpdateFrameRate on every visible slot
+            StatusMessage = "Ready to scan QR codes";
+            StatusIcon = "📷";
+        }
+
+        if (IsUsbMode)
+        {
+            await _usbScanner!.StartAsync();
+            if (!IsCameraMode)
+            {
+                StatusMessage = "Ready for USB scanner input";
+                StatusIcon = "⌨️";
+            }
+        }
+
+        // EP0012/US0121: 1-second frame-rate timer — needed whenever any pipeline is active.
+        if (IsCameraMode || IsUsbMode)
+        {
             _frameRateTimer = Application.Current!.Dispatcher.CreateTimer();
             _frameRateTimer.Interval = TimeSpan.FromSeconds(1);
             _frameRateTimer.Tick += OnFrameRateTick;
             _frameRateTimer.Start();
+        }
 
-            StatusMessage = "Ready to scan QR codes";
-            StatusIcon = "📷";
-        }
-        else // USB
-        {
-            await _usbScanner!.StartAsync();
-            StatusMessage = "Ready for USB scanner input";
-            StatusIcon = "⌨️";
-        }
         IsScanning = true;
     }
 
@@ -421,18 +430,20 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public Task OnBarcodeFromCameraAsync(int cameraIndex, string payload)
     {
-        if (_scannerMode == "Camera" && !string.IsNullOrEmpty(payload))
+        if (IsCameraMode && !string.IsNullOrEmpty(payload))
             return _multiCameraManager.ProcessQrCodeAsync(cameraIndex, payload);
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Stops all cameras — called from Window.Destroying and OnDisappearing lifecycle events.
+    /// Stops all active scan pipelines — called from Window.Destroying.
     /// </summary>
     public async Task StopCamerasAsync()
     {
-        if (_scannerMode == "Camera")
+        if (IsCameraMode)
             await _multiCameraManager.StopAllAsync();
+        if (IsUsbMode)
+            await _usbScanner!.StopAsync();
     }
 
     /// <summary>
@@ -630,7 +641,7 @@ public partial class MainViewModel : ObservableObject
                     LastSection = null;
                     LastProgram = null;
                     CardBorderColor = Color.FromArgb("#E0E0E0");
-                    if (_scannerMode == "Camera")
+                    if (IsCameraMode)
                     {
                         StatusMessage = "Ready to scan QR codes";
                         StatusIcon = "📷";
@@ -835,7 +846,7 @@ public partial class MainViewModel : ObservableObject
         var hmacBase64 = Convert.ToBase64String(hash);
         var payload = $"SMARTLOG:{studentId}:{timestamp}:{hmacBase64}";
 
-        if (_scannerMode == "Camera")
+        if (IsCameraMode)
             await _multiCameraManager.ProcessQrCodeAsync(0, payload);
         else
             await _usbScanner!.ProcessQrCodeAsync(payload);
@@ -849,7 +860,7 @@ public partial class MainViewModel : ObservableObject
     {
         var payload = "SMARTLOG:STU99999:1234567890:aW52YWxpZC1obWFjLXNpZ25hdHVyZQ==";
 
-        if (_scannerMode == "Camera")
+        if (IsCameraMode)
             await _multiCameraManager.ProcessQrCodeAsync(0, payload);
         else
             await _usbScanner!.ProcessQrCodeAsync(payload);
@@ -878,14 +889,11 @@ public partial class MainViewModel : ObservableObject
         }
         _flashTimers.Clear();
 
-        if (_scannerMode == "Camera")
-        {
+        // EP0012/US0121: Stop each active pipeline independently.
+        if (IsCameraMode)
             await _multiCameraManager.StopAllAsync();
-        }
-        else // USB
-        {
+        if (IsUsbMode)
             await _usbScanner!.StopAsync();
-        }
     }
 
     /// <summary>
@@ -898,12 +906,10 @@ public partial class MainViewModel : ObservableObject
         CurrentScanType = CurrentScanType == "ENTRY" ? "EXIT" : "ENTRY";
         _preferences.SetDefaultScanType(CurrentScanType);
 
-        if (_scannerMode == "Camera")
+        if (IsCameraMode)
         {
-            // Propagate to running CameraQrScannerService instances
             _multiCameraManager.UpdateScanTypes(CurrentScanType);
 
-            // Sync the observable CameraSlots so the status card badges update immediately
             foreach (var cam in _multiCameraManager.Cameras)
             {
                 if (cam.Index >= 0 && cam.Index < CameraSlots.Count)
@@ -921,7 +927,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void ProcessKeystroke(string character)
     {
-        if (_scannerMode == "USB")
+        if (IsUsbMode)
             _usbScanner?.ProcessKeystroke(character);
     }
 
@@ -930,7 +936,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void ProcessEnterKey()
     {
-        if (_scannerMode == "USB")
+        if (IsUsbMode)
             _usbScanner?.ProcessEnterKey();
     }
 
@@ -1066,7 +1072,7 @@ public partial class MainViewModel : ObservableObject
                     ? $"{result.Grade} - {result.Section}"
                     : null,
                 ErrorDetails = BuildTechnicalDetail(result),
-                ScanMethod = _scannerMode,
+                ScanMethod = result.Source.ToScanMethodString(),
                 CameraIndex = result.CameraIndex,
                 CameraName = result.CameraName
             };

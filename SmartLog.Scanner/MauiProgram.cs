@@ -316,6 +316,8 @@ public static class MauiProgram
 
 		// US0008: Register USB keyboard wedge scanner service
 		builder.Services.AddSingleton<UsbQrScannerService>();
+		// EP0012/US0121: Alias so HeartbeatService can resolve IQrScannerService → UsbQrScannerService singleton.
+		builder.Services.AddSingleton<IQrScannerService>(sp => sp.GetRequiredService<UsbQrScannerService>());
 
 		// EP0011: Register multi-camera manager + adaptive throttle
 		builder.Services.AddSingleton<AdaptiveDecodeThrottle>();

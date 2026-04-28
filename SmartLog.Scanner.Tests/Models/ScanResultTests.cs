@@ -76,4 +76,19 @@ public class ScanResultTests
         Assert.Null(result.PassNumber);
         Assert.False(result.IsVisitorScan);
     }
+
+    // EP0012/US0121: ScanSource defaults
+    [Fact]
+    public void Source_DefaultsToCamera()
+    {
+        var result = new ScanResult();
+        Assert.Equal(ScanSource.Camera, result.Source);
+    }
+
+    [Fact]
+    public void Source_CanBeSetToUsbScanner()
+    {
+        var result = new ScanResult { Source = ScanSource.UsbScanner };
+        Assert.Equal(ScanSource.UsbScanner, result.Source);
+    }
 }

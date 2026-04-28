@@ -41,9 +41,14 @@ public partial class CameraSlotViewModel : ObservableObject
 
     public void PopulateDevices(IEnumerable<CameraDeviceInfo> devices)
     {
+        // Capture current selection before clearing — MAUI Picker resets SelectedItem
+        // to null via TwoWay binding when ItemsSource is cleared, so we must re-apply.
+        var currentId = SelectedDevice?.Id;
         AvailableDevices.Clear();
         foreach (var d in devices)
             AvailableDevices.Add(d);
+        if (currentId != null)
+            SelectedDevice = AvailableDevices.FirstOrDefault(d => d.Id == currentId);
     }
 
     /// <summary>

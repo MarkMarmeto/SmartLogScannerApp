@@ -29,8 +29,8 @@ public partial class MainPage : ContentPage
         // Read scanner mode from preferences
         _scannerMode = Preferences.Get("Scanner.Mode", "Camera");
 
-        // Enable keyboard input for USB scanner mode
-        if (_scannerMode == "USB")
+        // EP0012/US0121: Subscribe focus handler when USB pipeline is active.
+        if (_viewModel.IsUsbMode)
         {
             this.Focused += OnPageFocused;
         }
@@ -43,17 +43,17 @@ public partial class MainPage : ContentPage
         {
             await _viewModel.InitializeAsync();
 
-            // EP0011: Attach camera 0 preview after cameras are running
+            // EP0011/EP0012: Attach camera 0 preview when camera pipeline is active.
 #if MACCATALYST
-            if (_scannerMode == "Camera")
+            if (_viewModel.IsCameraMode)
                 AttachCameraPreview();
 #elif WINDOWS
-            if (_scannerMode == "Camera")
+            if (_viewModel.IsCameraMode)
                 AttachCameraPreview();
 #endif
 
-            // Focus the page for keyboard input in USB mode
-            if (_scannerMode == "USB")
+            // Focus the page for keyboard input when USB pipeline is active.
+            if (_viewModel.IsUsbMode)
                 this.Focus();
         }
 
@@ -180,8 +180,8 @@ public partial class MainPage : ContentPage
                 // Read scanner mode from preferences
                 _scannerMode = Preferences.Get("Scanner.Mode", "Camera");
 
-                // Enable keyboard input for USB scanner mode
-                if (_scannerMode == "USB")
+                // EP0012/US0121: Subscribe focus handler when USB pipeline is active.
+                if (_viewModel.IsUsbMode)
                 {
                     this.Focused += OnPageFocused;
                 }
@@ -189,9 +189,9 @@ public partial class MainPage : ContentPage
         }
 
 #if MACCATALYST
-        if (_scannerMode == "USB" && Handler?.PlatformView is UIKit.UIView view)
+        // EP0012/US0121: Attach Mac keyboard handler when USB pipeline is active.
+        if (_viewModel?.IsUsbMode == true && Handler?.PlatformView is UIKit.UIView view)
         {
-            // MacCatalyst: Attach NSEvent monitor for keyboard input
             AttachMacKeyboardHandler(view);
         }
 #endif

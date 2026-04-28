@@ -221,7 +221,8 @@ public class UsbQrScannerService : IQrScannerService
                         Status = ScanStatus.DebouncedLocally,
                         Message = dedupResult.Message ?? "Already scanned. Please proceed.",
                         StudentId = validationResult.StudentId,
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
 
                     ScanCompleted?.Invoke(this, scanResult);
@@ -273,13 +274,14 @@ public class UsbQrScannerService : IQrScannerService
                         ValidationResult = validationResult,
                         Status = ScanStatus.Queued,
                         Message = "Scan queued (offline)",
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
                 }
                 else
                 {
-                    // Preserve validation result for compatibility
-                    scanResult = scanResult with { ValidationResult = validationResult };
+                    // Preserve validation result and mark source for compatibility
+                    scanResult = scanResult with { ValidationResult = validationResult, Source = ScanSource.UsbScanner };
                 }
             }
             else
@@ -306,7 +308,8 @@ public class UsbQrScannerService : IQrScannerService
                             Status = ScanStatus.DebouncedLocally,
                             Message = "Already queued. Please proceed.",
                             StudentId = validationResult.StudentId,
-                            ScannedAt = scannedAt
+                            ScannedAt = scannedAt,
+                            Source = ScanSource.UsbScanner
                         };
                     }
                     else
@@ -320,7 +323,8 @@ public class UsbQrScannerService : IQrScannerService
                             ValidationResult = validationResult,
                             Status = ScanStatus.Queued,
                             Message = "Scan queued (offline)",
-                            ScannedAt = scannedAt
+                            ScannedAt = scannedAt,
+                            Source = ScanSource.UsbScanner
                         };
                     }
                 }
@@ -334,7 +338,8 @@ public class UsbQrScannerService : IQrScannerService
                         ValidationResult = validationResult,
                         Status = ScanStatus.Error,
                         Message = "Failed to save scan",
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
                 }
             }
@@ -350,7 +355,8 @@ public class UsbQrScannerService : IQrScannerService
                 ValidationResult = validationResult,
                 Status = ScanStatus.Rejected,
                 Message = validationResult.RejectionReason,
-                ScannedAt = DateTimeOffset.UtcNow
+                ScannedAt = DateTimeOffset.UtcNow,
+                Source = ScanSource.UsbScanner
             };
         }
 

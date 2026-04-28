@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Networking;
+using SmartLog.Scanner.Core.Models;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
@@ -20,6 +21,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
     private readonly ISecureConfigService _secureConfig;
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IScanHistoryService _scanHistory;
+    private readonly IQrScannerService _usbScanner;
     private readonly ILogger<HeartbeatService> _logger;
 
     private CancellationTokenSource? _cts;
@@ -29,6 +31,9 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
     private int _requestTimeoutSeconds;
     private int _currentIntervalSeconds;
 
+    // EP0012/US0121: Tracks last USB scan for heartbeat health field.
+    private DateTime? _lastUsbScanAtUtc;
+
     public HeartbeatService(
         IHttpClientFactory httpClientFactory,
         IConfiguration config,
@@ -36,6 +41,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         ISecureConfigService secureConfig,
         IOfflineQueueService offlineQueue,
         IScanHistoryService scanHistory,
+        IQrScannerService usbScanner,
         ILogger<HeartbeatService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -44,6 +50,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         _secureConfig = secureConfig;
         _offlineQueue = offlineQueue;
         _scanHistory = scanHistory;
+        _usbScanner = usbScanner;
         _logger = logger;
     }
 
@@ -63,6 +70,8 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
             _config.GetValue<int>("Heartbeat:RequestTimeoutSeconds", 10), 5, 60);
         _currentIntervalSeconds = _baseIntervalSeconds;
 
+        _usbScanner.ScanCompleted += OnUsbScan;
+
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _loopTask = Task.Run(() => RunLoopAsync(_cts.Token));
         _logger.LogInformation("HeartbeatService started (base={Base}s, max={Max}s)",
@@ -73,6 +82,8 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
     public async Task StopAsync()
     {
         if (_cts == null) return;
+
+        _usbScanner.ScanCompleted -= OnUsbScan;
 
         _logger.LogInformation("HeartbeatService stopping");
         await _cts.CancelAsync();
@@ -114,6 +125,12 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
             try { await Task.Delay(TimeSpan.FromSeconds(_currentIntervalSeconds), ct); }
             catch (OperationCanceledException) { break; }
         }
+    }
+
+    private void OnUsbScan(object? sender, ScanResult result)
+    {
+        if (result.Source == ScanSource.UsbScanner)
+            _lastUsbScanAtUtc = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -251,6 +268,10 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         try { queuedScansCount = await _offlineQueue.GetQueueCountAsync(); }
         catch (Exception ex) { _logger.LogDebug(ex, "Could not retrieve offline queue count"); }
 
+        int? usbScannerLastScanAgeSeconds = null;
+        if (_lastUsbScanAtUtc.HasValue)
+            usbScannerLastScanAgeSeconds = (int)(DateTime.UtcNow - _lastUsbScanAtUtc.Value).TotalSeconds;
+
         return new HeartbeatPayload(
             AppVersion: appVersion,
             OsVersion: osVersion,
@@ -259,6 +280,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
             NetworkType: networkType,
             LastScanAt: lastScanAt,
             QueuedScansCount: queuedScansCount,
+            UsbScannerLastScanAgeSeconds: usbScannerLastScanAgeSeconds,
             ClientTimestamp: DateTime.UtcNow);
     }
 
@@ -288,4 +310,5 @@ internal sealed record HeartbeatPayload(
     [property: JsonPropertyName("networkType")] string? NetworkType,
     [property: JsonPropertyName("lastScanAt")] DateTime? LastScanAt,
     [property: JsonPropertyName("queuedScansCount")] int? QueuedScansCount,
+    [property: JsonPropertyName("usbScannerLastScanAgeSeconds")] int? UsbScannerLastScanAgeSeconds,
     [property: JsonPropertyName("clientTimestamp")] DateTime ClientTimestamp);

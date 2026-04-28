@@ -20,6 +20,7 @@ public class HeartbeatServiceTests
     private readonly Mock<ISecureConfigService> _mockSecureConfig;
     private readonly Mock<IOfflineQueueService> _mockOfflineQueue;
     private readonly Mock<IScanHistoryService> _mockScanHistory;
+    private readonly Mock<IQrScannerService> _mockUsbScanner;
     private readonly Mock<ILogger<HeartbeatService>> _mockLogger;
     private readonly Mock<HttpMessageHandler> _mockHandler;
 
@@ -30,6 +31,7 @@ public class HeartbeatServiceTests
         _mockSecureConfig = new Mock<ISecureConfigService>();
         _mockOfflineQueue = new Mock<IOfflineQueueService>();
         _mockScanHistory = new Mock<IScanHistoryService>();
+        _mockUsbScanner = new Mock<IQrScannerService>();
         _mockLogger = new Mock<ILogger<HeartbeatService>>();
         _mockHandler = new Mock<HttpMessageHandler>();
 
@@ -65,6 +67,7 @@ public class HeartbeatServiceTests
         _mockSecureConfig.Object,
         _mockOfflineQueue.Object,
         _mockScanHistory.Object,
+        _mockUsbScanner.Object,
         _mockLogger.Object);
 
     // ── ComputeNextInterval ────────────────────────────────────────────────────
@@ -298,6 +301,121 @@ public class HeartbeatServiceTests
 
         var exception = await Record.ExceptionAsync(() => service.StopAsync());
         Assert.Null(exception);
+    }
+
+    // ── EP0012/US0121: USB age field ─────────────────────────────────────────
+
+    [Fact]
+    public async Task Payload_UsbScannerLastScanAgeSeconds_Null_Before_Any_Usb_Scan()
+    {
+        SetupSuccessfulRequest();
+        string? capturedBody = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var service = BuildService();
+        await service.SendHeartbeatAsync(CancellationToken.None);
+
+        Assert.NotNull(capturedBody);
+        Assert.Contains("\"usbScannerLastScanAgeSeconds\":null", capturedBody);
+    }
+
+    [Fact]
+    public async Task Payload_Includes_UsbScannerLastScanAgeSeconds_After_Usb_Scan()
+    {
+        SetupCredentials();
+        string? capturedBody = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var service = BuildService();
+        await service.StartAsync();
+
+        // Raise USB scan event — HeartbeatService should record the timestamp.
+        var usbResult = new ScanResult { Source = ScanSource.UsbScanner };
+        _mockUsbScanner.Raise(s => s.ScanCompleted += null, _mockUsbScanner.Object, usbResult);
+
+        await service.SendHeartbeatAsync(CancellationToken.None);
+        await service.StopAsync();
+
+        Assert.NotNull(capturedBody);
+        Assert.DoesNotContain("\"usbScannerLastScanAgeSeconds\":null", capturedBody);
+        Assert.Contains("usbScannerLastScanAgeSeconds", capturedBody);
+    }
+
+    [Fact]
+    public async Task Payload_UsbScannerLastScanAgeSeconds_Ignores_Camera_Source()
+    {
+        SetupSuccessfulRequest();
+        string? capturedBody = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var service = BuildService();
+        await service.StartAsync();
+        // Raise event with Camera source — should NOT update _lastUsbScanAtUtc
+        var cameraResult = new ScanResult { Source = ScanSource.Camera };
+        _mockUsbScanner.Raise(s => s.ScanCompleted += null, _mockUsbScanner.Object, cameraResult);
+        await service.SendHeartbeatAsync(CancellationToken.None);
+        await service.StopAsync();
+
+        Assert.NotNull(capturedBody);
+        Assert.Contains("\"usbScannerLastScanAgeSeconds\":null", capturedBody);
+    }
+
+    [Fact]
+    public async Task Subscription_CleanedUp_On_StopAsync()
+    {
+        SetupCredentials();
+        string? capturedBody = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var service = BuildService();
+        await service.StartAsync();
+        await service.StopAsync();
+
+        // After stop, event should not update _lastUsbScanAtUtc
+        var usbResult = new ScanResult { Source = ScanSource.UsbScanner };
+        _mockUsbScanner.Raise(s => s.ScanCompleted += null, _mockUsbScanner.Object, usbResult);
+
+        // SendHeartbeatAsync still works on a stopped service
+        await service.SendHeartbeatAsync(CancellationToken.None);
+
+        Assert.NotNull(capturedBody);
+        Assert.Contains("\"usbScannerLastScanAgeSeconds\":null", capturedBody);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

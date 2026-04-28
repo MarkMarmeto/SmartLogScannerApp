@@ -7,13 +7,13 @@
 
 | Status | Count |
 |--------|-------|
-| Draft | 1 |
+| Draft | 3 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
-| Done | 28 |
-| **Total** | **29** |
+| Done | 29 |
+| **Total** | **32** |
 
 ## Stories by Epic
 
@@ -78,6 +78,14 @@
 |----|-------|--------|--------|-------|
 | [US0120](US0120-heartbeat-service.md) | Implement Heartbeat Service | Draft | 3 | AI Assistant |
 
+### [EP0012: Concurrent Multi-Modal Scanning](../epics/EP0012-concurrent-multi-modal-scanning.md)
+
+| ID | Title | Status | Points | Owner |
+|----|-------|--------|--------|-------|
+| [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | Draft | 5 | AI Assistant |
+| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Draft | 3 | AI Assistant |
+| [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Draft | 5 | AI Assistant |
+
 ## All Stories
 
 | ID | Title | Epic | Status | Points | Persona |
@@ -111,11 +119,14 @@
 | [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Section + Program | EP0011 (WebApp) | Draft | 2 | Guard Gary |
 | [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Date/Time Prominent | EP0011 (WebApp) | Draft | 1 | Guard Gary |
 | [US0120](US0120-heartbeat-service.md) | Heartbeat Service | EP0005 (WebApp) | Draft | 3 | Tech-Savvy Tony |
+| [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 5 | Guard Gary |
+| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 3 | IT Admin Ian |
+| [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 5 | Guard Gary |
 
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
-- Total story points: 132 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts)
+- Total story points: 145 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts; EP0012 Concurrent Multi-Modal: 13 pts across 3 stories)
 
 ## Changelog
 
@@ -127,3 +138,4 @@
 | 2026-04-22 | Status reconciliation — registry updated from stale Draft/Ready/Review markers to Done for all 23 stories |
 | 2026-04-24 | Added 5 scanner-side stories (US0088-US0092) under re-opened cross-project EP0011 — V2.1 feature/bugfix additions from WebApp planning session |
 | 2026-04-28 | Added US0120 (Heartbeat Service) under cross-project EP0005 — companion to WebApp US0119 / PL0039 |
+| 2026-04-28 | Added US0121-US0123 under EP0012 (Concurrent Multi-Modal Scanning) — Draft, 13 points total. Enables `Both` scanner mode (camera + USB simultaneously), setup wizard opt-in, USB indicator slot card with 60s health heuristic |

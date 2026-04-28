@@ -144,6 +144,10 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
         var cam = GetCamera(cameraIndex);
         if (cam == null) return;
 
+        // Stop the worker/service first — StartCameraInternalAsync skips if worker.IsRunning is true.
+        // A camera in Error state may still have IsRunning=true (capture session opened before error fired).
+        await StopCameraInternalAsync(cameraIndex, manualStop: true);
+
         cam.IsEnabled = true;
         cam.ReconnectAttempts = 0;
         cam.ErrorMessage = null;
