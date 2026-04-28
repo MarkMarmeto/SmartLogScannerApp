@@ -174,6 +174,17 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
+    /// US0126: Feeds the cards-area height into MainViewModel.BodyHeight so CardHeight
+    /// recomputes on resize. The ScrollView lives in the * row so its height already
+    /// excludes the camera preview above it.
+    /// </summary>
+    private void OnCardsAreaSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is VisualElement v && _viewModel != null && v.Height > 0)
+            _viewModel.BodyHeight = v.Height;
+    }
+
+    /// <summary>
     /// US0008: Handle page focus for USB scanner keyboard input.
     /// </summary>
     private void OnPageFocused(object? sender, FocusEventArgs e)

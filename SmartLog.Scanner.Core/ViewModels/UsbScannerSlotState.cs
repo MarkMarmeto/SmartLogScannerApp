@@ -97,6 +97,25 @@ public partial class UsbScannerSlotState : ObservableObject
         _                           => string.Empty
     };
 
+    // ── US0126: Bottom device strip ──────────────────────────────────────────
+
+    /// <summary>
+    /// Bottom strip status text — line 2 of the USB device strip.
+    /// During flash: the friendly scan message. During health warning: the locked US0123 wording.
+    /// Otherwise: "Ready to Scan".
+    /// </summary>
+    public string BottomStripStatusText => ShowFlash
+        ? (LastScanMessage ?? "Scan complete")
+        : (IsHealthWarning ? "⚠ No recent scans (1m+)" : "Ready to Scan");
+
+    /// <summary>
+    /// Bottom strip background colour.
+    /// Default indigo (USB identity). Amber when 60s health warning fires. FlashColor during a scan flash.
+    /// </summary>
+    public Color BottomStripColor => ShowFlash
+        ? FlashColor
+        : (IsHealthWarning ? Color.FromArgb("#FF9800") : Color.FromArgb("#6A4C93"));
+
     /// <summary>
     /// Called by the 1s timer in MainViewModel.
     /// Warning fires only after the first scan of the session (LastScanAt must be set).
@@ -127,13 +146,19 @@ public partial class UsbScannerSlotState : ObservableObject
 
     // ── Property-changed cascades ────────────────────────────────────────────
 
-    partial void OnShowFlashChanged(bool value) =>
+    partial void OnShowFlashChanged(bool value)
+    {
         OnPropertyChanged(nameof(DisplayColor));
+        OnPropertyChanged(nameof(BottomStripStatusText));
+        OnPropertyChanged(nameof(BottomStripColor));
+    }
 
     partial void OnIsHealthWarningChanged(bool value)
     {
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(DisplayColor));
+        OnPropertyChanged(nameof(BottomStripStatusText));
+        OnPropertyChanged(nameof(BottomStripColor));
     }
 
     partial void OnIsListeningChanged(bool value) =>
@@ -144,7 +169,11 @@ public partial class UsbScannerSlotState : ObservableObject
         OnPropertyChanged(nameof(FlashColor));
         OnPropertyChanged(nameof(FlashIcon));
         OnPropertyChanged(nameof(DisplayColor));
+        OnPropertyChanged(nameof(BottomStripColor));
     }
+
+    partial void OnLastScanMessageChanged(string? value) =>
+        OnPropertyChanged(nameof(BottomStripStatusText));
 
     partial void OnScanTypeChanged(string value) =>
         OnPropertyChanged(nameof(ScanTypeBadgeColor));

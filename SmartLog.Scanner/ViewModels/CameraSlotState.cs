@@ -141,6 +141,24 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Border stroke that swaps to the flash color while a scan is being shown.</summary>
     public Brush DisplayBrush => ShowFlash ? FlashBrush : StatusBrush;
 
+    // ── US0126: Bottom device strip ──────────────────────────────────────────
+
+    /// <summary>
+    /// Bottom strip status text — line 2 of the device identity strip.
+    /// Idle: "Ready to Scan". During flash: the friendly scan message ("✓ Juan Cruz — Accepted").
+    /// </summary>
+    public string BottomStripStatusText => ShowFlash
+        ? (LastScanMessage ?? "Scan complete")
+        : "Ready to Scan";
+
+    /// <summary>
+    /// Bottom strip background colour. Default green (camera identity).
+    /// Shifts to FlashColor (status-coloured) during a 1-second flash, then reverts.
+    /// </summary>
+    public Color BottomStripColor => ShowFlash
+        ? FlashColor
+        : Color.FromArgb("#4CAF50");
+
     // Frame-rate measurement — incremented externally, read by 1s timer
     private int _frameCounter;
     public void IncrementFrameCount() => Interlocked.Increment(ref _frameCounter);
@@ -173,10 +191,18 @@ public partial class CameraSlotState : ObservableObject
         OnPropertyChanged(nameof(FlashBrush));
         OnPropertyChanged(nameof(FlashIcon));
         OnPropertyChanged(nameof(DisplayBrush));
+        OnPropertyChanged(nameof(BottomStripColor));
     }
 
-    partial void OnShowFlashChanged(bool value) =>
+    partial void OnShowFlashChanged(bool value)
+    {
         OnPropertyChanged(nameof(DisplayBrush));
+        OnPropertyChanged(nameof(BottomStripStatusText));
+        OnPropertyChanged(nameof(BottomStripColor));
+    }
+
+    partial void OnLastScanMessageChanged(string? value) =>
+        OnPropertyChanged(nameof(BottomStripStatusText));
 
     // ── Commands ──────────────────────────────────────────────────────────────
 

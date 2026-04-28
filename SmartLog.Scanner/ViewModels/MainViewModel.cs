@@ -70,7 +70,8 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// US0124: Per-card width — divides the body width equally among active cards (visible cameras + USB).
-    /// 1 card = 100%; 2 cards = 50/50; 3 = 33×3; 4 = 25×4. Clamped to 260 px so FlexLayout wraps gracefully.
+    /// 1 card = 100%; 2 cards = 50/50; 3 = 33×3; 4 = 25×4. Clamped to [260, 520] px so cards stay
+    /// readable on narrow displays and don't blow up on wide ones (US0126 1080p ceiling).
     /// </summary>
     public double CardWidth
     {
@@ -82,11 +83,31 @@ public partial class MainViewModel : ObservableObject
             const double interCardSpacing = 12; // matches Margin="6" on each card side
             var available = BodyWidth - (interCardSpacing * (totalActive + 1));
             var perCard = available / totalActive;
-            return Math.Max(260, perCard);
+            return Math.Clamp(perCard, 260, 520);
         }
     }
 
     partial void OnBodyWidthChanged(double value) => OnPropertyChanged(nameof(CardWidth));
+
+    // US0126: Cards-area height fed from the ScrollView SizeChanged (lives in the * row,
+    // so it already excludes the camera preview). Drives CardHeight.
+    [ObservableProperty] private double _bodyHeight;
+
+    /// <summary>
+    /// US0126: Per-card height — fills the available vertical space in the cards area.
+    /// Cards have Margin="6" (6px top + 6px bottom = 12px consumed by spacing).
+    /// Clamped to a minimum so cards stay readable on very short displays.
+    /// </summary>
+    public double CardHeight
+    {
+        get
+        {
+            if (BodyHeight <= 0) return 390;
+            return Math.Max(BodyHeight - 12, 300);
+        }
+    }
+
+    partial void OnBodyHeightChanged(double value) => OnPropertyChanged(nameof(CardHeight));
 
     // US0124: Inline sync / queue status message shown in the statistics footer (replaces deleted bottom feedback banner).
     [ObservableProperty] private string? _syncStatusMessage;

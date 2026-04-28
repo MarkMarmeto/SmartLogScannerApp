@@ -306,4 +306,87 @@ public class UsbScannerSlotStateTests
         Assert.Null(slot.LastStudentId);
         Assert.Null(slot.LastGradeSection);
     }
+
+    // ── US0126: Bottom strip computed properties ─────────────────────────────
+
+    [Fact]
+    public void BottomStripStatusText_When_Idle_Reads_Ready_To_Scan()
+    {
+        var slot = new UsbScannerSlotState();
+        slot.StartListening();
+        Assert.Equal("Ready to Scan", slot.BottomStripStatusText);
+    }
+
+    [Fact]
+    public void BottomStripStatusText_When_Flash_Reads_LastScanMessage()
+    {
+        var slot = new UsbScannerSlotState
+        {
+            LastScanMessage = "✓ Juan Cruz — Accepted",
+            ShowFlash = true
+        };
+        Assert.Equal("✓ Juan Cruz — Accepted", slot.BottomStripStatusText);
+    }
+
+    [Fact]
+    public void BottomStripStatusText_When_Health_Warning_Reads_Locked_Wording()
+    {
+        var slot = new UsbScannerSlotState();
+        slot.StartListening();
+        slot.IsHealthWarning = true;
+        Assert.Equal("⚠ No recent scans (1m+)", slot.BottomStripStatusText);
+    }
+
+    [Fact]
+    public void BottomStripStatusText_Flash_Beats_Health_Warning()
+    {
+        var slot = new UsbScannerSlotState
+        {
+            LastScanMessage = "✓ Accepted",
+            IsHealthWarning = true,
+            ShowFlash = true
+        };
+        Assert.Equal("✓ Accepted", slot.BottomStripStatusText);
+    }
+
+    [Fact]
+    public void BottomStripColor_When_Idle_Is_Indigo()
+    {
+        var slot = new UsbScannerSlotState();
+        slot.StartListening();
+        Assert.Equal(Color.FromArgb("#6A4C93"), slot.BottomStripColor);
+    }
+
+    [Fact]
+    public void BottomStripColor_When_Health_Warning_Is_Amber()
+    {
+        var slot = new UsbScannerSlotState();
+        slot.StartListening();
+        slot.IsHealthWarning = true;
+        Assert.Equal(Color.FromArgb("#FF9800"), slot.BottomStripColor);
+    }
+
+    [Fact]
+    public void BottomStripColor_When_Flash_Accepted_Is_Green()
+    {
+        var slot = new UsbScannerSlotState
+        {
+            LastScanStatus = ScanStatus.Accepted,
+            ShowFlash = true
+        };
+        Assert.Equal(Color.FromArgb("#4CAF50"), slot.BottomStripColor);
+    }
+
+    [Fact]
+    public void BottomStripColor_Reverts_To_Indigo_When_ShowFlash_Returns_False()
+    {
+        var slot = new UsbScannerSlotState();
+        slot.StartListening();
+        slot.LastScanStatus = ScanStatus.Accepted;
+        slot.ShowFlash = true;
+        Assert.Equal(Color.FromArgb("#4CAF50"), slot.BottomStripColor);
+
+        slot.ShowFlash = false;
+        Assert.Equal(Color.FromArgb("#6A4C93"), slot.BottomStripColor);
+    }
 }

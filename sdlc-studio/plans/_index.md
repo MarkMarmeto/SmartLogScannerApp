@@ -1,7 +1,7 @@
 # Implementation Plans Index
 
-> **Total Plans:** 23
-> **Status:** Planned (8) | In Progress (0) | Completed (15)
+> **Total Plans:** 24
+> **Status:** Planned (9) | In Progress (0) | Completed (15)
 
 ## All Plans
 
@@ -30,10 +30,11 @@
 | [PL0021](./PL0021-usb-scanner-indicator-slot.md) | [US0123](../stories/US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Completed | 2026-04-28 |
 | [PL0022](./PL0022-per-station-student-detail-cards.md) | [US0124](../stories/US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 2026-04-28 |
 | [PL0023](./PL0023-setup-wizard-compact-layout.md) | [US0125](../stories/US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout | Draft | 2026-04-28 |
+| [PL0024](./PL0024-id-card-style-station-cards.md) | [US0126](../stories/US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards | Draft | 2026-04-28 |
 
 ## By Status
 
-### Planned (Draft) (8)
+### Planned (Draft) (9)
 - [PL0013](./PL0013-scan-payload-camera-identity.md) - Scan Payload — Camera Identity (US0090)
 - [PL0014](./PL0014-multi-camera-windows-compatibility.md) - Multi-Camera Windows Compatibility Verification (US0088)
 - [PL0015](./PL0015-unify-scan-type-to-device-level.md) - Unify Scan Type to Device-Level (US0089)
@@ -42,6 +43,7 @@
 - [PL0018](./PL0018-heartbeat-service.md) - Scanner Heartbeat Service (US0120)
 - [PL0022](./PL0022-per-station-student-detail-cards.md) - Per-Station Student Detail Cards (US0124)
 - [PL0023](./PL0023-setup-wizard-compact-layout.md) - Setup Wizard Compact Layout (US0125)
+- [PL0024](./PL0024-id-card-style-station-cards.md) - ID-Card-Style Station Cards (US0126)
 
 ### In Progress (0)
 

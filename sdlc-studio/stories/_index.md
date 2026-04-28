@@ -7,13 +7,13 @@
 
 | Status | Count |
 |--------|-------|
-| Draft | 3 |
+| Draft | 4 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
 | Done | 31 |
-| **Total** | **34** |
+| **Total** | **35** |
 
 ## Stories by Epic
 
@@ -87,6 +87,7 @@
 | [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Done | 3 | AI Assistant |
 | [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Done | 5 | AI Assistant |
 | [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 5 | AI Assistant |
+| [US0126](US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards (Avatar Top, Device Strip Bottom) | Draft | 3 | AI Assistant |
 
 ## All Stories
 
@@ -126,11 +127,12 @@
 | [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 5 | Guard Gary |
 | [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 5 | Guard Gary |
 | [US0125](US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout (No Scroll, Sticky Save) | [EP0001](../epics/EP0001-device-setup-and-configuration.md) | Draft | 3 | IT Admin Ian |
+| [US0126](US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards (Avatar Top, Device Strip Bottom) | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 3 | Guard Gary |
 
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
-- Total story points: 153 (V1: 89 pts + 3 pts US0125 = 92 pts across 18 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts; EP0012 Concurrent Multi-Modal: 18 pts across 4 stories)
+- Total story points: 156 (V1: 92 pts across 18 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts; EP0012 Concurrent Multi-Modal: 21 pts across 5 stories)
 
 ## Changelog
 
@@ -145,3 +147,4 @@
 | 2026-04-28 | Added US0121-US0123 under EP0012 (Concurrent Multi-Modal Scanning) — Draft, 13 points total. Enables `Both` scanner mode (camera + USB simultaneously), setup wizard opt-in, USB indicator slot card with 60s health heuristic |
 | 2026-04-28 | Added US0124 (Per-Station Student Detail Cards) under EP0012 — Draft, 5 pts. Eliminates the shared central student card; each scan station card (cameras + USB) shows full student details. Reconciled US0121/US0122 by-Epic status to Done (matched All Stories table). |
 | 2026-04-28 | Added US0125 (Setup Wizard Compact Layout) under EP0001 — Draft, 3 pts. Restructures SetupPage from single-column scroll to row-based grid (Server + Security side-by-side, Scanner Config full-width, Camera Config full-width) with sticky save bar at the bottom. |
+| 2026-04-28 | Added US0126 (ID-Card-Style Station Cards) under EP0012 — Draft, 3 pts. Inverts visual hierarchy of per-station cards from US0124: avatar at top, student details (skeleton when idle, real on flash) in middle, device identity strip at bottom. Per-card ENTRY/EXIT badge removed (relies on global ENTRY MODE pill). |

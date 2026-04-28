@@ -188,28 +188,39 @@
                 <controls:CameraPreviewView x:Name="CameraPreview0" />
             </Border>
 
-            <!-- Adaptive station cards row -->
-            <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Default">
-                <VerticalStackLayout Spacing="0">
+            <!-- Adaptive station cards row — horizontal flow.
+                 Outer HorizontalStackLayout sits the camera FlexLayout and the USB card side by side
+                 at their natural widths so they appear: [Cam 1] [Cam 2] [Cam 3] [USB] inline. -->
+            <ScrollView Grid.Row="1"
+                        Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Default"
+                        VerticalScrollBarVisibility="Never"
+                        SizeChanged="OnCardsAreaSizeChanged">
+                <HorizontalStackLayout HorizontalOptions="Center"
+                                       VerticalOptions="Fill"
+                                       Spacing="0">
 
-                    <!-- Camera slot cards (1–8) -->
+                    <!-- Camera slot cards (1–8) — inner FlexLayout templated from CameraSlots -->
                     <FlexLayout BindableLayout.ItemsSource="{Binding CameraSlots}"
                                 Direction="Row"
                                 Wrap="Wrap"
-                                JustifyContent="Center"
+                                JustifyContent="Start"
                                 AlignItems="Start">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="vm:CameraSlotState">
+                                <!-- US0126: ID-card layout — avatar top, 4 detail rows (skeleton/real), device strip bottom. -->
                                 <Border IsVisible="{Binding IsVisible}"
                                         WidthRequest="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CardWidth}"
+                                        HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CardHeight}"
                                         MinimumWidthRequest="260"
+                                        MaximumWidthRequest="520"
                                         Margin="6"
                                         BackgroundColor="White"
                                         Stroke="{Binding DisplayBrush}"
                                         StrokeThickness="2"
                                         Padding="0">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
+                                        <RoundRectangle CornerRadius="14" />
                                     </Border.StrokeShape>
                                     <Border.Shadow>
                                         <Shadow Brush="Black" Opacity="0.08" Radius="10" Offset="0,3" />
@@ -217,122 +228,167 @@
 
                                     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="0">
 
-                                        <!-- HEADER: Camera name + scan type badge + result icon -->
+                                        <!-- ROW 0: Avatar (skeleton vs. active stacked) -->
                                         <Grid Grid.Row="0"
-                                              ColumnDefinitions="Auto,*,Auto"
-                                              Padding="16,12,16,8"
-                                              ColumnSpacing="8">
-                                            <Label Grid.Column="0"
-                                                   Text="{Binding FlashIcon}"
-                                                   FontSize="18"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{Binding FlashColor}"
-                                                   VerticalOptions="Center"
-                                                   IsVisible="{Binding ShowFlash}" />
-                                            <Label Grid.Column="1"
-                                                   Text="{Binding DisplayName}"
-                                                   FontSize="15"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#2C5F5D"
-                                                   VerticalOptions="Center"
-                                                   LineBreakMode="TailTruncation" />
-                                            <Border Grid.Column="2"
-                                                    BackgroundColor="{Binding ScanTypeBadgeColor}"
-                                                    Padding="8,3"
-                                                    StrokeThickness="0"
-                                                    VerticalOptions="Center">
+                                              HorizontalOptions="Center"
+                                              Padding="0,18,0,12">
+                                            <Border WidthRequest="80"
+                                                    HeightRequest="80"
+                                                    BackgroundColor="#EEEEEE"
+                                                    Stroke="#D0D0D0"
+                                                    StrokeThickness="2"
+                                                    IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}">
                                                 <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="5" />
+                                                    <RoundRectangle CornerRadius="40" />
                                                 </Border.StrokeShape>
-                                                <Label Text="{Binding ScanType}"
-                                                       FontSize="11"
-                                                       FontAttributes="Bold"
-                                                       TextColor="White" />
+                                                <Label Text="👤"
+                                                       FontSize="36"
+                                                       Opacity="0.3"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Border>
+                                            <Border WidthRequest="80"
+                                                    HeightRequest="80"
+                                                    BackgroundColor="#E0F2F1"
+                                                    Stroke="#4D9B91"
+                                                    StrokeThickness="2"
+                                                    IsVisible="{Binding ShowFlash}">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="40" />
+                                                </Border.StrokeShape>
+                                                <Label Text="👤"
+                                                       FontSize="36"
+                                                       Opacity="0.85"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
                                             </Border>
                                         </Grid>
 
-                                        <!-- BODY: Idle status OR student details -->
-                                        <Grid Grid.Row="1"
-                                              Padding="16,4,16,16"
-                                              RowDefinitions="Auto,Auto,Auto,*"
-                                              RowSpacing="6">
+                                        <!-- ROW 1: 4 labelled detail rows. Skeleton when idle, real values during flash. -->
+                                        <VerticalStackLayout Grid.Row="1"
+                                                             Padding="20,4,20,14"
+                                                             Spacing="10">
 
-                                            <!-- Idle: status text only -->
-                                            <Label Grid.Row="0"
-                                                   Text="{Binding StatusText}"
-                                                   FontSize="14"
-                                                   TextColor="#666666"
-                                                   VerticalOptions="Center"
-                                                   IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}" />
-
-                                            <!-- Flash: student number / visitor pass header -->
-                                            <Label Grid.Row="0"
-                                                   Text="{Binding FlashStudentName}"
-                                                   FontSize="22"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{Binding FlashColor}"
-                                                   LineBreakMode="TailTruncation"
-                                                   IsVisible="{Binding ShowFlash}" />
-
-                                            <!-- Flash + non-visitor: LRN row -->
-                                            <Grid Grid.Row="1"
-                                                  ColumnDefinitions="Auto,*"
-                                                  ColumnSpacing="10"
-                                                  IsVisible="{Binding ShowFlash}">
-                                                <Label Grid.Column="0"
-                                                       Text="LRN"
-                                                       FontSize="10"
-                                                       FontAttributes="Bold"
-                                                       TextColor="#9E9E9E"
-                                                       CharacterSpacing="1.5"
-                                                       VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding LastLrn, TargetNullValue='N/A'}"
-                                                       FontSize="14"
-                                                       TextColor="#546E7A"
-                                                       VerticalOptions="Center"
-                                                       LineBreakMode="TailTruncation" />
-                                            </Grid>
-
-                                            <!-- Flash: Grade · Program · Section -->
-                                            <Label Grid.Row="2"
-                                                   Text="{Binding LastGradeSection}"
-                                                   FontSize="14"
-                                                   TextColor="#37474F"
-                                                   LineBreakMode="TailTruncation"
-                                                   IsVisible="{Binding ShowFlash}" />
-                                        </Grid>
-
-                                        <!-- BOTTOM BANNER (per-card replacement for the deleted shared banner) -->
-                                        <Border Grid.Row="2"
-                                                BackgroundColor="{Binding FlashColor}"
-                                                StrokeThickness="0"
-                                                Padding="14,10"
-                                                IsVisible="{Binding ShowFlash}">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="0,0,11,11" />
-                                            </Border.StrokeShape>
-                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                                <Label Grid.Column="0"
-                                                       Text="{Binding FlashIcon}"
-                                                       FontSize="20"
-                                                       TextColor="White"
-                                                       VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding LastScanMessage}"
+                                            <!-- STUDENT NUMBER (hidden for visitor scans) -->
+                                            <VerticalStackLayout Spacing="3"
+                                                                 IsVisible="{Binding IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                                <Label Text="STUDENT NUMBER"
                                                        FontSize="13"
                                                        FontAttributes="Bold"
+                                                       TextColor="#9E9E9E"
+                                                       CharacterSpacing="1.2" />
+                                                <Border IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                                        BackgroundColor="#EEEEEE"
+                                                        HeightRequest="30"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="4" />
+                                                    </Border.StrokeShape>
+                                                </Border>
+                                                <Label IsVisible="{Binding ShowFlash}"
+                                                       Text="{Binding LastStudentId}"
+                                                       FontSize="26"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#2C5F5D"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <!-- STUDENT NAME (always visible — carries "Visitor Pass #N" for visitors) -->
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="STUDENT NAME"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#9E9E9E"
+                                                       CharacterSpacing="1.2" />
+                                                <Border IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                                        BackgroundColor="#EEEEEE"
+                                                        HeightRequest="27"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="4" />
+                                                    </Border.StrokeShape>
+                                                </Border>
+                                                <Label IsVisible="{Binding ShowFlash}"
+                                                       Text="{Binding FlashStudentName}"
+                                                       FontSize="22"
+                                                       TextColor="#37474F"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <!-- LRN (hidden for visitor scans) -->
+                                            <VerticalStackLayout Spacing="3"
+                                                                 IsVisible="{Binding IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                                <Label Text="LRN"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#9E9E9E"
+                                                       CharacterSpacing="1.2" />
+                                                <Border IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                                        BackgroundColor="#EEEEEE"
+                                                        HeightRequest="24"
+                                                        WidthRequest="160"
+                                                        HorizontalOptions="Start"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="4" />
+                                                    </Border.StrokeShape>
+                                                </Border>
+                                                <Label IsVisible="{Binding ShowFlash}"
+                                                       Text="{Binding LastLrn, TargetNullValue='N/A'}"
+                                                       FontSize="20"
+                                                       TextColor="#546E7A"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <!-- GRADE · PROGRAM · SECTION (hidden for visitor scans) -->
+                                            <VerticalStackLayout Spacing="3"
+                                                                 IsVisible="{Binding IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                                <Label Text="GRADE · PROGRAM · SECTION"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#9E9E9E"
+                                                       CharacterSpacing="1.2" />
+                                                <Border IsVisible="{Binding ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                                        BackgroundColor="#EEEEEE"
+                                                        HeightRequest="24"
+                                                        WidthRequest="200"
+                                                        HorizontalOptions="Start"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="4" />
+                                                    </Border.StrokeShape>
+                                                </Border>
+                                                <Label IsVisible="{Binding ShowFlash}"
+                                                       Text="{Binding LastGradeSection}"
+                                                       FontSize="20"
+                                                       TextColor="#37474F"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+
+                                        <!-- ROW 2: Device strip — name on line 1, status on line 2 -->
+                                        <Border Grid.Row="2"
+                                                BackgroundColor="{Binding BottomStripColor}"
+                                                StrokeThickness="0"
+                                                Padding="14,12">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="0,0,12,12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                                <Label Text="{Binding DisplayName}"
+                                                       FontSize="17"
+                                                       FontAttributes="Bold"
                                                        TextColor="White"
-                                                       LineBreakMode="WordWrap"
-                                                       MaxLines="2"
-                                                       VerticalOptions="Center" />
-                                                <Label Grid.Column="2"
-                                                       Text="{Binding LastScanTime}"
-                                                       FontSize="11"
+                                                       HorizontalTextAlignment="Center"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding BottomStripStatusText}"
+                                                       FontSize="14"
                                                        TextColor="White"
-                                                       Opacity="0.9"
-                                                       VerticalOptions="Center" />
-                                            </Grid>
+                                                       Opacity="0.92"
+                                                       HorizontalTextAlignment="Center"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
                                         </Border>
                                     </Grid>
                                 </Border>
@@ -340,18 +396,20 @@
                         </BindableLayout.ItemTemplate>
                     </FlexLayout>
 
-                    <!-- USB indicator card (peer with camera cards) -->
+                    <!-- USB indicator card (peer with camera cards) — US0126 ID-card layout.
+                         Sits inline with camera cards in the outer FlexLayout's row-flow. -->
                     <Border IsVisible="{Binding UsbScannerSlot.IsVisible}"
                             WidthRequest="{Binding CardWidth}"
+                            HeightRequest="{Binding CardHeight}"
                             MinimumWidthRequest="260"
-                            HorizontalOptions="Center"
-                            Margin="6,12,6,6"
+                            MaximumWidthRequest="520"
+                            Margin="6"
                             BackgroundColor="White"
                             Stroke="{Binding UsbScannerSlot.DisplayColor}"
                             StrokeThickness="2"
                             Padding="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
+                            <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
                         <Border.Shadow>
                             <Shadow Brush="Black" Opacity="0.08" Radius="10" Offset="0,3" />
@@ -359,126 +417,178 @@
 
                         <Grid RowDefinitions="Auto,*,Auto" RowSpacing="0">
 
-                            <!-- HEADER: barcode glyph + name + scan type badge -->
+                            <!-- ROW 0: Avatar (skeleton vs. active stacked) -->
                             <Grid Grid.Row="0"
-                                  ColumnDefinitions="Auto,*,Auto"
-                                  Padding="16,12,16,8"
-                                  ColumnSpacing="8">
-                                <Path Grid.Column="0"
-                                      Data="M0,0 L2,0 L2,16 L0,16 Z M4,0 L5,0 L5,16 L4,16 Z M7,0 L9,0 L9,16 L7,16 Z M11,0 L12,0 L12,16 L11,16 Z M14,0 L16,0 L16,16 L14,16 Z"
-                                      Fill="#6A4C93"
-                                      WidthRequest="16"
-                                      HeightRequest="16"
-                                      VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding UsbScannerSlot.DisplayName}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       TextColor="#6A4C93"
-                                       VerticalOptions="Center"
-                                       LineBreakMode="TailTruncation" />
-                                <Border Grid.Column="2"
-                                        BackgroundColor="{Binding UsbScannerSlot.ScanTypeBadgeColor}"
-                                        Padding="8,3"
-                                        StrokeThickness="0"
-                                        VerticalOptions="Center">
+                                  HorizontalOptions="Center"
+                                  Padding="0,18,0,12">
+                                <Border WidthRequest="80"
+                                        HeightRequest="80"
+                                        BackgroundColor="#EEEEEE"
+                                        Stroke="#D0D0D0"
+                                        StrokeThickness="2"
+                                        IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="5" />
+                                        <RoundRectangle CornerRadius="40" />
                                     </Border.StrokeShape>
-                                    <Label Text="{Binding UsbScannerSlot.ScanType}"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="White" />
+                                    <Label Text="👤"
+                                           FontSize="36"
+                                           Opacity="0.3"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Border WidthRequest="80"
+                                        HeightRequest="80"
+                                        BackgroundColor="#E0F2F1"
+                                        Stroke="#4D9B91"
+                                        StrokeThickness="2"
+                                        IsVisible="{Binding UsbScannerSlot.ShowFlash}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="40" />
+                                    </Border.StrokeShape>
+                                    <Label Text="👤"
+                                           FontSize="36"
+                                           Opacity="0.85"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
                                 </Border>
                             </Grid>
 
-                            <!-- BODY: idle status OR student details -->
-                            <Grid Grid.Row="1"
-                                  Padding="16,4,16,16"
-                                  RowDefinitions="Auto,Auto,Auto,*"
-                                  RowSpacing="6">
+                            <!-- ROW 1: 4 labelled detail rows -->
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Padding="20,4,20,14"
+                                                 Spacing="10">
 
-                                <!-- Idle: status text -->
-                                <Label Grid.Row="0"
-                                       Text="{Binding UsbScannerSlot.StatusText}"
-                                       FontSize="14"
-                                       TextColor="#666666"
-                                       VerticalOptions="Center"
-                                       IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}" />
-
-                                <!-- Flash: subject name -->
-                                <Label Grid.Row="0"
-                                       Text="{Binding UsbScannerSlot.FlashStudentName}"
-                                       FontSize="22"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding UsbScannerSlot.FlashColor}"
-                                       LineBreakMode="TailTruncation"
-                                       IsVisible="{Binding UsbScannerSlot.ShowFlash}" />
-
-                                <!-- Flash + non-visitor: LRN -->
-                                <Grid Grid.Row="1"
-                                      ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="10"
-                                      IsVisible="{Binding UsbScannerSlot.ShowFlash}">
-                                    <Label Grid.Column="0"
-                                           Text="LRN"
-                                           FontSize="10"
-                                           FontAttributes="Bold"
-                                           TextColor="#9E9E9E"
-                                           CharacterSpacing="1.5"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding UsbScannerSlot.LastLrn, TargetNullValue='N/A'}"
-                                           FontSize="14"
-                                           TextColor="#546E7A"
-                                           VerticalOptions="Center"
-                                           LineBreakMode="TailTruncation" />
-                                </Grid>
-
-                                <!-- Flash: Grade · Program · Section -->
-                                <Label Grid.Row="2"
-                                       Text="{Binding UsbScannerSlot.LastGradeSection}"
-                                       FontSize="14"
-                                       TextColor="#37474F"
-                                       LineBreakMode="TailTruncation"
-                                       IsVisible="{Binding UsbScannerSlot.ShowFlash}" />
-                            </Grid>
-
-                            <!-- BOTTOM BANNER -->
-                            <Border Grid.Row="2"
-                                    BackgroundColor="{Binding UsbScannerSlot.FlashColor}"
-                                    StrokeThickness="0"
-                                    Padding="14,10"
-                                    IsVisible="{Binding UsbScannerSlot.ShowFlash}">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="0,0,11,11" />
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                    <Label Grid.Column="0"
-                                           Text="{Binding UsbScannerSlot.FlashIcon}"
-                                           FontSize="20"
-                                           TextColor="White"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding UsbScannerSlot.LastScanMessage}"
+                                <!-- STUDENT NUMBER (hidden for visitor scans) -->
+                                <VerticalStackLayout Spacing="3"
+                                                     IsVisible="{Binding UsbScannerSlot.IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                    <Label Text="STUDENT NUMBER"
                                            FontSize="13"
                                            FontAttributes="Bold"
-                                           TextColor="White"
-                                           LineBreakMode="WordWrap"
-                                           MaxLines="2"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="2"
-                                           Text="{Binding UsbScannerSlot.LastScanTime}"
-                                           FontSize="11"
-                                           TextColor="White"
-                                           Opacity="0.9"
-                                           VerticalOptions="Center" />
+                                           TextColor="#9E9E9E"
+                                           CharacterSpacing="1.2" />
+                                    <Border IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                            BackgroundColor="#EEEEEE"
+                                            HeightRequest="30"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="4" />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label IsVisible="{Binding UsbScannerSlot.ShowFlash}"
+                                           Text="{Binding UsbScannerSlot.LastStudentId}"
+                                           FontSize="26"
+                                           FontAttributes="Bold"
+                                           TextColor="#2C5F5D"
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <!-- STUDENT NAME (always visible) -->
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="STUDENT NAME"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#9E9E9E"
+                                           CharacterSpacing="1.2" />
+                                    <Border IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                            BackgroundColor="#EEEEEE"
+                                            HeightRequest="27"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="4" />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label IsVisible="{Binding UsbScannerSlot.ShowFlash}"
+                                           Text="{Binding UsbScannerSlot.FlashStudentName}"
+                                           FontSize="22"
+                                           TextColor="#37474F"
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <!-- LRN (hidden for visitor scans) -->
+                                <VerticalStackLayout Spacing="3"
+                                                     IsVisible="{Binding UsbScannerSlot.IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                    <Label Text="LRN"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#9E9E9E"
+                                           CharacterSpacing="1.2" />
+                                    <Border IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                            BackgroundColor="#EEEEEE"
+                                            HeightRequest="24"
+                                            WidthRequest="160"
+                                            HorizontalOptions="Start"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="4" />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label IsVisible="{Binding UsbScannerSlot.ShowFlash}"
+                                           Text="{Binding UsbScannerSlot.LastLrn, TargetNullValue='N/A'}"
+                                           FontSize="20"
+                                           TextColor="#546E7A"
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <!-- GRADE · PROGRAM · SECTION (hidden for visitor scans) -->
+                                <VerticalStackLayout Spacing="3"
+                                                     IsVisible="{Binding UsbScannerSlot.IsVisitorScan, Converter={StaticResource InvertedBoolConverter}}">
+                                    <Label Text="GRADE · PROGRAM · SECTION"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#9E9E9E"
+                                           CharacterSpacing="1.2" />
+                                    <Border IsVisible="{Binding UsbScannerSlot.ShowFlash, Converter={StaticResource InvertedBoolConverter}}"
+                                            BackgroundColor="#EEEEEE"
+                                            HeightRequest="24"
+                                            WidthRequest="200"
+                                            HorizontalOptions="Start"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="4" />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label IsVisible="{Binding UsbScannerSlot.ShowFlash}"
+                                           Text="{Binding UsbScannerSlot.LastGradeSection}"
+                                           FontSize="20"
+                                           TextColor="#37474F"
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                            </VerticalStackLayout>
+
+                            <!-- ROW 2: Device strip — barcode glyph + name on line 1, status on line 2 -->
+                            <Border Grid.Row="2"
+                                    BackgroundColor="{Binding UsbScannerSlot.BottomStripColor}"
+                                    StrokeThickness="0"
+                                    Padding="14,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="0,0,12,12" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Path Grid.Column="0"
+                                          Data="M0,0 L2,0 L2,12 L0,12 Z M4,0 L5,0 L5,12 L4,12 Z M7,0 L9,0 L9,12 L7,12 Z M11,0 L12,0 L12,12 L11,12 Z M14,0 L16,0 L16,12 L14,12 Z"
+                                          Fill="White"
+                                          WidthRequest="16"
+                                          HeightRequest="12"
+                                          VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="{Binding UsbScannerSlot.DisplayName}"
+                                               FontSize="17"
+                                               FontAttributes="Bold"
+                                               TextColor="White"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding UsbScannerSlot.BottomStripStatusText}"
+                                               FontSize="14"
+                                               TextColor="White"
+                                               Opacity="0.92"
+                                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </Grid>
                     </Border>
 
-                </VerticalStackLayout>
+                </HorizontalStackLayout>
             </ScrollView>
         </Grid>
         <!-- /Body -->
