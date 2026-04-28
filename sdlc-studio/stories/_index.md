@@ -1,19 +1,19 @@
 # Story Registry
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-28
 **Personas Reference:** [User Personas](../personas.md)
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Draft | 0 |
+| Draft | 1 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
 | Done | 28 |
-| **Total** | **28** |
+| **Total** | **29** |
 
 ## Stories by Epic
 
@@ -72,6 +72,12 @@
 | [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Fix Section Name Trimming, Show Program Code | Done | 2 | AI Assistant |
 | [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Enlarge Date/Time, Anchor Left-Most | Done | 1 | AI Assistant |
 
+### EP0005: Scanner Integration (cross-project — epic tracked in WebApp)
+
+| ID | Title | Status | Points | Owner |
+|----|-------|--------|--------|-------|
+| [US0120](US0120-heartbeat-service.md) | Implement Heartbeat Service | Draft | 3 | AI Assistant |
+
 ## All Stories
 
 | ID | Title | Epic | Status | Points | Persona |
@@ -104,11 +110,12 @@
 | [US0090](US0090-scan-payload-camera-identity.md) | Scan Payload — Camera Index + Name | EP0011 (WebApp) | Draft | 3 | Admin Amy |
 | [US0091](US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Section + Program | EP0011 (WebApp) | Draft | 2 | Guard Gary |
 | [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Date/Time Prominent | EP0011 (WebApp) | Draft | 1 | Guard Gary |
+| [US0120](US0120-heartbeat-service.md) | Heartbeat Service | EP0005 (WebApp) | Draft | 3 | Tech-Savvy Tony |
 
 ## Notes
 
 - Stories are numbered globally (US0001, US0002, etc.)
-- Total story points: 129 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft)
+- Total story points: 132 (V1: 89 pts across 17 stories; EP0011 Multi-Camera: 40 pts across 11 stories — 6 Done + 5 Draft; EP0005 Heartbeat: 3 pts)
 
 ## Changelog
 
@@ -119,3 +126,4 @@
 | 2026-03-09 | 6 multi-camera stories (US0066-US0071) completed under cross-project EP0011 |
 | 2026-04-22 | Status reconciliation — registry updated from stale Draft/Ready/Review markers to Done for all 23 stories |
 | 2026-04-24 | Added 5 scanner-side stories (US0088-US0092) under re-opened cross-project EP0011 — V2.1 feature/bugfix additions from WebApp planning session |
+| 2026-04-28 | Added US0120 (Heartbeat Service) under cross-project EP0005 — companion to WebApp US0119 / PL0039 |

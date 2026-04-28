@@ -19,6 +19,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ISoundService _soundService;
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IHealthCheckService _healthCheck;
+    private readonly IHeartbeatService _heartbeat;
     private readonly IBackgroundSyncService _backgroundSync;
     private readonly ISecureConfigService _secureConfig;
     private readonly IScanHistoryService _scanHistory;
@@ -118,6 +119,7 @@ public partial class MainViewModel : ObservableObject
         ISoundService soundService,
         IOfflineQueueService offlineQueue,
         IHealthCheckService healthCheck,
+        IHeartbeatService heartbeat,
         IBackgroundSyncService backgroundSync,
         ISecureConfigService secureConfig,
         IScanHistoryService scanHistory,
@@ -130,6 +132,7 @@ public partial class MainViewModel : ObservableObject
         _soundService = soundService;
         _offlineQueue = offlineQueue;
         _healthCheck = healthCheck;
+        _heartbeat = heartbeat;
         _backgroundSync = backgroundSync;
         _secureConfig = secureConfig;
         _scanHistory = scanHistory;
@@ -192,6 +195,9 @@ public partial class MainViewModel : ObservableObject
 
         // US0015: Start health check monitoring
         await _healthCheck.StartAsync();
+
+        // US0120: Start heartbeat service — pushes scanner vitals to admin server
+        await _heartbeat.StartAsync();
 
         // BUGFIX: Initialize connectivity status from current health check state
         var currentStatus = _healthCheck.IsOnline;

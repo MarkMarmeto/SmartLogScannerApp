@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog Scanner — Hardware Procurement Proposal</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --accent: #ca8a04;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --radius: 8px;
+    --info-bg: #e0f2fe;
+    --info-border: #0ea5e9;
+    --info-text: #0c4a6e;
+    --good-bg: #dcfce7;
+    --good-border: #22c55e;
+    --good-text: #14532d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); text-decoration: none; }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 2rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .5rem; }
+  header h1 { font-size: 1.6rem; font-weight: 700; }
+  header .sub { font-size: 14px; opacity: .85; margin-top: 6px; }
+  .header-meta { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 2rem; font-size: 13px; opacity: .9; }
+  .header-meta div span { display: block; opacity: .65; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+  .module { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden; }
+  .module-header { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .module-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: var(--surface-alt); }
+  .module-title { font-size: 1rem; font-weight: 700; }
+  .module-body { padding: 1.25rem 1.5rem; }
+  .module-body p + p, .module-body p + ul, .module-body ul + p { margin-top: .8rem; }
+  .module-body ul, .module-body ol { padding-left: 1.4rem; }
+  .module-body li { margin: .25rem 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .55rem .9rem; border: 1px solid var(--border); }
+  td { padding: .6rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td.center, th.center { text-align: center; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 700px) { .summary-grid { grid-template-columns: 1fr; } main { padding: 1.5rem 1rem; } .header-meta { gap: 1rem; } }
+  .summary-card { background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.2rem; }
+  .summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
+  .summary-card .value { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); margin-top: .3rem; line-height: 1.2; }
+  .summary-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .total-row td { background: var(--primary-dark) !important; color: #fff; font-weight: 700; font-size: 15px; }
+  .subtotal-row td { background: #ecfeff !important; font-weight: 600; }
+
+  .callout { border-left: 4px solid; padding: .8rem 1rem; border-radius: 4px; font-size: 14px; }
+  .callout.info { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
+  .callout.good { background: var(--good-bg); border-color: var(--good-border); color: var(--good-text); }
+  .callout strong { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .25rem; }
+
+  h3 { font-size: .95rem; font-weight: 700; margin: 1.1rem 0 .5rem; color: var(--primary-dark); }
+  h3:first-child { margin-top: 0; }
+
+  footer { max-width: 1100px; margin: 0 auto; padding: 2rem; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+  @media print {
+    nav { display: none; }
+    body { background: #fff; }
+    .module { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Procurement Proposal</div>
+    <h1>SmartLog Scanner — Gate Hardware Setup</h1>
+    <div class="sub">Hands-free, self-service QR attendance scanning station</div>
+    <div class="header-meta">
+      <div><span>Prepared by</span>SmartLog Implementation Team</div>
+      <div><span>Date</span>April 2026</div>
+      <div><span>Version</span>1.0</div>
+      <div><span>Scope</span>Per-gate hardware bundle</div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#summary">Executive Summary</a>
+    <a href="#configuration">Proposed Configuration</a>
+    <a href="#justification">Justification</a>
+    <a href="#capacity">Capacity</a>
+    <a href="#cost">Cost Summary</a>
+    <a href="#risk">Risk Mitigation</a>
+    <a href="#timeline">Implementation</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ========================= EXECUTIVE SUMMARY ========================= -->
+<div class="module" id="summary">
+  <div class="module-header">
+    <div class="module-icon">📋</div>
+    <div class="module-title">Executive Summary</div>
+  </div>
+  <div class="module-body">
+    <p>We propose a <strong>fully hands-free, self-service hardware bundle</strong> for the SmartLog Scanner attendance station at each school gate. Students present their QR code directly to the scanning station — no staff operator is required, eliminating ongoing personnel cost and removing the queue bottleneck of human-mediated scanning.</p>
+
+    <p>The bundle combines <strong>two fixed webcams</strong> (the primary scan path, with on-screen visual feedback) and <strong>one fixed presentation scanner</strong> (a kiosk-style unit for fast self-service scanning), driven by a dedicated mini-PC running the SmartLog Scanner application.</p>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">Per gate</div>
+        <div class="value">₱57,500</div>
+        <div class="sub">One-time capital cost (indicative)</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Typical 2-gate deployment</div>
+        <div class="value">₱117,500</div>
+        <div class="sub">Entrance + exit + shared LAN switch</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Throughput per gate</div>
+        <div class="value">~50–70 / min</div>
+        <div class="sub">At peak arrival window</div>
+      </div>
+    </div>
+
+    <div class="callout good">
+      <strong>Why this configuration</strong>
+      Cameras provide live preview that allows students to self-correct positioning; the presentation scanner provides a fast familiar kiosk-style alternative for students comfortable with self-checkout interfaces. Together they give two independent scan paths — if one fails, the other continues to operate, ensuring no gate downtime.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= PROPOSED CONFIGURATION ========================= -->
+<div class="module" id="configuration">
+  <div class="module-header">
+    <div class="module-icon">🧩</div>
+    <div class="module-title">Proposed Configuration (Per Gate)</div>
+  </div>
+  <div class="module-body">
+
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Specification</th>
+          <th class="center">Qty</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Webcam</strong></td>
+          <td>Logitech C920 / C920s — 1080p Full HD, autofocus, MJPEG, glass lens, UVC-compliant</td>
+          <td class="center">2</td>
+          <td>Primary scan path. Mounted on the gate frame; provides live preview on the student-facing display.</td>
+        </tr>
+        <tr>
+          <td><strong>Presentation scanner</strong></td>
+          <td>Eyoyo desktop 2D omnidirectional presentation scanner (USB, hands-free auto-sensing)</td>
+          <td class="center">1</td>
+          <td>Self-service kiosk lane. Student presents QR to fixed unit; instant audible/visual confirmation on successful scan.</td>
+        </tr>
+        <tr>
+          <td><strong>Host PC</strong></td>
+          <td>Mini-PC, Intel Core i5-12400 (or AMD Ryzen 5 5600G), 16 GB DDR4 RAM, 256 GB NVMe SSD, Windows 11 Pro</td>
+          <td class="center">1</td>
+          <td>Runs the SmartLog Scanner application; processes camera frames and scanner input; manages local SQLite queue.</td>
+        </tr>
+        <tr>
+          <td><strong>Display monitor</strong></td>
+          <td>24" 1080p IPS monitor, HDMI input</td>
+          <td class="center">1</td>
+          <td>Student-facing display showing live camera preview, scan confirmation, and student name/grade feedback.</td>
+        </tr>
+        <tr>
+          <td><strong>UPS</strong></td>
+          <td>650 VA / 360 W line-interactive UPS</td>
+          <td class="center">1</td>
+          <td>Power continuity during outages; protects in-flight scans and database integrity. Provides 5–10 minute graceful shutdown window.</td>
+        </tr>
+        <tr>
+          <td><strong>Mounting &amp; cabling</strong></td>
+          <td>VESA mount for mini-PC, camera brackets, USB-A extensions (≤ 3 m), Ethernet patch cable, cable management trunking</td>
+          <td class="center">1 set</td>
+          <td>Fixed installation hardware to ensure stable mounting and clean cable runs.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Shared Site Components (One-Time, Not Per Gate)</h3>
+    <p>The following items are required <strong>once per deployment site</strong>, regardless of the number of gates installed. They support communication between the gate stations and the SmartLog backend server over the local network.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Specification</th>
+          <th class="center">Qty</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Network switch</strong></td>
+          <td>8-port Gigabit unmanaged Ethernet switch (TP-Link TL-SG108 or equivalent)</td>
+          <td class="center">1</td>
+          <td>Connects entrance gate, exit gate, and SmartLog backend server on a single dedicated LAN segment. Provides spare ports for future expansion (additional gates, monitoring devices).</td>
+        </tr>
+        <tr>
+          <td><strong>Cat6 patch cables</strong></td>
+          <td>Pre-terminated Cat6 Ethernet cables, assorted lengths (5m, 10m, 15m)</td>
+          <td class="center">1 set</td>
+          <td>Connects each gate PC and the server to the network switch. Lengths selected based on physical site layout.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Why a dedicated switch</strong>
+      A small unmanaged switch ensures the SmartLog system is self-contained and not dependent on the school's general network configuration. It isolates scanner-to-server traffic, simplifies troubleshooting, and provides spare ports for future gates. Total cost is minimal (~₱2,500 including cabling) and avoids the operational risk of relying on existing infrastructure that may not have available ports at the gate locations.
+    </div>
+
+    <div class="callout info" style="margin-top: .6rem;">
+      <strong>Internet uplink (existing infrastructure)</strong>
+      The network switch connects to the school's existing internet router/gateway via a single uplink port. No internet provisioning is included in this proposal — assumed to be provided from existing school infrastructure.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= JUSTIFICATION ========================= -->
+<div class="module" id="justification">
+  <div class="module-header">
+    <div class="module-icon">💡</div>
+    <div class="module-title">Technical Justification</div>
+  </div>
+  <div class="module-body">
+
+    <h3>Why two webcams (not one, not three)</h3>
+    <p>One camera is a single point of failure — if it fails or is obstructed, the gate stops accepting scans. Two cameras provide:</p>
+    <ul>
+      <li><strong>Redundancy:</strong> if one camera fails, the second continues to operate without interruption.</li>
+      <li><strong>Parallel decode lanes:</strong> two students can present QR codes simultaneously, doubling throughput at peak arrival times.</li>
+      <li><strong>Cost-effectiveness:</strong> Logitech C920 provides commercial-grade optics at ~₱3,500/unit. Two units total ~₱7,000 — significantly cheaper than a single industrial-grade fixed scanner.</li>
+    </ul>
+    <p>Three or more cameras provide diminishing returns: the limiting factor at a gate is student arrival rate and physical queueing, not decode throughput. Two cameras handle 50+ students/min comfortably, which exceeds the peak load of most schools.</p>
+
+    <h3>Why a presentation scanner in addition to cameras</h3>
+    <p>A fixed presentation scanner adds value as a complementary scan path, not a replacement for cameras:</p>
+    <ul>
+      <li><strong>Familiar UX:</strong> students recognise the form factor from supermarket self-checkout — intuitive, no training needed.</li>
+      <li><strong>Fast decode:</strong> presentation scanners provide a bright red illumination spot and audible beep, giving immediate unambiguous confirmation.</li>
+      <li><strong>Better in low light:</strong> active illumination performs reliably even in shaded gate areas.</li>
+      <li><strong>Reads damaged QR codes:</strong> scratched or smudged ID cards that cameras may struggle with are easily handled by the active illumination of a presentation scanner.</li>
+    </ul>
+
+    <h3>Why a dedicated mini-PC (not a laptop or shared workstation)</h3>
+    <ul>
+      <li><strong>Sustained CPU performance:</strong> the multi-camera decode pipeline is a continuous CPU workload. Laptops thermally throttle within 10–15 minutes of full load; mini-PCs maintain rated performance indefinitely.</li>
+      <li><strong>Sufficient USB connectivity:</strong> mini-PCs typically expose 4–6 USB ports across multiple controllers, enough for 2 cameras + 1 scanner + peripherals without contention.</li>
+      <li><strong>Form factor:</strong> mini-PCs mount discreetly behind the display via VESA brackets, leaving the gate counter clear.</li>
+      <li><strong>Cost parity:</strong> a mid-range mini-PC is cheaper than a comparable-CPU laptop and avoids paying for screen, battery, and keyboard that are not needed.</li>
+    </ul>
+
+    <h3>Why a UPS is non-negotiable</h3>
+    <p>The application maintains a local SQLite queue of pending scan submissions. Sudden power loss mid-scan can corrupt this database, requiring manual recovery and risking lost attendance records. A small 650 VA UPS provides a 5–10 minute window for the application to flush its queue and shut down cleanly. This is the highest-value low-cost accessory in the bundle.</p>
+
+    <h3>Why hands-free / self-service</h3>
+    <ul>
+      <li><strong>No recurring labour cost:</strong> a staff operator at each gate represents an ongoing salary cost; hands-free hardware is a one-time capital expense.</li>
+      <li><strong>Higher throughput:</strong> students self-presenting QR codes is faster than a single operator scanning each one in sequence.</li>
+      <li><strong>Operates outside duty hours:</strong> early arrivals or late dismissals require no staffing.</li>
+      <li><strong>Consistent enforcement:</strong> the system applies the same validation logic to every scan, avoiding human inconsistency.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================= CAPACITY ========================= -->
+<div class="module" id="capacity">
+  <div class="module-header">
+    <div class="module-icon">📊</div>
+    <div class="module-title">Capacity &amp; Coverage</div>
+  </div>
+  <div class="module-body">
+
+    <p>The proposed per-gate configuration supports the following student volumes during the peak 15-minute morning arrival window:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>School population</th>
+          <th class="center">Recommended gates (with this bundle)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Up to 300 students</td><td class="center">1 gate</td><td>One bundle covers comfortably with headroom for growth.</td></tr>
+        <tr><td>300–600 students</td><td class="center">1 gate</td><td>Single bundle handles peak window without queueing.</td></tr>
+        <tr><td>600–1,000 students</td><td class="center">1–2 gates</td><td>One bundle works if arrivals are spread; two bundles recommended for concentrated arrival windows.</td></tr>
+        <tr><td>1,000+ students</td><td class="center">2+ gates</td><td>Multiple gates also provide redundancy if one station requires maintenance.</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Throughput capacity per gate:</strong> approximately 50–70 successful scans per minute, accounting for student presentation time, decode latency, and on-screen feedback display.</p>
+  </div>
+</div>
+
+<!-- ========================= COST SUMMARY ========================= -->
+<div class="module" id="cost">
+  <div class="module-header">
+    <div class="module-icon">💰</div>
+    <div class="module-title">Cost Summary (Per Gate)</div>
+  </div>
+  <div class="module-body">
+
+    <p>All amounts in Philippine Peso (₱). Prices are <em>indicative estimates</em> and should be validated against current vendor quotations at procurement time.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th class="num">Unit Price</th>
+          <th class="center">Qty</th>
+          <th class="num">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logitech C920 webcam</td>
+          <td class="num">₱3,500</td>
+          <td class="center">2</td>
+          <td class="num">₱7,000</td>
+        </tr>
+        <tr>
+          <td>Eyoyo desktop 2D presentation scanner</td>
+          <td class="num">₱4,500</td>
+          <td class="center">1</td>
+          <td class="num">₱4,500</td>
+        </tr>
+        <tr>
+          <td>Mini-PC (Intel i5-12400, 16 GB RAM, 256 GB NVMe)</td>
+          <td class="num">₱32,000</td>
+          <td class="center">1</td>
+          <td class="num">₱32,000</td>
+        </tr>
+        <tr>
+          <td>24" 1080p IPS monitor</td>
+          <td class="num">₱7,500</td>
+          <td class="center">1</td>
+          <td class="num">₱7,500</td>
+        </tr>
+        <tr>
+          <td>UPS 650 VA / 360 W</td>
+          <td class="num">₱3,500</td>
+          <td class="center">1</td>
+          <td class="num">₱3,500</td>
+        </tr>
+        <tr>
+          <td>Mounting hardware, brackets &amp; cabling</td>
+          <td class="num">₱3,000</td>
+          <td class="center">1 set</td>
+          <td class="num">₱3,000</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="3">TOTAL PER GATE</td>
+          <td class="num">₱57,500</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Shared Site Infrastructure (One-Time Per Site)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th class="num">Unit Price</th>
+          <th class="center">Qty</th>
+          <th class="num">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>8-port Gigabit Ethernet switch (TP-Link TL-SG108 or equivalent)</td>
+          <td class="num">₱1,800</td>
+          <td class="center">1</td>
+          <td class="num">₱1,800</td>
+        </tr>
+        <tr>
+          <td>Cat6 patch cable set (assorted lengths)</td>
+          <td class="num">₱700</td>
+          <td class="center">1 set</td>
+          <td class="num">₱700</td>
+        </tr>
+        <tr class="subtotal-row">
+          <td colspan="3">SHARED SITE SUBTOTAL</td>
+          <td class="num">₱2,500</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Total Investment by Deployment Size</h3>
+    <p>Total cost = (per-gate bundle × number of gates) + shared site infrastructure.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Deployment</th>
+          <th class="num">Per-gate bundles</th>
+          <th class="num">Shared infrastructure</th>
+          <th class="num">Total investment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 gate (entrance only)</td>
+          <td class="num">₱57,500</td>
+          <td class="num">₱2,500</td>
+          <td class="num"><strong>₱60,000</strong></td>
+        </tr>
+        <tr>
+          <td>2 gates (entrance + exit) <span style="font-size: 11px; color: var(--text-muted);">— typical school deployment</span></td>
+          <td class="num">₱115,000</td>
+          <td class="num">₱2,500</td>
+          <td class="num"><strong>₱117,500</strong></td>
+        </tr>
+        <tr>
+          <td>3 gates</td>
+          <td class="num">₱172,500</td>
+          <td class="num">₱2,500</td>
+          <td class="num"><strong>₱175,000</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Optional upgrades</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Upgrade</th>
+          <th class="num">Additional cost</th>
+          <th>When to consider</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Honeywell Genesis 7580g (industrial presentation scanner) instead of Eyoyo</td>
+          <td class="num">+₱13,500</td>
+          <td>For high-traffic gates requiring 5+ year warranty and industrial reliability.</td>
+        </tr>
+        <tr>
+          <td>Third webcam (Logitech C920)</td>
+          <td class="num">+₱3,500</td>
+          <td>If real-world measurement shows queue exceeds 40 students/min.</td>
+        </tr>
+        <tr>
+          <td>Larger UPS (1500 VA)</td>
+          <td class="num">+₱5,500</td>
+          <td>For locations with frequent power outages; provides 30+ min runtime.</td>
+        </tr>
+        <tr>
+          <td>4G LTE failover modem</td>
+          <td class="num">+₱4,500</td>
+          <td>If school network reliability is a known concern.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========================= RISK MITIGATION ========================= -->
+<div class="module" id="risk">
+  <div class="module-header">
+    <div class="module-icon">🛡️</div>
+    <div class="module-title">Risk Mitigation</div>
+  </div>
+  <div class="module-body">
+
+    <table>
+      <thead>
+        <tr>
+          <th>Risk</th>
+          <th>Mitigation built into this proposal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Single device failure stops the gate</td>
+          <td>Two independent scan paths (cameras + presentation scanner). Either can serve students if the other fails.</td>
+        </tr>
+        <tr>
+          <td>Power outage corrupts the local database</td>
+          <td>UPS included as standard. Application performs graceful shutdown with queue flush.</td>
+        </tr>
+        <tr>
+          <td>Network outage prevents submission to backend</td>
+          <td>Application includes built-in offline queue with automatic background sync when connectivity is restored. No scans are lost.</td>
+        </tr>
+        <tr>
+          <td>Hardware obsolescence</td>
+          <td>All proposed components are commodity standards (UVC webcams, USB HID scanners, x86 mini-PC). Replacement parts will be available throughout the 5-year deployment lifecycle.</td>
+        </tr>
+        <tr>
+          <td>Insufficient throughput at peak times</td>
+          <td>Configuration supports 50–70 scans/min per gate, which exceeds the peak rate of typical school populations. Capacity can be expanded by adding a second gate (linear scaling).</td>
+        </tr>
+        <tr>
+          <td>Student unfamiliarity with self-service</td>
+          <td>On-screen visual feedback through the camera preview guides students; printed signage at the gate provides instructions for first-time use. Two scan paths reduce reliance on any single interaction model.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========================= IMPLEMENTATION ========================= -->
+<div class="module" id="timeline">
+  <div class="module-header">
+    <div class="module-icon">🚀</div>
+    <div class="module-title">Implementation Notes</div>
+  </div>
+  <div class="module-body">
+
+    <h3>Procurement &amp; lead time</h3>
+    <ul>
+      <li>All proposed components are available from local distributors (Lazada, Shopee Mall, PC Express, DataBlitz, retail electronics).</li>
+      <li>Estimated procurement lead time: <strong>1–2 weeks</strong> for stock items.</li>
+      <li>Consolidated procurement of multiple gate bundles may yield ~5–10% volume discount from a single distributor.</li>
+    </ul>
+
+    <h3>Installation</h3>
+    <ul>
+      <li>Per-gate physical installation: approximately <strong>4 hours</strong> (mounting, cabling, network connection, initial application configuration).</li>
+      <li>Network switch placement: install in the school server room or network closet alongside the SmartLog backend server. Single uplink cable connects the switch to the existing school router/gateway.</li>
+      <li>Installation can be performed by school IT staff with the deployment guide provided in <code>deploy/</code>.</li>
+      <li>Each gate requires: 1× standard 220V power outlet, 1× Cat6 Ethernet run from gate location to the network switch, gate-side counter or wall-mount surface.</li>
+    </ul>
+
+    <h3>Warranty &amp; lifecycle</h3>
+    <ul>
+      <li>Standard manufacturer warranty applies to each component (Logitech: 2 years, mini-PC: 1–3 years brand-dependent, UPS: 2 years).</li>
+      <li>Expected operational lifecycle: <strong>5 years</strong> before recommended hardware refresh.</li>
+      <li>Annual maintenance budget allowance recommended: ~5% of capital cost (~₱2,800/gate/year) for replacement cables, occasional camera replacement, UPS battery refresh.</li>
+    </ul>
+
+    <h3>Training &amp; rollout</h3>
+    <ul>
+      <li>No specialised training required for students — the system is designed for self-service.</li>
+      <li>School IT staff training: ~2 hours for installation, configuration, and routine maintenance procedures.</li>
+      <li>Recommended phased rollout: pilot one gate for 2 weeks, validate throughput and student adoption, then deploy remaining gates.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================= APPROVAL ========================= -->
+<div class="module">
+  <div class="module-header">
+    <div class="module-icon">✍️</div>
+    <div class="module-title">Approval Request</div>
+  </div>
+  <div class="module-body">
+    <p>We respectfully request approval for the procurement of the hardware described in this proposal, at an indicative cost of <strong>₱57,500 per gate</strong> plus <strong>₱2,500 in shared site infrastructure</strong> (network switch and cabling). For the typical entrance + exit deployment, total indicative investment is <strong>₱117,500</strong>. This enables deployment of the SmartLog Scanner attendance system as a fully hands-free, self-service station.</p>
+
+    <p>Pending approval, the implementation team will obtain firm vendor quotations, finalise procurement, and proceed with installation per the schedule outlined above.</p>
+
+    <table style="margin-top: 1.5rem;">
+      <tbody>
+        <tr>
+          <td style="width: 50%; padding: 1.5rem;">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .05em; font-weight: 600;">Prepared by</div>
+            <div style="margin-top: 2rem; border-top: 1px solid var(--text); padding-top: 4px; font-size: 13px;">Name &amp; Signature / Date</div>
+          </td>
+          <td style="width: 50%; padding: 1.5rem;">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .05em; font-weight: 600;">Approved by</div>
+            <div style="margin-top: 2rem; border-top: 1px solid var(--text); padding-top: 4px; font-size: 13px;">Name &amp; Signature / Date</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  SmartLog Scanner Hardware Procurement Proposal · Indicative pricing as of April 2026 · Subject to vendor quotation
+</footer>
+
+</body>
+</html>

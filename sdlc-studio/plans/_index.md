@@ -1,7 +1,7 @@
 # Implementation Plans Index
 
-> **Total Plans:** 17
-> **Status:** Planned (5) | In Progress (0) | Completed (12)
+> **Total Plans:** 18
+> **Status:** Planned (6) | In Progress (0) | Completed (12)
 
 ## All Plans
 
@@ -24,6 +24,7 @@
 | [PL0015](./PL0015-unify-scan-type-to-device-level.md) | [US0089](../stories/US0089-unify-scan-type-to-device-level.md) | Unify Scan Type to Device-Level | Draft | 2026-04-25 |
 | [PL0016](./PL0016-scanner-tile-section-name-and-program-code.md) | [US0091](../stories/US0091-scanner-section-name-trim-and-program-code.md) | Scanner Tile — Section Name Trim & Program Code | Draft | 2026-04-25 |
 | [PL0017](./PL0017-scanner-header-datetime-prominent.md) | [US0092](../stories/US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Enlarge Date/Time, Anchor Left-Most | Draft | 2026-04-25 |
+| [PL0018](./PL0018-heartbeat-service.md) | [US0120](../stories/US0120-heartbeat-service.md) | Scanner Heartbeat Service | Draft | 2026-04-28 |
 
 ## By Status
 
@@ -33,6 +34,7 @@
 - [PL0015](./PL0015-unify-scan-type-to-device-level.md) - Unify Scan Type to Device-Level (US0089)
 - [PL0016](./PL0016-scanner-tile-section-name-and-program-code.md) - Scanner Tile — Section Name Trim & Program Code (US0091)
 - [PL0017](./PL0017-scanner-header-datetime-prominent.md) - Scanner Header — Enlarge Date/Time, Anchor Left-Most (US0092)
+- [PL0018](./PL0018-heartbeat-service.md) - Scanner Heartbeat Service (US0120)
 
 ### In Progress (0)
 None
