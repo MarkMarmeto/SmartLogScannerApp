@@ -26,7 +26,7 @@
 | [PL0017](./PL0017-scanner-header-datetime-prominent.md) | [US0092](../stories/US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Enlarge Date/Time, Anchor Left-Most | Draft | 2026-04-25 |
 | [PL0018](./PL0018-heartbeat-service.md) | [US0120](../stories/US0120-heartbeat-service.md) | Scanner Heartbeat Service | Draft | 2026-04-28 |
 | [PL0019](./PL0019-concurrent-camera-usb-scanner-mode.md) | [US0121](../stories/US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | Completed | 2026-04-28 |
-| [PL0020](./PL0020-setup-wizard-concurrent-mode-config.md) | [US0122](../stories/US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Draft | 2026-04-28 |
+| [PL0020](./PL0020-setup-wizard-concurrent-mode-config.md) | [US0122](../stories/US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | Completed | 2026-04-28 |
 | [PL0021](./PL0021-usb-scanner-indicator-slot.md) | [US0123](../stories/US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | Draft | 2026-04-28 |
 
 ## By Status

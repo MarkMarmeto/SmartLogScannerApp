@@ -1,6 +1,6 @@
 # PL0020: Setup Wizard — Concurrent Scanner Mode Configuration
 
-> **Status:** Draft
+> **Status:** Completed
 > **Story:** [US0122: Setup Wizard — Concurrent Scanner Mode Configuration](../stories/US0122-setup-wizard-concurrent-mode-config.md)
 > **Epic:** [EP0012: Concurrent Multi-Modal Scanning](../epics/EP0012-concurrent-multi-modal-scanning.md)
 > **Created:** 2026-04-28

@@ -58,6 +58,13 @@ public partial class SetupViewModel : ObservableObject
 	[ObservableProperty] private string? _testResultMessage;
 	[ObservableProperty] private bool _isConnectionValid;
 
+	// EP0012 (US0122): Concurrent scanner mode opt-in
+	[ObservableProperty] private bool _enableUsbScannerInput;
+
+	/// <summary>True when a camera is detected — concurrent USB requires a camera pipeline.</summary>
+	public bool CanEnableUsb =>
+		DetectedScanMethod is ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback;
+
 	// Camera picker
 	[ObservableProperty] private ObservableCollection<CameraDeviceInfo> _availableCameras = new();
 	[ObservableProperty] private CameraDeviceInfo? _selectedCamera;
@@ -106,6 +113,7 @@ public partial class SetupViewModel : ObservableObject
 
 			SelectedScanType = _preferences.GetDefaultScanType();
 			AcceptSelfSignedCerts = _preferences.GetAcceptSelfSignedCerts();
+			EnableUsbScannerInput = _preferences.GetScanMode() == "Both";
 
 			_logger.LogInformation("Loaded existing configuration for editing");
 		}
@@ -227,13 +235,7 @@ public partial class SetupViewModel : ObservableObject
 			_preferences.SetServerBaseUrl(ServerUrl);
 			_preferences.SetDeviceId(GenerateDeviceId());
 			_preferences.SetDeviceName($"Scanner-{Environment.MachineName}");
-			_preferences.SetScanMode(DetectedScanMethod switch
-			{
-				ScanningMethod.Camera => "Camera",
-				ScanningMethod.CameraWithUsbFallback => "Camera",
-				ScanningMethod.UsbScanner => "USB",
-				_ => "USB"
-			});
+			_preferences.SetScanMode(ResolveScanMode(DetectedScanMethod, EnableUsbScannerInput));
 			_preferences.SetDefaultScanType(SelectedScanType);
 			_preferences.SetAcceptSelfSignedCerts(AcceptSelfSignedCerts);
 			_preferences.SetSelectedCameraId(SelectedCamera?.Id ?? string.Empty);
@@ -324,6 +326,25 @@ public partial class SetupViewModel : ObservableObject
 		!IsTestingConnection &&
 		!string.IsNullOrWhiteSpace(ServerUrl) &&
 		!string.IsNullOrWhiteSpace(ApiKey);
+
+	// EP0012 (US0122): Refresh CanEnableUsb and update banner when detection result arrives.
+	partial void OnDetectedScanMethodChanged(ScanningMethod value)
+	{
+		OnPropertyChanged(nameof(CanEnableUsb));
+		if (value == ScanningMethod.CameraWithUsbFallback)
+			DetectedDevicesMessage = "Detected: webcam + USB scanner. Tick the option below to use both at the same time.";
+	}
+
+	/// <summary>
+	/// EP0012/US0122 AC4: Resolves the Scanner.Mode string from detection result and opt-in checkbox.
+	/// </summary>
+	internal static string ResolveScanMode(ScanningMethod detected, bool enableUsb) => detected switch
+	{
+		ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback when enableUsb => "Both",
+		ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback => "Camera",
+		ScanningMethod.UsbScanner => "USB",
+		_ => "USB"
+	};
 
 	// US0005: Clear test results when URL or API Key changes
 	partial void OnServerUrlChanged(string value)

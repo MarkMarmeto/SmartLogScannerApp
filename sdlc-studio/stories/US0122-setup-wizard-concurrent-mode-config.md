@@ -1,6 +1,6 @@
 # US0122: Setup Wizard — Concurrent Scanner Mode Configuration
 
-> **Status:** Draft
+> **Status:** Done
 > **Epic:** [EP0012: Concurrent Multi-Modal Scanning](../epics/EP0012-concurrent-multi-modal-scanning.md)
 > **Owner:** AI Assistant
 > **Reviewer:** Unassigned

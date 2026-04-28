@@ -7,12 +7,12 @@
 
 | Status | Count |
 |--------|-------|
-| Draft | 3 |
+| Draft | 2 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
-| Done | 29 |
+| Done | 30 |
 | **Total** | **32** |
 
 ## Stories by Epic
@@ -120,7 +120,7 @@
 | [US0092](US0092-scanner-datetime-prominent-leftmost.md) | Scanner Header — Date/Time Prominent | EP0011 (WebApp) | Draft | 1 | Guard Gary |
 | [US0120](US0120-heartbeat-service.md) | Heartbeat Service | EP0005 (WebApp) | Draft | 3 | Tech-Savvy Tony |
 | [US0121](US0121-concurrent-camera-usb-scanner-mode.md) | Concurrent Camera + USB Scanner Mode | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 5 | Guard Gary |
-| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 3 | IT Admin Ian |
+| [US0122](US0122-setup-wizard-concurrent-mode-config.md) | Setup Wizard — Concurrent Scanner Mode Configuration | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Done | 3 | IT Admin Ian |
 | [US0123](US0123-usb-scanner-indicator-slot.md) | USB Scanner Indicator Slot with Health Heuristic | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 5 | Guard Gary |
 
 ## Notes

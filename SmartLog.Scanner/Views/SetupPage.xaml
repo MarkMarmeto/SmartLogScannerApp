@@ -320,6 +320,27 @@
                         </Border>
                     </VerticalStackLayout>
 
+                    <!-- EP0012 (US0122): Concurrent scanner mode opt-in — hidden when no camera detected -->
+                    <VerticalStackLayout Spacing="8"
+                                         IsVisible="{Binding CanEnableUsb}"
+                                         Margin="0,8,0,0">
+                        <HorizontalStackLayout Spacing="10">
+                            <CheckBox IsChecked="{Binding EnableUsbScannerInput, Mode=TwoWay}"
+                                      Color="#4D9B91"
+                                      VerticalOptions="Center" />
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Also accept USB scanner input alongside cameras"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#333333" />
+                                <Label Text="Enable this if you have both webcam(s) and a handheld barcode scanner at this gate"
+                                       FontSize="12"
+                                       TextColor="#666666"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
                     <!-- Default Scan Type -->
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Default Scan Type"
