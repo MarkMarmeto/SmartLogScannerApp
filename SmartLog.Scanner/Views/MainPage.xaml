@@ -75,7 +75,7 @@
                     </HorizontalStackLayout>
                 </Border>
 
-                <!-- US0009: Modern Scan Type Toggle with Icon -->
+                <!-- US0009: Scan Type Toggle -->
                 <Border Grid.Column="4"
                         BackgroundColor="#4D9B91"
                         Padding="18,10"
@@ -216,7 +216,7 @@
                                 <Shadow Brush="Black" Opacity="0.07" Radius="8" Offset="0,2" />
                             </Border.Shadow>
 
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
                                 <!-- Camera name + scan type badge + flash icon -->
                                 <Grid Grid.Row="0"
                                       ColumnDefinitions="Auto,*,Auto"
@@ -275,18 +275,6 @@
                                        MaxLines="2"
                                        IsVisible="{Binding ShowFlash}" />
 
-                                <!-- Restart button — only when error/offline -->
-                                <Button Grid.Row="4"
-                                        Text="↺ Restart"
-                                        Command="{Binding RestartCommand}"
-                                        IsVisible="{Binding CanRestart}"
-                                        FontSize="11"
-                                        Padding="10,5"
-                                        Margin="0,4,0,0"
-                                        BackgroundColor="#F44336"
-                                        TextColor="White"
-                                        CornerRadius="6"
-                                        HorizontalOptions="Start" />
                             </Grid>
                         </Border>
                     </DataTemplate>

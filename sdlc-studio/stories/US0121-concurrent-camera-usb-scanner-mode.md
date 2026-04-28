@@ -309,3 +309,4 @@ Confirm in `MauiProgram.cs` that:
 |------|--------|--------|
 | 2026-04-28 | SDLC Studio | Initial story created under EP0012 |
 | 2026-04-28 | SDLC Studio | Open questions resolved — added AC11 (explicit `ScanResult.Source` property), Technical Notes updated for `IsUsbMode` helper usage in code-behind |
+| 2026-04-28 | MarkMarmeto | **Always-scanning guard:** `MainPage.xaml.cs` now uses a `_initialized` bool so `InitializeAsync` (and camera/USB pipeline start) runs only once per app session. Navigating to Settings, Logs, or About and returning no longer restarts the pipeline. On return, USB-mode pages re-focus for keyboard input only. Full teardown is deferred to `Window.Destroying` (app close). |

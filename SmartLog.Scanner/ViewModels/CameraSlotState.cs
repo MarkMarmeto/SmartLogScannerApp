@@ -46,11 +46,9 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Human-readable status line for the status card.</summary>
     public string StatusText => Status switch
     {
-        CameraStatus.Scanning => "● Scanning",
-        CameraStatus.Error    => $"⚠ {ErrorMessage ?? "Error"}",
-        CameraStatus.Offline  => "⊘ Offline",
-        CameraStatus.NoSignal => "? No Signal",
-        _                     => "○ Idle"
+        CameraStatus.Error   => $"⚠ {ErrorMessage ?? "Error"}",
+        CameraStatus.Offline => "⊘ Offline",
+        _                    => "● Ready to Scan"
     };
 
     /// <summary>Color of the scan-type badge (teal = ENTRY, red = EXIT).</summary>
@@ -64,11 +62,9 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Border color indicating camera health.</summary>
     public Brush StatusBrush => new SolidColorBrush(Status switch
     {
-        CameraStatus.Scanning => Color.FromArgb("#4CAF50"),
-        CameraStatus.Error    => Color.FromArgb("#F44336"),
-        CameraStatus.Offline  => Color.FromArgb("#9E9E9E"),
-        CameraStatus.NoSignal => Color.FromArgb("#FF9800"),
-        _                     => Color.FromArgb("#E0E0E0")
+        CameraStatus.Error   => Color.FromArgb("#F44336"),
+        CameraStatus.Offline => Color.FromArgb("#9E9E9E"),
+        _                    => Color.FromArgb("#4CAF50")
     });
 
     /// <summary>Color matching the central student card palette for the most recent scan outcome.</summary>

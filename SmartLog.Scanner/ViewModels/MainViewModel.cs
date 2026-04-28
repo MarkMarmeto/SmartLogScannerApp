@@ -116,8 +116,16 @@ public partial class MainViewModel : ObservableObject
     // EP0011: Per-slot flash animation cancellation tokens (prevent timer leaks on rapid scans)
     private readonly Dictionary<int, CancellationTokenSource> _flashTimers = new();
 
+    // Per-camera scan gate: true while a slot is showing a result. Scans arriving while gated are
+    // dropped entirely so the operator always sees one clean result before the next scan is accepted.
+    private readonly bool[] _cameraGated = new bool[8];
+
     // EP0012/US0123: Single CTS for the USB card flash (parallel to _flashTimers for cameras)
     private CancellationTokenSource? _usbFlashCts;
+
+    // Central student card feedback timer — replaced on every scan so Camera 2 at T=2.9s
+    // doesn't get wiped by Camera 1's still-running T+3s timer.
+    private CancellationTokenSource? _centralCardCts;
 
     // EP0011: 1-second timer for per-slot frame rate display
     private IDispatcherTimer? _frameRateTimer;
@@ -331,6 +339,11 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private void OnMultiCameraScanCompleted(object? sender, (int CameraIndex, ScanResult Result) e)
     {
+        // Drop the scan while this camera's slot is still showing a result.
+        // The gate is cleared when the 1s flash timer fires, ensuring one clean result per cycle.
+        if (e.CameraIndex >= 0 && e.CameraIndex < _cameraGated.Length && _cameraGated[e.CameraIndex])
+            return;
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (e.CameraIndex >= 0 && e.CameraIndex < CameraSlots.Count)
@@ -410,15 +423,24 @@ public partial class MainViewModel : ObservableObject
         var cts = new CancellationTokenSource();
         _flashTimers[cameraIndex] = cts;
 
+        // Gate this camera slot: incoming scans are dropped until the flash resets.
+        if (cameraIndex < _cameraGated.Length)
+            _cameraGated[cameraIndex] = true;
+
         var slot = CameraSlots[cameraIndex];
         slot.LastScanStatus = status;
         slot.LastScanMessage = message;
         slot.FlashStudentName = subjectName;
         slot.ShowFlash = true;
 
-        _ = Task.Delay(3000, cts.Token).ContinueWith(t =>
+        _ = Task.Delay(1000, cts.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
+
+            // Lift gate before UI reset so the next scan is accepted the moment "Ready to Scan" appears.
+            if (cameraIndex < _cameraGated.Length)
+                _cameraGated[cameraIndex] = false;
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 slot.ShowFlash = false;
@@ -449,7 +471,7 @@ public partial class MainViewModel : ObservableObject
         UsbScannerSlot.LastScanAt = result.ScannedAt;
         UsbScannerSlot.IsHealthWarning = false;
 
-        _ = Task.Delay(3000, cts.Token).ContinueWith(t =>
+        _ = Task.Delay(1000, cts.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
             MainThread.BeginInvokeOnMainThread(() =>
@@ -682,9 +704,14 @@ public partial class MainViewModel : ObservableObject
             if (result.Status != ScanStatus.Accepted || !result.IsOptimistic)
                 _ = UpdateStatisticsAsync(result.Status);
 
-            // Hide feedback after 3 seconds and reset card to skeleton
-            _ = Task.Delay(3000).ContinueWith(_ =>
+            // Cancel any pending reset from a previous scan (Camera 2 must not be wiped by Camera 1's timer).
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var centralCts = _centralCardCts = new CancellationTokenSource();
+
+            _ = Task.Delay(3000, centralCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _currentOptimisticScanAt = null;
@@ -794,8 +821,12 @@ public partial class MainViewModel : ObservableObject
             FeedbackColor = Color.FromArgb("#4D9B91");
             ShowFeedback = true;
 
-            _ = Task.Delay(3000).ContinueWith(_ =>
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var emptyQueueCts = _centralCardCts = new CancellationTokenSource();
+            _ = Task.Delay(3000, emptyQueueCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
             });
             return;
@@ -822,8 +853,12 @@ public partial class MainViewModel : ObservableObject
             FeedbackColor = Color.FromArgb("#4CAF50");
             ShowFeedback = true;
 
-            _ = Task.Delay(3000).ContinueWith(_ =>
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var clearedCts = _centralCardCts = new CancellationTokenSource();
+            _ = Task.Delay(3000, clearedCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
             });
         }
@@ -834,8 +869,12 @@ public partial class MainViewModel : ObservableObject
             FeedbackColor = Color.FromArgb("#F44336");
             ShowFeedback = true;
 
-            _ = Task.Delay(5000).ContinueWith(_ =>
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var clearFailCts = _centralCardCts = new CancellationTokenSource();
+            _ = Task.Delay(5000, clearFailCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
             });
         }
@@ -864,8 +903,12 @@ public partial class MainViewModel : ObservableObject
             FeedbackColor = Color.FromArgb("#F44336");
             ShowFeedback = true;
 
-            _ = Task.Delay(5000).ContinueWith(_ =>
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var syncFailCts = _centralCardCts = new CancellationTokenSource();
+            _ = Task.Delay(5000, syncFailCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
             });
         }
@@ -884,8 +927,12 @@ public partial class MainViewModel : ObservableObject
             LastScanMessage = "⚠️ HMAC secret not configured. Complete setup first.";
             FeedbackColor = Color.FromArgb("#FF9800");
             ShowFeedback = true;
-            _ = Task.Delay(3000).ContinueWith(_ =>
+            _centralCardCts?.Cancel();
+            _centralCardCts?.Dispose();
+            var noSecretCts = _centralCardCts = new CancellationTokenSource();
+            _ = Task.Delay(3000, noSecretCts.Token).ContinueWith(t =>
             {
+                if (t.IsCanceled) return;
                 MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
             });
             return;
@@ -936,13 +983,18 @@ public partial class MainViewModel : ObservableObject
         _frameRateTimer?.Stop();
         _frameRateTimer = null;
 
-        // Cancel all in-progress flash timers
+        // Cancel all in-progress flash timers and clear gates
         foreach (var cts in _flashTimers.Values)
         {
             cts.Cancel();
             cts.Dispose();
         }
         _flashTimers.Clear();
+        Array.Clear(_cameraGated, 0, _cameraGated.Length);
+
+        _centralCardCts?.Cancel();
+        _centralCardCts?.Dispose();
+        _centralCardCts = null;
 
         // EP0012/US0121: Stop each active pipeline independently.
         if (IsCameraMode)
@@ -1097,8 +1149,12 @@ public partial class MainViewModel : ObservableObject
                     FeedbackColor = e.SyncedCount > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FF9800");
                     ShowFeedback = true;
 
-                    _ = Task.Delay(8000).ContinueWith(_ =>
+                    _centralCardCts?.Cancel();
+                    _centralCardCts?.Dispose();
+                    var syncDoneCts = _centralCardCts = new CancellationTokenSource();
+                    _ = Task.Delay(8000, syncDoneCts.Token).ContinueWith(t =>
                     {
+                        if (t.IsCanceled) return;
                         MainThread.BeginInvokeOnMainThread(() => ShowFeedback = false);
                     });
                 }

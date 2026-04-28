@@ -13,6 +13,7 @@ public partial class MainPage : ContentPage
     private MainViewModel? _viewModel;
     private string _scannerMode = "Camera";
     private bool _windowDestroyingHooked;
+    private bool _initialized;
 
     // Parameterless constructor for DataTemplate
     public MainPage()
@@ -39,8 +40,13 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (_viewModel != null)
+
+        // EP0012: Only initialize once — scanner runs continuously until app close.
+        // Navigating to settings/logs and back does NOT restart the pipeline.
+        if (_viewModel != null && !_initialized)
         {
+            _initialized = true;
+
             await _viewModel.InitializeAsync();
 
             // EP0011/EP0012: Attach camera 0 preview when camera pipeline is active.
@@ -56,8 +62,13 @@ public partial class MainPage : ContentPage
             if (_viewModel.IsUsbMode)
                 this.Focus();
         }
+        else if (_viewModel?.IsUsbMode == true)
+        {
+            // Re-focus for USB keyboard input when returning from another page.
+            this.Focus();
+        }
 
-        // EP0011: Hook Window.Destroying once to ensure StopAllAsync is called on app close
+        // EP0011: Hook Window.Destroying once to ensure clean shutdown on app close
         if (!_windowDestroyingHooked && Window is not null)
         {
             Window.Destroying += OnWindowDestroying;
@@ -101,11 +112,11 @@ public partial class MainPage : ContentPage
     }
 #endif
 
-    protected override async void OnDisappearing()
+    protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        if (_viewModel != null)
-            await _viewModel.DisposeAsync();
+        // Scanner keeps running when navigating to other pages.
+        // Full teardown happens in OnWindowDestroying (app close only).
     }
 
     /// <summary>
@@ -114,7 +125,7 @@ public partial class MainPage : ContentPage
     private async void OnWindowDestroying(object? sender, EventArgs e)
     {
         if (_viewModel != null)
-            await _viewModel.StopCamerasAsync();
+            await _viewModel.DisposeAsync();
     }
 
     /// <summary>
