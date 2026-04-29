@@ -389,7 +389,7 @@ public partial class SetupViewModel : ObservableObject
 
 	private void SaveMultiCameraConfig()
 	{
-		// Camera count is now always derived from detection — do not persist it.
+		_preferences.SetCameraCount(CameraSlots.Count);
 		for (var i = 0; i < CameraSlots.Count; i++)
 		{
 			var slot = CameraSlots[i];

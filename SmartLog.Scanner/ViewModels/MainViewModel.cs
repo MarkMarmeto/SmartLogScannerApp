@@ -148,6 +148,9 @@ public partial class MainViewModel : ObservableObject
     // EP0011: 1-second timer for per-slot frame rate display
     private IDispatcherTimer? _frameRateTimer;
 
+    // Tracks the camera count active in the current pipeline; used to detect config changes after Setup.
+    private int _loadedCameraCount;
+
     public MainViewModel(
         IMultiCameraManager multiCameraManager,
         UsbQrScannerService usbScanner,
@@ -249,7 +252,8 @@ public partial class MainViewModel : ObservableObject
         // EP0012/US0121: Start each pipeline independently — both run in "Both" mode.
         if (IsCameraMode)
         {
-            var cameraCount = Math.Clamp(_preferences.GetCameraCount(), 1, 8);
+            var cameraCount = ResolveCameraCount();
+            _loadedCameraCount = cameraCount;
             var cameraConfigs = BuildCameraConfigs(cameraCount);
             ApplyCameraConfigsToSlots(cameraConfigs, cameraCount);
 
@@ -286,6 +290,55 @@ public partial class MainViewModel : ObservableObject
         }
 
         IsScanning = true;
+    }
+
+    // Reads the persisted count, then walks saved device IDs to catch cameras configured
+    // before SetCameraCount() was wired up (pre-fix installs).
+    private int ResolveCameraCount()
+    {
+        var count = _preferences.GetCameraCount();
+        for (var i = count; i < 8; i++)
+        {
+            if (!string.IsNullOrEmpty(_preferences.GetCameraDeviceId(i)))
+                count = i + 1;
+            else
+                break;
+        }
+        return Math.Clamp(count, 1, 8);
+    }
+
+    // Called by MainPage.OnAppearing when returning from Setup. Rebuilds the camera
+    // pipeline if the saved config (count, device IDs, or enabled states) differs from
+    // what's currently running. Returns true if the pipeline was restarted.
+    public async Task<bool> ReloadCameraConfigAsync()
+    {
+        if (!IsCameraMode) return false;
+        var newCount = ResolveCameraCount();
+        var newConfigs = BuildCameraConfigs(newCount);
+
+        if (!CameraConfigChanged(newCount, newConfigs)) return false;
+
+        await _multiCameraManager.StopAllAsync();
+        ApplyCameraConfigsToSlots(newConfigs, newCount);
+        _loadedCameraCount = newCount;
+        await _multiCameraManager.InitializeAsync(newConfigs);
+        await _multiCameraManager.StartAllAsync();
+        return true;
+    }
+
+    // Returns true if the new config differs from what's loaded in the manager.
+    // Compares count, per-camera device IDs, and enabled states so a slot that
+    // was disabled and then re-enabled triggers a reload even when count is unchanged.
+    private bool CameraConfigChanged(int newCount, List<CameraInstance> newConfigs)
+    {
+        var current = _multiCameraManager.Cameras;
+        if (current.Count != newCount) return true;
+        for (var i = 0; i < newCount; i++)
+        {
+            if (current[i].CameraDeviceId != newConfigs[i].CameraDeviceId) return true;
+            if (current[i].IsEnabled != newConfigs[i].IsEnabled) return true;
+        }
+        return false;
     }
 
     /// <summary>

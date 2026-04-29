@@ -62,6 +62,22 @@ public partial class MainPage : ContentPage
             if (_viewModel.IsUsbMode)
                 this.Focus();
         }
+        else if (_viewModel != null && _viewModel.IsCameraMode)
+        {
+            // Returning from Setup — reload pipeline if camera count changed.
+            var reloaded = await _viewModel.ReloadCameraConfigAsync();
+            if (reloaded)
+            {
+#if MACCATALYST
+                AttachCameraPreview();
+#elif WINDOWS
+                AttachCameraPreview();
+#endif
+            }
+
+            if (_viewModel.IsUsbMode)
+                this.Focus();
+        }
         else if (_viewModel?.IsUsbMode == true)
         {
             // Re-focus for USB keyboard input when returning from another page.

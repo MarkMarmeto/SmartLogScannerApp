@@ -18,11 +18,25 @@ public class CameraPreviewHandler : ViewHandler<Controls.CameraPreviewView, UIVi
 
     public CameraPreviewHandler() : base(Mapper) { }
 
-    protected override UIView CreatePlatformView() => new UIView
+    protected override UIView CreatePlatformView() => new PreviewContainerView
     {
         BackgroundColor = UIColor.Black,
         ClipsToBounds = true
     };
+
+    // Resizes the AVCaptureVideoPreviewLayer whenever the container is laid out.
+    // This handles the case where AttachPreview() was called before the view had
+    // non-zero bounds (e.g., on first appearance before MAUI layout completes).
+    private sealed class PreviewContainerView : UIView
+    {
+        public override void LayoutSubviews()
+        {
+            base.LayoutSubviews();
+            if (Layer.Sublayers == null) return;
+            foreach (var sublayer in Layer.Sublayers)
+                sublayer.Frame = Bounds;
+        }
+    }
 
     /// <summary>
     /// Attaches the worker's AVCaptureVideoPreviewLayer to this handler's UIView.

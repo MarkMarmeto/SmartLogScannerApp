@@ -50,11 +50,23 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public Task InitializeAsync(IReadOnlyList<CameraInstance> cameras)
+    public async Task InitializeAsync(IReadOnlyList<CameraInstance> cameras)
     {
         if (cameras.Count > 8)
             throw new ArgumentException("Maximum 8 cameras are supported.", nameof(cameras));
 
+        // Stop watchdog and cancel any in-progress recovery before rebuilding.
+        StopWatchdog();
+        foreach (var cts in _recoveryCts.Values) { cts.Cancel(); cts.Dispose(); }
+        _recoveryCts.Clear();
+
+        // Stop and dispose existing workers so AVCaptureSessions are released.
+        foreach (var worker in _workers.Values)
+        {
+            try { await worker.StopAsync(); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error stopping worker during re-init"); }
+        }
+        _workers.Clear();
         _cameras.Clear();
         _services.Clear();
 
@@ -92,7 +104,6 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
 
         UpdateThrottleValues();
         _logger.LogInformation("MultiCameraManager initialized with {Count} camera(s)", cameras.Count);
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

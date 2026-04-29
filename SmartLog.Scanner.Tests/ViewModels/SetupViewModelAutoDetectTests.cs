@@ -120,7 +120,7 @@ public class SetupViewModelAutoDetectTests
     }
 
     [Fact]
-    public async Task SaveMultiCameraConfig_DoesNotPersistCameraCount()
+    public async Task SaveMultiCameraConfig_PersistsCameraCount()
     {
         var cameras = new List<CameraDeviceInfo> { Cam("id1", "FaceTime HD Camera") };
         _mockCameraEnum.Setup(s => s.GetAvailableCamerasAsync()).ReturnsAsync(cameras);
@@ -138,7 +138,7 @@ public class SetupViewModelAutoDetectTests
 
         await InvokeSaveAsync(vm);
 
-        _mockPreferences.Verify(p => p.SetCameraCount(It.IsAny<int>()), Times.Never);
+        _mockPreferences.Verify(p => p.SetCameraCount(1), Times.Once);
     }
 
     private static async Task InvokeSaveAsync(SetupViewModel vm)
