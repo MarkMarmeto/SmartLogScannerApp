@@ -158,8 +158,9 @@ public class UsbQrScannerService : IQrScannerService
             var payload = _inputBuffer.ToString();
             _inputBuffer.Clear();
 
-            // AC4: Only process if it starts with SMARTLOG:
-            if (payload.StartsWith("SMARTLOG:", StringComparison.Ordinal))
+            // AC4: Only process if it starts with SMARTLOG: (student) or SMARTLOG-V: (visitor pass)
+            if (payload.StartsWith("SMARTLOG:", StringComparison.Ordinal) ||
+                payload.StartsWith("SMARTLOG-V:", StringComparison.Ordinal))
             {
                 _logger.LogInformation("Timeout - valid SMARTLOG pattern detected, processing: {Payload}", payload);
                 _ = ProcessPayloadAsync(payload);
@@ -190,16 +191,18 @@ public class UsbQrScannerService : IQrScannerService
 
         if (validationResult.IsValid)
         {
-            _logger.LogInformation("Valid USB scan - StudentId: {StudentId}", validationResult.StudentId);
+            var dedupKey = validationResult.IsVisitorScan
+                ? validationResult.PassCode!
+                : validationResult.StudentId!;
+
+            _logger.LogInformation("Valid USB scan - {Kind}: {Id}",
+                validationResult.IsVisitorScan ? "PassCode" : "StudentId", dedupKey);
 
             var scanType = _preferences.GetDefaultScanType();
             var scannedAt = _timeService.UtcNow;
 
-            // Student-level deduplication check (after HMAC validation)
-            var dedupResult = _dedup.CheckAndRecord(
-                validationResult.StudentId!,
-                scanType,
-                studentName: null); // Name will be populated by server response
+            // Deduplication check — visitor passes use PassCode as key, students use StudentId
+            var dedupResult = _dedup.CheckAndRecord(dedupKey, scanType, studentName: null);
 
             switch (dedupResult.Action)
             {
@@ -251,7 +254,7 @@ public class UsbQrScannerService : IQrScannerService
                     {
                         // Check if already queued before enqueuing
                         var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                            validationResult.StudentId!, scanType);
+                            dedupKey, scanType);
 
                         if (!alreadyQueued)
                         {
@@ -259,8 +262,8 @@ public class UsbQrScannerService : IQrScannerService
                         }
                         else
                         {
-                            _logger.LogDebug("USB scan already queued for student {StudentId}, skipping duplicate enqueue",
-                                validationResult.StudentId);
+                            _logger.LogDebug("USB scan already queued for {DedupKey}, skipping duplicate enqueue",
+                                dedupKey);
                         }
                     }
                     catch (Exception ex)
@@ -291,15 +294,15 @@ public class UsbQrScannerService : IQrScannerService
 
                 try
                 {
-                    // Check if already queued for this student+scanType
+                    // Check if already queued for this student/pass+scanType
                     var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                        validationResult.StudentId!, scanType);
+                        dedupKey, scanType);
 
                     if (alreadyQueued)
                     {
                         // Already in queue - show amber feedback instead of blue
-                        _logger.LogDebug("USB scan already queued for student {StudentId}, scan type {ScanType}",
-                            validationResult.StudentId, scanType);
+                        _logger.LogDebug("USB scan already queued for {DedupKey}, scan type {ScanType}",
+                            dedupKey, scanType);
 
                         scanResult = new ScanResult
                         {

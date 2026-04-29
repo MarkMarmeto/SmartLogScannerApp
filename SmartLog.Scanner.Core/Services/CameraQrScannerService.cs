@@ -142,13 +142,18 @@ public class CameraQrScannerService : IQrScannerService
             return;
         }
 
-        _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
+        var dedupKey = validationResult.IsVisitorScan
+            ? validationResult.PassCode!
+            : validationResult.StudentId!;
+
+        _logger.LogInformation("Valid QR code - {Kind}: {Id}",
+            validationResult.IsVisitorScan ? "PassCode" : "StudentId", dedupKey);
 
         var scanType = _scanTypeOverride ?? _preferences.GetDefaultScanType();
         var scannedAt = _timeService.UtcNow;
 
-        // Student-level deduplication check (~2ms)
-        var dedupResult = _dedup.CheckAndRecord(validationResult.StudentId!, scanType, studentName: null);
+        // Deduplication check — visitor passes use PassCode as key, students use StudentId
+        var dedupResult = _dedup.CheckAndRecord(dedupKey, scanType, studentName: null);
 
         if (dedupResult.Action == DeduplicationAction.SuppressSilent)
         {

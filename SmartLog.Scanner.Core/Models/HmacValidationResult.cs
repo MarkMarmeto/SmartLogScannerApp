@@ -12,14 +12,22 @@ public record HmacValidationResult
     public bool IsValid { get; init; }
 
     /// <summary>
-    /// Extracted student ID (only populated when IsValid = true).
+    /// Extracted student ID (only populated for student QR codes when IsValid = true).
     /// </summary>
     public string? StudentId { get; init; }
 
     /// <summary>
-    /// Extracted Unix timestamp string (only populated when IsValid = true).
+    /// Extracted Unix timestamp string (only populated for student QR codes when IsValid = true).
     /// </summary>
     public string? Timestamp { get; init; }
+
+    /// <summary>
+    /// Extracted pass code (only populated for visitor QR codes when IsValid = true).
+    /// </summary>
+    public string? PassCode { get; init; }
+
+    /// <summary>True when this result came from a visitor pass (SMARTLOG-V:) rather than a student QR.</summary>
+    public bool IsVisitorScan => PassCode != null;
 
     /// <summary>
     /// Human-readable rejection reason (only populated when IsValid = false).
@@ -29,10 +37,16 @@ public record HmacValidationResult
     public string? RejectionReason { get; init; }
 
     /// <summary>
-    /// Creates a successful validation result.
+    /// Creates a successful validation result for a student QR code.
     /// </summary>
     public static HmacValidationResult Success(string studentId, string timestamp) =>
         new() { IsValid = true, StudentId = studentId, Timestamp = timestamp };
+
+    /// <summary>
+    /// Creates a successful validation result for a visitor pass QR code.
+    /// </summary>
+    public static HmacValidationResult VisitorSuccess(string passCode) =>
+        new() { IsValid = true, PassCode = passCode };
 
     /// <summary>
     /// Creates a failed validation result with rejection reason.

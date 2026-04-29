@@ -7,7 +7,8 @@ namespace SmartLog.Scanner.Core.Services;
 
 /// <summary>
 /// US0006: HMAC-SHA256 QR code validator using constant-time comparison.
-/// Validates format: SMARTLOG:{studentId}:{timestamp}:{hmacBase64}
+/// Validates student format: SMARTLOG:{studentId}:{timestamp}:{hmacBase64}
+/// Validates visitor format: SMARTLOG-V:{passCode}:{hmacBase64}
 /// </summary>
 public class HmacValidator : IHmacValidator
 {
@@ -29,27 +30,38 @@ public class HmacValidator : IHmacValidator
             return HmacValidationResult.Failure("Malformed: QR payload is empty");
         }
 
-        // AC1: Split on ":" expecting exactly 4 parts
         var parts = qrPayload.Split(':');
+        var prefix = parts[0];
+
+        // Visitor Pass: SMARTLOG-V:{passCode}:{hmac}
+        if (prefix == "SMARTLOG-V")
+        {
+            if (parts.Length != 3)
+            {
+                return HmacValidationResult.Failure(
+                    $"Malformed: visitor pass expected 3 colon-separated parts, found {parts.Length}");
+            }
+            return await ValidateVisitorAsync(parts[1], parts[2]);
+        }
+
+        // Student QR: SMARTLOG:{studentId}:{timestamp}:{hmac}
         if (parts.Length != 4)
         {
             return HmacValidationResult.Failure(
                 $"Malformed: expected 4 colon-separated parts, found {parts.Length}");
         }
 
-        var prefix = parts[0];
-        var studentId = parts[1];
-        var timestamp = parts[2];
-        var hmacBase64 = parts[3];
-
-        // AC2: Verify SMARTLOG prefix (case-sensitive)
         if (prefix != "SMARTLOG")
         {
             return HmacValidationResult.Failure("InvalidPrefix: expected 'SMARTLOG'");
         }
 
+        var studentId = parts[1];
+        var timestamp = parts[2];
+        var hmacBase64 = parts[3];
+
         // SECURITY FIX (CRITICAL-01): Retrieve HMAC secret from SecureStorage ONLY
-        // Secrets are no longer stored in file config for security reasons
+        // Secrets are never stored in file config for security reasons
         string? secret = await _secureConfig.GetHmacSecretAsync();
 
         if (string.IsNullOrWhiteSpace(secret))
@@ -61,7 +73,6 @@ public class HmacValidator : IHmacValidator
 
         secret = secret.Trim();
 
-        // Decode base64 HMAC from payload
         byte[] payloadHmac;
         try
         {
@@ -73,7 +84,7 @@ public class HmacValidator : IHmacValidator
                 "InvalidBase64: HMAC signature is not valid base64");
         }
 
-        // AC3: Compute HMAC-SHA256 over "{studentId}:{timestamp}"
+        // Compute HMAC-SHA256 over "{studentId}:{timestamp}"
         var message = $"{studentId}:{timestamp}";
         var secretBytes = Encoding.UTF8.GetBytes(secret);
 
@@ -83,21 +94,16 @@ public class HmacValidator : IHmacValidator
             computedHmac = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
         }
 
-        // AC4: Constant-time comparison using CryptographicOperations.FixedTimeEquals
-        bool isValid = CryptographicOperations.FixedTimeEquals(computedHmac, payloadHmac);
-
-        if (!isValid)
+        if (!CryptographicOperations.FixedTimeEquals(computedHmac, payloadHmac))
         {
             _logger.LogWarning("Invalid HMAC signature for payload (StudentId: {StudentId})", studentId);
             return HmacValidationResult.Failure("InvalidSignature: HMAC verification failed");
         }
 
-        // Check QR code timestamp expiry (optional, default 2 years)
         if (long.TryParse(timestamp, out var unixTimestamp))
         {
             var qrIssuedAt = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp);
-            var maxAge = TimeSpan.FromDays(730); // 2 years
-            if (DateTimeOffset.UtcNow - qrIssuedAt > maxAge)
+            if (DateTimeOffset.UtcNow - qrIssuedAt > TimeSpan.FromDays(730))
             {
                 _logger.LogWarning("Expired QR code - StudentId: {StudentId}, IssuedAt: {IssuedAt}",
                     studentId, qrIssuedAt);
@@ -106,9 +112,50 @@ public class HmacValidator : IHmacValidator
             }
         }
 
-        // AC5: Return success with parsed data
         _logger.LogInformation("Valid QR code - StudentId: {StudentId}, Timestamp: {Timestamp}",
             studentId, timestamp);
         return HmacValidationResult.Success(studentId, timestamp);
+    }
+
+    private async Task<HmacValidationResult> ValidateVisitorAsync(string passCode, string hmacBase64)
+    {
+        string? secret = await _secureConfig.GetHmacSecretAsync();
+
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            _logger.LogError("HMAC secret not configured in SecureStorage");
+            return HmacValidationResult.Failure(
+                "SecretUnavailable: HMAC secret not configured. Please run device setup.");
+        }
+
+        secret = secret.Trim();
+
+        byte[] payloadHmac;
+        try
+        {
+            payloadHmac = Convert.FromBase64String(hmacBase64);
+        }
+        catch (FormatException)
+        {
+            return HmacValidationResult.Failure(
+                "InvalidBase64: HMAC signature is not valid base64");
+        }
+
+        // Visitor pass HMAC signs the passCode alone
+        var secretBytes = Encoding.UTF8.GetBytes(secret);
+        byte[] computedHmac;
+        using (var hmac = new HMACSHA256(secretBytes))
+        {
+            computedHmac = hmac.ComputeHash(Encoding.UTF8.GetBytes(passCode));
+        }
+
+        if (!CryptographicOperations.FixedTimeEquals(computedHmac, payloadHmac))
+        {
+            _logger.LogWarning("Invalid HMAC signature for visitor pass (PassCode: {PassCode})", passCode);
+            return HmacValidationResult.Failure("InvalidSignature: HMAC verification failed");
+        }
+
+        _logger.LogInformation("Valid visitor pass - PassCode: {PassCode}", passCode);
+        return HmacValidationResult.VisitorSuccess(passCode);
     }
 }
