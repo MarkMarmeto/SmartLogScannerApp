@@ -8,7 +8,7 @@ namespace SmartLog.Scanner.Core.Services;
 /// <summary>
 /// US0006: HMAC-SHA256 QR code validator using constant-time comparison.
 /// Validates student format: SMARTLOG:{studentId}:{timestamp}:{hmacBase64}
-/// Validates visitor format: SMARTLOG-V:{passCode}:{hmacBase64}
+/// Validates visitor format: SMARTLOG-V:{passCode}:{timestamp}:{hmacBase64}
 /// </summary>
 public class HmacValidator : IHmacValidator
 {
@@ -33,15 +33,15 @@ public class HmacValidator : IHmacValidator
         var parts = qrPayload.Split(':');
         var prefix = parts[0];
 
-        // Visitor Pass: SMARTLOG-V:{passCode}:{hmac}
+        // Visitor Pass: SMARTLOG-V:{passCode}:{timestamp}:{hmac}
         if (prefix == "SMARTLOG-V")
         {
-            if (parts.Length != 3)
+            if (parts.Length != 4)
             {
                 return HmacValidationResult.Failure(
-                    $"Malformed: visitor pass expected 3 colon-separated parts, found {parts.Length}");
+                    $"Malformed: visitor pass expected 4 colon-separated parts, found {parts.Length}");
             }
-            return await ValidateVisitorAsync(parts[1], parts[2]);
+            return await ValidateVisitorAsync(parts[1], parts[2], parts[3]);
         }
 
         // Student QR: SMARTLOG:{studentId}:{timestamp}:{hmac}
@@ -117,7 +117,7 @@ public class HmacValidator : IHmacValidator
         return HmacValidationResult.Success(studentId, timestamp);
     }
 
-    private async Task<HmacValidationResult> ValidateVisitorAsync(string passCode, string hmacBase64)
+    private async Task<HmacValidationResult> ValidateVisitorAsync(string passCode, string timestamp, string hmacBase64)
     {
         string? secret = await _secureConfig.GetHmacSecretAsync();
 
@@ -141,12 +141,13 @@ public class HmacValidator : IHmacValidator
                 "InvalidBase64: HMAC signature is not valid base64");
         }
 
-        // Visitor pass HMAC signs the passCode alone
+        // Visitor pass HMAC signs "{passCode}:{timestamp}" — mirrors VisitorPassService.ComputeHmac
+        var message = $"{passCode}:{timestamp}";
         var secretBytes = Encoding.UTF8.GetBytes(secret);
         byte[] computedHmac;
         using (var hmac = new HMACSHA256(secretBytes))
         {
-            computedHmac = hmac.ComputeHash(Encoding.UTF8.GetBytes(passCode));
+            computedHmac = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
         }
 
         if (!CryptographicOperations.FixedTimeEquals(computedHmac, payloadHmac))
