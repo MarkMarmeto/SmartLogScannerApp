@@ -92,17 +92,30 @@ public partial class MainPage : ContentPage
         }
     }
 
+    // The single CameraPreview0 view at the top of the page must follow the
+    // first ENABLED slot, not be hardcoded to index 0 — when slot 0 is disabled
+    // the preview would otherwise stay black even though another slot has a
+    // running camera.
+    private int FindFirstVisibleSlotIndex()
+    {
+        if (_viewModel == null) return -1;
+        for (var i = 0; i < _viewModel.CameraSlots.Count; i++)
+        {
+            if (_viewModel.CameraSlots[i].IsVisible)
+                return i;
+        }
+        return -1;
+    }
+
 #if MACCATALYST
-    /// <summary>
-    /// EP0011: Attaches the AVCaptureVideoPreviewLayer from camera 0's headless worker
-    /// to the CameraPreview0 view. Called after InitializeAsync so the capture session exists.
-    /// </summary>
     private void AttachCameraPreview()
     {
+        var index = FindFirstVisibleSlotIndex();
+        if (index < 0) return;
         if (CameraPreview0?.Handler is Platforms.MacCatalyst.CameraPreviewHandler handler
             && _viewModel != null)
         {
-            _viewModel.ConfigureCameraPreview(0, worker =>
+            _viewModel.ConfigureCameraPreview(index, worker =>
             {
                 if (worker is Platforms.MacCatalyst.CameraHeadlessWorker macWorker)
                     handler.AttachWorkerPreview(macWorker);
@@ -110,16 +123,14 @@ public partial class MainPage : ContentPage
         }
     }
 #elif WINDOWS
-    /// <summary>
-    /// EP0011: Attaches camera 0's headless worker to the CameraPreview0 view's
-    /// frame pump (~15 fps). Called after InitializeAsync so the capture session exists.
-    /// </summary>
     private void AttachCameraPreview()
     {
+        var index = FindFirstVisibleSlotIndex();
+        if (index < 0) return;
         if (CameraPreview0?.Handler is Platforms.Windows.CameraPreviewHandler handler
             && _viewModel != null)
         {
-            _viewModel.ConfigureCameraPreview(0, worker =>
+            _viewModel.ConfigureCameraPreview(index, worker =>
             {
                 if (worker is Platforms.Windows.CameraHeadlessWorker winWorker)
                     handler.AttachWorker(winWorker);
