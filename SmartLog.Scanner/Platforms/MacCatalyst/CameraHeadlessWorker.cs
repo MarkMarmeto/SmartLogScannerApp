@@ -59,7 +59,6 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
 
         _captureSession = new AVCaptureSession();
-        _captureSession.SessionPreset = AVCaptureSession.PresetHigh;
 
         // Device selection
         AVCaptureDevice? device = null;
@@ -85,8 +84,13 @@ public sealed class CameraHeadlessWorker : ICameraWorker
             return;
         }
 
+        // Configure session inside Begin/Commit so AVFoundation re-evaluates
+        // capability checks once both the input and output are attached.
+        _captureSession.BeginConfiguration();
+
         if (!_captureSession.CanAddInput(input))
         {
+            _captureSession.CommitConfiguration();
             const string msg = "Cannot add video input to capture session";
             _logger?.LogError(msg);
             ErrorOccurred?.Invoke(this, msg);
@@ -98,6 +102,7 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         _metadataOutput = new AVCaptureMetadataOutput();
         if (!_captureSession.CanAddOutput(_metadataOutput))
         {
+            _captureSession.CommitConfiguration();
             const string msg = "Cannot add metadata output to capture session";
             _logger?.LogError(msg);
             ErrorOccurred?.Invoke(this, msg);
@@ -105,14 +110,45 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
         _captureSession.AddOutput(_metadataOutput);
 
+        // Pick the highest preset the device actually supports. USB webcams
+        // often don't advertise PresetHigh and StartRunning silently no-ops
+        // when the preset is unsupported, leaving the preview layer black.
+        var presets = new[]
+        {
+            AVCaptureSession.PresetHigh,
+            AVCaptureSession.PresetMedium,
+            AVCaptureSession.Preset640x480,
+            AVCaptureSession.PresetLow,
+        };
+        var chosenPreset = presets.FirstOrDefault(p => _captureSession.CanSetSessionPreset(p));
+        if (chosenPreset != null)
+        {
+            _captureSession.SessionPreset = chosenPreset;
+            _logger?.LogInformation("CameraHeadlessWorker: using preset {Preset}", chosenPreset);
+        }
+        else
+        {
+            _logger?.LogWarning("CameraHeadlessWorker: no preset supported, leaving session default");
+        }
+
+        _captureSession.CommitConfiguration();
+
         _delegate = new MetadataOutputDelegate(this);
         _metadataOutput.SetDelegate(_delegate, CoreFoundation.DispatchQueue.MainQueue);
         _metadataOutput.MetadataObjectTypes = AVMetadataObjectType.QRCode;
 
         await Task.Run(() => _captureSession.StartRunning());
-        _isRunning = true;
 
-        _logger?.LogInformation("CameraHeadlessWorker: running");
+        if (!_captureSession.Running)
+        {
+            var msg = $"Capture session failed to start (device {device.LocalizedName})";
+            _logger?.LogError(msg);
+            ErrorOccurred?.Invoke(this, msg);
+            return;
+        }
+
+        _isRunning = true;
+        _logger?.LogInformation("CameraHeadlessWorker: running ({Device})", device.LocalizedName);
     }
 
     public Task StopAsync()
