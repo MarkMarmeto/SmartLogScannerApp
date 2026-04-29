@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -19,14 +18,18 @@ public partial class CameraSlotViewModel : ObservableObject
     public int DisplayNumber => Index + 1;
 
     [ObservableProperty] private string _displayName;
-    [ObservableProperty] private CameraDeviceInfo? _selectedDevice;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DeviceName))]
+    private CameraDeviceInfo? _selectedDevice;
+
     [ObservableProperty] private string _scanType = "ENTRY";
     [ObservableProperty] private bool _isEnabled = true;
     [ObservableProperty] private bool _isConnected;
     [ObservableProperty] private bool _isTestRunning;
     [ObservableProperty] private string? _testResult;
 
-    public ObservableCollection<CameraDeviceInfo> AvailableDevices { get; } = new();
+    public string DeviceName => SelectedDevice?.Name ?? "Unknown device";
 
     public CameraSlotViewModel(
         int index,
@@ -37,32 +40,6 @@ public partial class CameraSlotViewModel : ObservableObject
         _displayName = $"Camera {index + 1}";
         _cameraEnumeration = cameraEnumeration;
         _logger = logger;
-    }
-
-    public void PopulateDevices(IEnumerable<CameraDeviceInfo> devices)
-    {
-        // Capture current selection before clearing — MAUI Picker resets SelectedItem
-        // to null via TwoWay binding when ItemsSource is cleared, so we must re-apply.
-        var currentId = SelectedDevice?.Id;
-        AvailableDevices.Clear();
-        foreach (var d in devices)
-            AvailableDevices.Add(d);
-        if (currentId != null)
-            SelectedDevice = AvailableDevices.FirstOrDefault(d => d.Id == currentId);
-    }
-
-    /// <summary>
-    /// macOS Catalyst: the native UIKit picker does not honour SelectedItem set during the
-    /// initial render pass. Toggling the value after layout forces the picker to re-read it.
-    /// </summary>
-    public void ForceRefreshSelection()
-    {
-        if (_selectedDevice is null) return;
-        var saved = _selectedDevice;
-        _selectedDevice = null;
-        OnPropertyChanged(nameof(SelectedDevice));
-        _selectedDevice = saved;
-        OnPropertyChanged(nameof(SelectedDevice));
     }
 
     /// <summary>

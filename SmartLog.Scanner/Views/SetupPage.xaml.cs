@@ -50,12 +50,6 @@ public partial class SetupPage : ContentPage
 		if (_viewModel != null)
 		{
 			await _viewModel.InitializeAsync();
-
-			// macOS Catalyst: native UIKit pickers don't honour SelectedItem set during the
-			// initial render pass. Wait one frame then toggle each slot's SelectedDevice so
-			// the picker re-reads the value and displays the correct selection.
-			await Task.Delay(150);
-			_viewModel.ForceRefreshSelections();
 		}
 	}
 

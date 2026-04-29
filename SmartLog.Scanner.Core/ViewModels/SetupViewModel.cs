@@ -71,8 +71,6 @@ public partial class SetupViewModel : ObservableObject
 	[ObservableProperty] private bool _hasCameras;
 	[ObservableProperty] private string _cameraPickerMessage = "Detecting cameras...";
 
-	/// <summary>Upper bound for the camera-count Stepper: min(detected cameras, 3).</summary>
-	[ObservableProperty] private int _maxCameraCount = 1;
 
 	// Picker options
 	public List<string> ScanTypeOptions { get; } = new() { "ENTRY", "EXIT" };
@@ -159,8 +157,8 @@ public partial class SetupViewModel : ObservableObject
 	{
 		if (_cameraEnumeration == null)
 		{
-			CameraPickerMessage = "Camera enumeration not available on this platform.";
 			HasCameras = false;
+			CameraPickerMessage = "Camera enumeration not available on this platform.";
 			return;
 		}
 
@@ -176,21 +174,33 @@ public partial class SetupViewModel : ObservableObject
 				return;
 			}
 
-			// Max slots = number of physical devices, hard-capped at 3.
-			MaxCameraCount = Math.Clamp(cameras.Count, 1, 3);
-			CameraPickerMessage = $"{cameras.Count} camera(s) found.";
-
-			// Restore previously saved selection (single-camera mode)
+			// Single-camera picker (Scanner Configuration section — backward compat)
 			var savedId = _preferences.GetSelectedCameraId();
-			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId)
-				?? cameras[0];
+			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId) ?? cameras[0];
 
-			_logger.LogInformation("Camera enumeration complete: {Count} camera(s), selected={Name}",
-				cameras.Count, SelectedCamera?.Name);
+			var slotCount = Math.Min(cameras.Count, 3);
+			CameraPickerMessage = cameras.Count > 3
+				? $"3 of {cameras.Count} camera(s) detected (max 3)"
+				: $"{cameras.Count} camera(s) detected";
 
-			// EP0011: Store all cameras and load multi-camera config
-			_allAvailableCameras = cameras.ToList();
-			LoadMultiCameraConfig();
+			CameraSlots.Clear();
+			for (var i = 0; i < slotCount; i++)
+			{
+				var device = cameras[i];
+				var savedName = _preferences.GetCameraName(i);
+				var autoName = $"Camera {i + 1} – {device.Name}";  // en-dash
+
+				var slot = new CameraSlotViewModel(i, _cameraEnumeration,
+					Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance)
+				{
+					SelectedDevice = device,
+					IsEnabled      = _preferences.GetCameraEnabled(i),
+					DisplayName    = string.IsNullOrWhiteSpace(savedName) ? autoName : savedName,
+				};
+				CameraSlots.Add(slot);
+			}
+
+			_logger.LogInformation("Auto-created {Count} camera slot(s)", slotCount);
 		}
 		catch (Exception ex)
 		{
@@ -373,91 +383,13 @@ public partial class SetupViewModel : ObservableObject
 		await _navigation.GoToAsync("//main");
 	}
 
-	// ── EP0011: Multi-Camera Config ─────────────────────────────────────────
-
-	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(ShowUsb3Warning))]
-	private int _cameraCount = 1;
+	// ── EP0011/US0127: Multi-Camera Config ──────────────────────────────────
 
 	public ObservableCollection<CameraSlotViewModel> CameraSlots { get; } = new();
 
-	/// <summary>Shows a USB 3.0 recommendation banner when 3+ cameras are configured.</summary>
-	public bool ShowUsb3Warning => CameraCount >= 3;
-
-	partial void OnCameraCountChanged(int value)
-	{
-		var max = MaxCameraCount > 0 ? MaxCameraCount : 3;
-		var count = Math.Clamp(value, 1, max);
-		if (count != value) { CameraCount = count; return; }
-
-		// Add missing slots
-		while (CameraSlots.Count < count)
-		{
-			var idx = CameraSlots.Count;
-			var slot = CreateSlot(idx);
-			CameraSlots.Add(slot);
-		}
-
-		// Remove excess slots (trim from end)
-		while (CameraSlots.Count > count)
-			CameraSlots.RemoveAt(CameraSlots.Count - 1);
-
-	}
-
-	private List<CameraDeviceInfo> _allAvailableCameras = new();
-
-	private CameraSlotViewModel CreateSlot(int index)
-	{
-		var slot = new CameraSlotViewModel(
-			index,
-			_cameraEnumeration,
-			Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance);
-
-		slot.DisplayName = _preferences.GetCameraName(index);
-		slot.IsEnabled = _preferences.GetCameraEnabled(index);
-
-		if (_allAvailableCameras.Count > 0)
-		{
-			// Populate AvailableDevices before this slot is added to CameraSlots.
-			// If devices are empty when the Picker first binds, MAUI resets SelectedItem
-			// to null via TwoWay binding, discarding the saved selection.
-			slot.PopulateDevices(_allAvailableCameras);
-			var savedDeviceId = _preferences.GetCameraDeviceId(index);
-			if (!string.IsNullOrEmpty(savedDeviceId))
-				slot.SelectedDevice = _allAvailableCameras.FirstOrDefault(c => c.Id == savedDeviceId);
-		}
-
-		return slot;
-	}
-
-	private void LoadMultiCameraConfig()
-	{
-		var max = MaxCameraCount > 0 ? MaxCameraCount : 3;
-		var count = Math.Clamp(_preferences.GetCameraCount(), 1, max);
-
-		// Set the backing field directly to avoid triggering OnCameraCountChanged,
-		// which would create slots only to have them cleared by the lines below.
-		if (_cameraCount != count)
-		{
-			_cameraCount = count;
-			OnPropertyChanged(nameof(CameraCount));
-			OnPropertyChanged(nameof(ShowUsb3Warning));
-		}
-
-		CameraSlots.Clear();
-		for (var i = 0; i < count; i++)
-			CameraSlots.Add(CreateSlot(i));
-	}
-
-	public void ForceRefreshSelections()
-	{
-		foreach (var slot in CameraSlots)
-			slot.ForceRefreshSelection();
-	}
-
 	private void SaveMultiCameraConfig()
 	{
-		_preferences.SetCameraCount(CameraCount);
+		// Camera count is now always derived from detection — do not persist it.
 		for (var i = 0; i < CameraSlots.Count; i++)
 		{
 			var slot = CameraSlots[i];

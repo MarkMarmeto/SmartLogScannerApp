@@ -397,47 +397,19 @@
                     </Border.Shadow>
 
                     <VerticalStackLayout Spacing="15">
-                        <Label Text="🎥 Camera Configuration"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="#2C5F5D" />
 
-                        <!-- Number of Cameras -->
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="{Binding MaxCameraCount, StringFormat='Number of Cameras (1–{0})'}"
-                                   FontSize="14"
+                        <!-- Section header + detected count -->
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="🎥 Camera Configuration"
+                                   FontSize="18"
                                    FontAttributes="Bold"
-                                   TextColor="#333333" />
-                            <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
-                                <Stepper Minimum="1"
-                                         Maximum="{Binding MaxCameraCount}"
-                                         Increment="1"
-                                         Value="{Binding CameraCount, Mode=TwoWay}"
-                                         VerticalOptions="Center" />
-                                <Label Text="{Binding CameraCount, StringFormat='{0} camera(s)'}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       TextColor="#2C5F5D"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                                   TextColor="#2C5F5D" />
+                            <Label Text="{Binding CameraPickerMessage}"
+                                   FontSize="13"
+                                   TextColor="#666666" />
                         </VerticalStackLayout>
 
-                        <!-- USB 3.0 Warning -->
-                        <Border BackgroundColor="#FFF3E0"
-                                StrokeThickness="1"
-                                Stroke="#FF9800"
-                                Padding="12,10"
-                                IsVisible="{Binding ShowUsb3Warning}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Label Text="⚠️ 3+ cameras require USB 3.0 ports for optimal performance. Using USB 2.0 hubs may cause dropped frames or camera failures."
-                                   FontSize="13"
-                                   TextColor="#E65100"
-                                   LineBreakMode="WordWrap" />
-                        </Border>
-
-                        <!-- Per-Camera Rows -->
+                        <!-- Per-Camera Rows (auto-detected, read-only device) -->
                         <CollectionView ItemsSource="{Binding CameraSlots}"
                                         SelectionMode="None">
                             <CollectionView.ItemTemplate>
@@ -468,19 +440,17 @@
                                                        VerticalOptions="Center" />
                                             </HorizontalStackLayout>
 
+                                            <!-- Device label (auto-assigned, read-only) -->
+                                            <Label Text="{Binding DeviceName, StringFormat='Device: {0}'}"
+                                                   FontSize="13"
+                                                   TextColor="#666666"
+                                                   FontAttributes="Italic" />
+
                                             <!-- Display Name -->
                                             <Entry Text="{Binding DisplayName, Mode=TwoWay}"
                                                    Placeholder="Display name (e.g. Gate A)"
                                                    FontSize="13"
                                                    BackgroundColor="White" />
-
-                                            <!-- Device Picker -->
-                                            <Picker ItemsSource="{Binding AvailableDevices}"
-                                                    SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                                                    ItemDisplayBinding="{Binding Name}"
-                                                    Title="Select camera device"
-                                                    TextColor="#333333"
-                                                    BackgroundColor="White" />
 
                                             <Button Text="Test"
                                                     Command="{Binding TestCameraCommand}"
