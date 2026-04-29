@@ -55,7 +55,6 @@ public sealed class WindowsCameraScanner : IDisposable
     {
         if (_isScanning) return;
 
-        Serilog.Log.Information("[Win-Cam] StartAsync deviceId={DeviceId}", deviceId ?? "<null>");
         _mediaCapture = new MediaCapture();
 
         var settings = string.IsNullOrWhiteSpace(deviceId)
@@ -71,19 +70,7 @@ public sealed class WindowsCameraScanner : IDisposable
                 MemoryPreference = MediaCaptureMemoryPreference.Cpu
             };
 
-        try
-        {
-            await _mediaCapture.InitializeAsync(settings);
-            Serilog.Log.Information("[Win-Cam] InitializeAsync OK, sources={Count}", _mediaCapture.FrameSources.Count);
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Error(ex, "[Win-Cam] InitializeAsync FAILED");
-            throw;
-        }
-
-        foreach (var src in _mediaCapture.FrameSources.Values)
-            Serilog.Log.Information("[Win-Cam] source: type={Type} name={Name}", src.Info.MediaStreamType, src.Info.SourceKind);
+        await _mediaCapture.InitializeAsync(settings);
 
         // Prefer VideoPreview stream; fall back to VideoRecord
         var frameSource =
@@ -94,11 +81,7 @@ public sealed class WindowsCameraScanner : IDisposable
             ?? _mediaCapture.FrameSources.Values.FirstOrDefault();
 
         if (frameSource == null)
-        {
-            Serilog.Log.Error("[Win-Cam] No video frame source found");
             throw new InvalidOperationException("No video frame source found on the selected camera.");
-        }
-        Serilog.Log.Information("[Win-Cam] selected frame source type={Type}", frameSource.Info.MediaStreamType);
 
         _frameReader = await _mediaCapture.CreateFrameReaderAsync(
             frameSource,
@@ -108,8 +91,7 @@ public sealed class WindowsCameraScanner : IDisposable
         _frameCount = 0;
         _isScanning = true;
 
-        var status = await _frameReader.StartAsync();
-        Serilog.Log.Information("[Win-Cam] FrameReader.StartAsync status={Status}", status);
+        await _frameReader.StartAsync();
     }
 
     public async Task StopAsync()
@@ -147,36 +129,12 @@ public sealed class WindowsCameraScanner : IDisposable
 
     private void OnFrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
-        if (!_isScanning)
-        {
-            if (_frameCount < 3)
-                Serilog.Log.Information("[Win-Cam] OnFrameArrived but _isScanning=false");
-            return;
-        }
+        if (!_isScanning) return;
 
         using var frame = sender.TryAcquireLatestFrame();
-        if (frame == null)
-        {
-            if (_frameCount < 3)
-                Serilog.Log.Information("[Win-Cam] OnFrameArrived: TryAcquireLatestFrame returned null");
-            return;
-        }
-        if (frame.VideoMediaFrame == null)
-        {
-            if (_frameCount < 3)
-                Serilog.Log.Information("[Win-Cam] OnFrameArrived: frame.VideoMediaFrame is null");
-            return;
-        }
-        if (frame.VideoMediaFrame.SoftwareBitmap == null)
-        {
-            if (_frameCount < 3)
-                Serilog.Log.Information("[Win-Cam] OnFrameArrived: SoftwareBitmap is null (format={Fmt})", frame.VideoMediaFrame.VideoFormat?.MediaFrameFormat?.Subtype ?? "?");
-            return;
-        }
+        if (frame?.VideoMediaFrame?.SoftwareBitmap == null) return;
+
         var source = frame.VideoMediaFrame.SoftwareBitmap;
-        if (_frameCount == 0)
-            Serilog.Log.Information("[Win-Cam] OnFrameArrived: FIRST valid frame fmt={Fmt} {W}x{H} alpha={Alpha}",
-                source.BitmapPixelFormat, source.PixelWidth, source.PixelHeight, source.BitmapAlphaMode);
 
         // ------------------------------------------------------------------
         // 1. Convert to BGRA8 for both preview rendering and ZXing decoding
@@ -188,10 +146,8 @@ public sealed class WindowsCameraScanner : IDisposable
                 ? SoftwareBitmap.Copy(source)
                 : SoftwareBitmap.Convert(source, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
         }
-        catch (Exception ex)
+        catch
         {
-            if (_frameCount < 3)
-                Serilog.Log.Error(ex, "[Win-Cam] BGRA8 conversion FAILED (src fmt={Fmt})", source.BitmapPixelFormat);
             return;
         }
 
@@ -200,8 +156,6 @@ public sealed class WindowsCameraScanner : IDisposable
         // ------------------------------------------------------------------
         var old = Interlocked.Exchange(ref _latestFrame, bgra);
         old?.Dispose();
-        if (_frameCount == 0)
-            Serilog.Log.Information("[Win-Cam] _latestFrame set: bgra {W}x{H}", bgra.PixelWidth, bgra.PixelHeight);
 
         // ------------------------------------------------------------------
         // 3. QR decode on every Nth frame (throttled)
