@@ -404,13 +404,13 @@
 
                         <!-- Number of Cameras -->
                         <VerticalStackLayout Spacing="6">
-                            <Label Text="Number of Cameras (1–8)"
+                            <Label Text="{Binding MaxCameraCount, StringFormat='Number of Cameras (1–{0})'}"
                                    FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="#333333" />
                             <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
                                 <Stepper Minimum="1"
-                                         Maximum="8"
+                                         Maximum="{Binding MaxCameraCount}"
                                          Increment="1"
                                          Value="{Binding CameraCount, Mode=TwoWay}"
                                          VerticalOptions="Center" />

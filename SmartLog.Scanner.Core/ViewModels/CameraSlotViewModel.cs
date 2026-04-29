@@ -52,6 +52,20 @@ public partial class CameraSlotViewModel : ObservableObject
     }
 
     /// <summary>
+    /// macOS Catalyst: the native UIKit picker does not honour SelectedItem set during the
+    /// initial render pass. Toggling the value after layout forces the picker to re-read it.
+    /// </summary>
+    public void ForceRefreshSelection()
+    {
+        if (_selectedDevice is null) return;
+        var saved = _selectedDevice;
+        _selectedDevice = null;
+        OnPropertyChanged(nameof(SelectedDevice));
+        _selectedDevice = saved;
+        OnPropertyChanged(nameof(SelectedDevice));
+    }
+
+    /// <summary>
     /// Test command: briefly opens the camera to verify it works.
     /// </summary>
     [RelayCommand]
