@@ -541,4 +541,139 @@ public class SetupViewModelTests
 	}
 
 	#endregion
+
+	#region EP0012/US0122 — Concurrent Mode Opt-In Tests
+
+	// ── ResolveScanMode ──────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData(ScanningMethod.Camera, false, "Camera")]
+	[InlineData(ScanningMethod.Camera, true, "Both")]
+	[InlineData(ScanningMethod.CameraWithUsbFallback, false, "Camera")]
+	[InlineData(ScanningMethod.CameraWithUsbFallback, true, "Both")]
+	[InlineData(ScanningMethod.UsbScanner, false, "USB")]
+	[InlineData(ScanningMethod.UsbScanner, true, "USB")]
+	[InlineData(ScanningMethod.None, false, "USB")]
+	[InlineData(ScanningMethod.None, true, "USB")]
+	public void ResolveScanMode_Returns_Expected_Mode(
+		ScanningMethod detected, bool enableUsb, string expected)
+	{
+		Assert.Equal(expected, SetupViewModel.ResolveScanMode(detected, enableUsb));
+	}
+
+	// ── CanEnableUsb ─────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData(ScanningMethod.Camera, true)]
+	[InlineData(ScanningMethod.CameraWithUsbFallback, true)]
+	[InlineData(ScanningMethod.UsbScanner, false)]
+	[InlineData(ScanningMethod.None, false)]
+	public void CanEnableUsb_Reflects_Detected_Method(ScanningMethod method, bool expected)
+	{
+		_viewModel.DetectedScanMethod = method;
+		Assert.Equal(expected, _viewModel.CanEnableUsb);
+	}
+
+	// ── OnDetectedScanMethodChanged banner ───────────────────────────────────
+
+	[Fact]
+	public void Setting_DetectedScanMethod_To_CameraWithUsbFallback_Updates_Banner_Without_Checking_Checkbox()
+	{
+		_viewModel.DetectedScanMethod = ScanningMethod.CameraWithUsbFallback;
+
+		Assert.Contains("Tick the option below", _viewModel.DetectedDevicesMessage);
+		Assert.False(_viewModel.EnableUsbScannerInput);
+	}
+
+	[Fact]
+	public void Setting_DetectedScanMethod_To_Camera_Does_Not_Override_Banner()
+	{
+		_viewModel.DetectedDevicesMessage = "custom message";
+		_viewModel.DetectedScanMethod = ScanningMethod.Camera;
+
+		Assert.Equal("custom message", _viewModel.DetectedDevicesMessage);
+	}
+
+	// ── InitializeAsync pre-population ───────────────────────────────────────
+
+	[Theory]
+	[InlineData("Both", true)]
+	[InlineData("Camera", false)]
+	[InlineData("USB", false)]
+	public async Task InitializeAsync_PrePopulates_EnableUsbScannerInput_From_Saved_Mode(
+		string savedMode, bool expected)
+	{
+		_mockPreferences.Setup(p => p.GetSetupCompleted()).Returns(true);
+		_mockPreferences.Setup(p => p.GetServerBaseUrl()).Returns("https://server");
+		_mockPreferences.Setup(p => p.GetDefaultScanType()).Returns("ENTRY");
+		_mockPreferences.Setup(p => p.GetAcceptSelfSignedCerts()).Returns(false);
+		_mockPreferences.Setup(p => p.GetScanMode()).Returns(savedMode);
+		_mockSecureConfig.Setup(s => s.GetApiKeyAsync()).ReturnsAsync("key");
+		_mockSecureConfig.Setup(s => s.GetHmacSecretAsync()).ReturnsAsync("secret");
+		_mockDeviceDetection.Setup(d => d.DetectDevicesAsync()).ReturnsAsync(ScanningMethod.Camera);
+		_mockDeviceDetection.Setup(d => d.GetDetectionSummary()).Returns("1 camera detected");
+
+		await _viewModel.InitializeAsync();
+
+		Assert.Equal(expected, _viewModel.EnableUsbScannerInput);
+	}
+
+	// ── SaveAsync mode persistence ───────────────────────────────────────────
+
+	private void SetupValidViewModelForSave()
+	{
+		_viewModel.ServerUrl = "https://192.168.1.100:8443";
+		_viewModel.ApiKey = "valid-key";
+		_viewModel.HmacSecret = "valid-secret";
+		_viewModel.IsConnectionValid = true;
+		_mockPreferences.Setup(p => p.SetScanMode(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetServerBaseUrl(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetDefaultScanType(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetAcceptSelfSignedCerts(It.IsAny<bool>()));
+		_mockPreferences.Setup(p => p.SetSelectedCameraId(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetDeviceId(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetDeviceName(It.IsAny<string>()));
+		_mockPreferences.Setup(p => p.SetSetupCompleted(It.IsAny<bool>()));
+		_mockSecureConfig.Setup(s => s.SetApiKeyAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+		_mockSecureConfig.Setup(s => s.SetHmacSecretAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+		_mockNavigation.Setup(n => n.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+	}
+
+	[Fact]
+	public async Task SaveAsync_Camera_Detected_Checkbox_True_Persists_Both()
+	{
+		SetupValidViewModelForSave();
+		_viewModel.DetectedScanMethod = ScanningMethod.Camera;
+		_viewModel.EnableUsbScannerInput = true;
+
+		await _viewModel.SaveCommand.ExecuteAsync(null);
+
+		_mockPreferences.Verify(p => p.SetScanMode("Both"), Times.Once);
+	}
+
+	[Fact]
+	public async Task SaveAsync_Camera_Detected_Checkbox_False_Persists_Camera()
+	{
+		SetupValidViewModelForSave();
+		_viewModel.DetectedScanMethod = ScanningMethod.Camera;
+		_viewModel.EnableUsbScannerInput = false;
+
+		await _viewModel.SaveCommand.ExecuteAsync(null);
+
+		_mockPreferences.Verify(p => p.SetScanMode("Camera"), Times.Once);
+	}
+
+	[Fact]
+	public async Task SaveAsync_Usb_Detected_Persists_Usb_Regardless_Of_Checkbox()
+	{
+		SetupValidViewModelForSave();
+		_viewModel.DetectedScanMethod = ScanningMethod.UsbScanner;
+		_viewModel.EnableUsbScannerInput = true;
+
+		await _viewModel.SaveCommand.ExecuteAsync(null);
+
+		_mockPreferences.Verify(p => p.SetScanMode("USB"), Times.Once);
+	}
+
+	#endregion
 }

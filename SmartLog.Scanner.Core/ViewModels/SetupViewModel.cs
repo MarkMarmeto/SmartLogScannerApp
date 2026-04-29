@@ -58,11 +58,19 @@ public partial class SetupViewModel : ObservableObject
 	[ObservableProperty] private string? _testResultMessage;
 	[ObservableProperty] private bool _isConnectionValid;
 
+	// EP0012 (US0122): Concurrent scanner mode opt-in
+	[ObservableProperty] private bool _enableUsbScannerInput;
+
+	/// <summary>True when a camera is detected — concurrent USB requires a camera pipeline.</summary>
+	public bool CanEnableUsb =>
+		DetectedScanMethod is ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback;
+
 	// Camera picker
 	[ObservableProperty] private ObservableCollection<CameraDeviceInfo> _availableCameras = new();
 	[ObservableProperty] private CameraDeviceInfo? _selectedCamera;
 	[ObservableProperty] private bool _hasCameras;
 	[ObservableProperty] private string _cameraPickerMessage = "Detecting cameras...";
+
 
 	// Picker options
 	public List<string> ScanTypeOptions { get; } = new() { "ENTRY", "EXIT" };
@@ -106,6 +114,7 @@ public partial class SetupViewModel : ObservableObject
 
 			SelectedScanType = _preferences.GetDefaultScanType();
 			AcceptSelfSignedCerts = _preferences.GetAcceptSelfSignedCerts();
+			EnableUsbScannerInput = _preferences.GetScanMode() == "Both";
 
 			_logger.LogInformation("Loaded existing configuration for editing");
 		}
@@ -148,8 +157,8 @@ public partial class SetupViewModel : ObservableObject
 	{
 		if (_cameraEnumeration == null)
 		{
-			CameraPickerMessage = "Camera enumeration not available on this platform.";
 			HasCameras = false;
+			CameraPickerMessage = "Camera enumeration not available on this platform.";
 			return;
 		}
 
@@ -165,21 +174,33 @@ public partial class SetupViewModel : ObservableObject
 				return;
 			}
 
-			CameraPickerMessage = $"{cameras.Count} camera(s) found.";
-
-			// Restore previously saved selection (single-camera mode)
+			// Single-camera picker (Scanner Configuration section — backward compat)
 			var savedId = _preferences.GetSelectedCameraId();
-			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId)
-				?? cameras[0];
+			SelectedCamera = cameras.FirstOrDefault(c => c.Id == savedId) ?? cameras[0];
 
-			_logger.LogInformation("Camera enumeration complete: {Count} camera(s), selected={Name}",
-				cameras.Count, SelectedCamera?.Name);
+			var slotCount = Math.Min(cameras.Count, 3);
+			CameraPickerMessage = cameras.Count > 3
+				? $"3 of {cameras.Count} camera(s) detected (max 3)"
+				: $"{cameras.Count} camera(s) detected";
 
-			// EP0011: Store all cameras and load multi-camera config
-			_allAvailableCameras = cameras.ToList();
-			LoadMultiCameraConfig();
-			foreach (var slot in CameraSlots)
-				slot.PopulateDevices(_allAvailableCameras);
+			CameraSlots.Clear();
+			for (var i = 0; i < slotCount; i++)
+			{
+				var device = cameras[i];
+				var savedName = _preferences.GetCameraName(i);
+				var autoName = $"Camera {i + 1} – {device.Name}";  // en-dash
+
+				var slot = new CameraSlotViewModel(i, _cameraEnumeration,
+					Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance)
+				{
+					SelectedDevice = device,
+					IsEnabled      = _preferences.GetCameraEnabled(i),
+					DisplayName    = string.IsNullOrWhiteSpace(savedName) ? autoName : savedName,
+				};
+				CameraSlots.Add(slot);
+			}
+
+			_logger.LogInformation("Auto-created {Count} camera slot(s)", slotCount);
 		}
 		catch (Exception ex)
 		{
@@ -227,13 +248,7 @@ public partial class SetupViewModel : ObservableObject
 			_preferences.SetServerBaseUrl(ServerUrl);
 			_preferences.SetDeviceId(GenerateDeviceId());
 			_preferences.SetDeviceName($"Scanner-{Environment.MachineName}");
-			_preferences.SetScanMode(DetectedScanMethod switch
-			{
-				ScanningMethod.Camera => "Camera",
-				ScanningMethod.CameraWithUsbFallback => "Camera",
-				ScanningMethod.UsbScanner => "USB",
-				_ => "USB"
-			});
+			_preferences.SetScanMode(ResolveScanMode(DetectedScanMethod, EnableUsbScannerInput));
 			_preferences.SetDefaultScanType(SelectedScanType);
 			_preferences.SetAcceptSelfSignedCerts(AcceptSelfSignedCerts);
 			_preferences.SetSelectedCameraId(SelectedCamera?.Id ?? string.Empty);
@@ -325,6 +340,25 @@ public partial class SetupViewModel : ObservableObject
 		!string.IsNullOrWhiteSpace(ServerUrl) &&
 		!string.IsNullOrWhiteSpace(ApiKey);
 
+	// EP0012 (US0122): Refresh CanEnableUsb and update banner when detection result arrives.
+	partial void OnDetectedScanMethodChanged(ScanningMethod value)
+	{
+		OnPropertyChanged(nameof(CanEnableUsb));
+		if (value == ScanningMethod.CameraWithUsbFallback)
+			DetectedDevicesMessage = "Detected: webcam + USB scanner. Tick the option below to use both at the same time.";
+	}
+
+	/// <summary>
+	/// EP0012/US0122 AC4: Resolves the Scanner.Mode string from detection result and opt-in checkbox.
+	/// </summary>
+	internal static string ResolveScanMode(ScanningMethod detected, bool enableUsb) => detected switch
+	{
+		ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback when enableUsb => "Both",
+		ScanningMethod.Camera or ScanningMethod.CameraWithUsbFallback => "Camera",
+		ScanningMethod.UsbScanner => "USB",
+		_ => "USB"
+	};
+
 	// US0005: Clear test results when URL or API Key changes
 	partial void OnServerUrlChanged(string value)
 	{
@@ -349,74 +383,13 @@ public partial class SetupViewModel : ObservableObject
 		await _navigation.GoToAsync("//main");
 	}
 
-	// ── EP0011: Multi-Camera Config ─────────────────────────────────────────
-
-	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(ShowUsb3Warning))]
-	private int _cameraCount = 1;
+	// ── EP0011/US0127: Multi-Camera Config ──────────────────────────────────
 
 	public ObservableCollection<CameraSlotViewModel> CameraSlots { get; } = new();
 
-	/// <summary>Shows a USB 3.0 recommendation banner when 3+ cameras are configured.</summary>
-	public bool ShowUsb3Warning => CameraCount >= 3;
-
-	partial void OnCameraCountChanged(int value)
-	{
-		var count = Math.Clamp(value, 1, 8);
-		if (count != value) { CameraCount = count; return; }
-
-		// Add missing slots
-		while (CameraSlots.Count < count)
-		{
-			var idx = CameraSlots.Count;
-			var slot = CreateSlot(idx);
-			CameraSlots.Add(slot);
-		}
-
-		// Remove excess slots (trim from end)
-		while (CameraSlots.Count > count)
-			CameraSlots.RemoveAt(CameraSlots.Count - 1);
-
-		// Re-populate available devices for new slots
-		if (_allAvailableCameras.Count > 0)
-		{
-			foreach (var slot in CameraSlots)
-				slot.PopulateDevices(_allAvailableCameras);
-		}
-	}
-
-	private List<CameraDeviceInfo> _allAvailableCameras = new();
-
-	private CameraSlotViewModel CreateSlot(int index)
-	{
-		var slot = new CameraSlotViewModel(
-			index,
-			_cameraEnumeration,
-			Microsoft.Extensions.Logging.Abstractions.NullLogger<CameraSlotViewModel>.Instance);
-
-		// Restore saved config (ScanType is device-level — not per-camera)
-		slot.DisplayName = _preferences.GetCameraName(index);
-		slot.IsEnabled = _preferences.GetCameraEnabled(index);
-
-		var savedDeviceId = _preferences.GetCameraDeviceId(index);
-		if (!string.IsNullOrEmpty(savedDeviceId) && _allAvailableCameras.Count > 0)
-			slot.SelectedDevice = _allAvailableCameras.FirstOrDefault(c => c.Id == savedDeviceId);
-
-		return slot;
-	}
-
-	private void LoadMultiCameraConfig()
-	{
-		CameraCount = Math.Clamp(_preferences.GetCameraCount(), 1, 8);
-
-		CameraSlots.Clear();
-		for (var i = 0; i < CameraCount; i++)
-			CameraSlots.Add(CreateSlot(i));
-	}
-
 	private void SaveMultiCameraConfig()
 	{
-		_preferences.SetCameraCount(CameraCount);
+		_preferences.SetCameraCount(CameraSlots.Count);
 		for (var i = 0; i < CameraSlots.Count; i++)
 		{
 			var slot = CameraSlots[i];

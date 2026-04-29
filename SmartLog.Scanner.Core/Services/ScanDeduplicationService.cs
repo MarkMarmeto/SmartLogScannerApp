@@ -130,6 +130,21 @@ public class ScanDeduplicationService : IScanDeduplicationService, IDisposable
     }
 
     /// <summary>
+    /// Removes the deduplication record for a specific key+scanType. Used to un-record a scan
+    /// that was rejected by the server so subsequent re-scans reach the server rather than
+    /// producing a false "Duplicate" warning.
+    /// </summary>
+    public void Remove(string key, string scanType)
+    {
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(scanType))
+            return;
+
+        var cacheKey = BuildCacheKey(key, scanType);
+        if (_cache.TryRemove(cacheKey, out _))
+            _logger.LogDebug("Removed dedup entry for {Key} (server rejected)", cacheKey);
+    }
+
+    /// <summary>
     /// Clears all deduplication records.
     /// </summary>
     public void Reset()

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLog Scanner App — Hardware Recommendations</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --radius: 8px;
+    --warn-bg: #fef3c7;
+    --warn-border: #fbbf24;
+    --warn-text: #78350f;
+    --danger-bg: #fee2e2;
+    --danger-border: #ef4444;
+    --danger-text: #7f1d1d;
+    --good-bg: #dcfce7;
+    --good-border: #22c55e;
+    --good-text: #14532d;
+    --info-bg: #e0f2fe;
+    --info-border: #0ea5e9;
+    --info-text: #0c4a6e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); background: var(--surface-alt); }
+  a { color: var(--primary); text-decoration: none; }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 2rem; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 1.5rem 0; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .4rem; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p { font-size: 13px; opacity: .75; margin-top: 4px; }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; position: sticky; top: 0; z-index: 10; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0; overflow-x: auto; }
+  nav a { display: block; padding: .75rem 1rem; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+  .module { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden; }
+  .module-header { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .module-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: var(--surface-alt); }
+  .module-title { font-size: 1rem; font-weight: 700; }
+  .module-body { padding: 1.25rem 1.5rem; }
+  .module-body p + p, .module-body p + ul, .module-body ul + p, .module-body p + .callout, .module-body .callout + p { margin-top: .8rem; }
+  .module-body ul { padding-left: 1.4rem; }
+  .module-body li { margin: .25rem 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: .75rem 0; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: .5rem .9rem; border: 1px solid var(--border); }
+  td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface-alt); }
+
+  code { font-family: 'SFMono-Regular', Consolas, monospace; background: #f1f5f9; color: #c7254e; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .callout { border-left: 4px solid; padding: .8rem 1rem; border-radius: 4px; font-size: 14px; }
+  .callout.warn   { background: var(--warn-bg);   border-color: var(--warn-border);   color: var(--warn-text); }
+  .callout.danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+  .callout.good   { background: var(--good-bg);   border-color: var(--good-border);   color: var(--good-text); }
+  .callout.info   { background: var(--info-bg);   border-color: var(--info-border);   color: var(--info-text); }
+  .callout strong { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .25rem; }
+
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 4px; vertical-align: middle; margin-left: .35rem; }
+  .pill.recommended { background: #dcfce7; color: #14532d; }
+  .pill.budget      { background: #fef3c7; color: #78350f; }
+  .pill.premium     { background: #ede9fe; color: #4c1d95; }
+  .pill.avoid       { background: #fee2e2; color: #7f1d1d; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } main { padding: 1.5rem 1rem; } }
+
+  h3 { font-size: .95rem; font-weight: 700; margin: 1rem 0 .4rem; color: var(--primary-dark); }
+  h3:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Hardware Guide</div>
+    <h1>SmartLog Scanner — Hardware Recommendations</h1>
+    <p>Optimal device selection and topology for school-gate QR attendance scanning</p>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#tldr">TL;DR</a>
+    <a href="#critical">Critical Caveat</a>
+    <a href="#cameras">Cameras</a>
+    <a href="#scanners">Presentation Scanners</a>
+    <a href="#host">Host PC</a>
+    <a href="#usb">USB Topology</a>
+    <a href="#lighting">Lighting & Mounting</a>
+    <a href="#network">Network</a>
+    <a href="#bom">Bill of Materials</a>
+    <a href="#capacity">Capacity Planning</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ========================= TL;DR ========================= -->
+<div class="module" id="tldr">
+  <div class="module-header">
+    <div class="module-icon">🎯</div>
+    <div class="module-title">Recommended Setup (TL;DR)</div>
+  </div>
+  <div class="module-body">
+    <p><strong>Constraint:</strong> the deployment must be fully self-service — no staff member operates a handheld scanner. Students present their QR to a fixed device. Two viable hands-free topologies follow:</p>
+
+    <table>
+      <thead>
+        <tr><th>Component</th><th>Recommendation</th><th>Quantity</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fixed gate cameras</td>
+          <td>Logitech C920 / C922 (1080p MJPEG)</td>
+          <td><strong>2 (preferred) or 3</strong></td>
+          <td>Two well-positioned cameras typically out-throughput three cheap ones; fewer USB conflicts and lower CPU. Cameras provide visible on-screen feedback, which is critical without staff.</td>
+        </tr>
+        <tr>
+          <td>Fixed presentation scanner <em>(optional supplement)</em></td>
+          <td>Honeywell Genesis 7580g / Zebra DS9308 (omnidirectional 2D imager)</td>
+          <td><strong>0 or 1</strong></td>
+          <td>Adds a self-service kiosk lane with bright red aim illumination — students intuitively present QR like a supermarket checkout. <strong>One only</strong>, due to the keyboard-buffer collision below.</td>
+        </tr>
+        <tr>
+          <td>Host PC</td>
+          <td>Mini-PC, Intel i5-12400 / Ryzen 5 5600G, 16 GB RAM, NVMe SSD</td>
+          <td>1</td>
+          <td>Comfortable headroom for 2–3 concurrent decode workers + UI + sync service.</td>
+        </tr>
+        <tr>
+          <td>USB hub</td>
+          <td>Powered USB 3.0 hub (only if needed)</td>
+          <td>0–1</td>
+          <td>Prefer native motherboard ports on separate controllers; only add a hub if ports are exhausted.</td>
+        </tr>
+        <tr>
+          <td>Network</td>
+          <td>Wired Gigabit Ethernet</td>
+          <td>1</td>
+          <td>Keeps offline queue empty; avoids Wi-Fi micro-disconnects during peak traffic.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout good" style="margin-top: .9rem;">
+      <strong>Bottom line</strong>
+      Recommended hands-free baseline: <strong>2 cameras only</strong>, on a mid-range mini-PC. Add a fixed presentation scanner as a third "kiosk lane" if you observe students struggling to position phones in front of webcams. Add a third camera only if measured queue throughput requires it. The bottleneck at a self-service gate is almost always student presentation behaviour, not decode rate.
+    </div>
+
+    <div class="callout info" style="margin-top: .6rem;">
+      <strong>Cameras vs. presentation scanner — which UX wins?</strong>
+      Cameras give a live preview the student can self-correct against ("I can see my phone on the screen, move it closer"). Presentation scanners give an unmistakable red aim spot and beep on success but no visual preview. For students unfamiliar with QR kiosks (especially younger grades), the camera preview is more forgiving. For high-volume known-cohort gates, presentation scanners are 2–3× faster per scan.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= CRITICAL CAVEAT ========================= -->
+<div class="module" id="critical">
+  <div class="module-header">
+    <div class="module-icon">⚠️</div>
+    <div class="module-title">Critical Caveat — Multiple Keyboard-Wedge Devices</div>
+  </div>
+  <div class="module-body">
+    <div class="callout danger">
+      <strong>Do not run 2+ HID keyboard-wedge scanners (handheld <em>or</em> presentation) simultaneously without code changes.</strong>
+      Every HID barcode device — handheld, fixed presentation, or pedestal — injects keystrokes into the focused text field exactly like a real keyboard. If two scans arrive within ~150 ms of each other, the characters <em>interleave</em> in the input buffer, producing a corrupted payload that fails HMAC validation. The form factor (handheld vs. fixed) does not change this; the USB interface class does.
+    </div>
+
+    <h3>Why the app currently tolerates only one</h3>
+    <p>The Scanner mode (<code>PreferencesService.ScannerMode = "USB"</code>) listens for keystrokes on a single focused entry control. Windows does not tell the app <em>which</em> physical device produced each keystroke — both scanners are seen as anonymous keyboard input.</p>
+
+    <h3>Options if you ever need multiple presentation scanners</h3>
+    <ul>
+      <li><strong>Recommended (no code change):</strong> Use <strong>at most one</strong> keyboard-wedge scanner per host PC. Add more cameras instead — cameras are independent decode pipelines that don't share the keyboard buffer.</li>
+      <li><strong>Code change required:</strong> Switch to the Windows <em>Raw Input API</em> (<code>WM_INPUT</code>) to attribute each keystroke to a specific HID device handle. This lets each scanner feed its own decode queue. Estimated effort: 2–3 days plus testing on real hardware.</li>
+      <li><strong>Hardware alternative:</strong> Use scanners in <strong>USB Serial (COM port) mode</strong> — Honeywell Genesis 7580g, Zebra DS9308, etc., can be configured to expose each device as its own COM port, completely sidestepping the keyboard buffer. Most Eyoyo models do <em>not</em> reliably support COM mode.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Implication for the hands-free plan</strong>
+      If you adopt the supplemental fixed presentation scanner, keep it to <strong>one unit</strong>. Scale by adding cameras (independent USB Video pipelines), not more wedge scanners. If multiple kiosk lanes are required, either deploy separate host PCs (one scanner each) or commit to the Raw Input rewrite.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= CAMERAS ========================= -->
+<div class="module" id="cameras">
+  <div class="module-header">
+    <div class="module-icon">📷</div>
+    <div class="module-title">Webcam Selection</div>
+  </div>
+  <div class="module-body">
+
+    <h3>How many cameras do you actually need?</h3>
+    <p>QR decode speed is bounded by three things, in this order of usual impact:</p>
+    <ol style="padding-left: 1.4rem;">
+      <li><strong>Optics &amp; autofocus</strong> — a sharp 720p frame decodes faster than a blurry 1080p frame.</li>
+      <li><strong>Lighting</strong> — even illumination beats camera quality; see § Lighting.</li>
+      <li><strong>Number of decode workers</strong> — diminishing returns past 2 lanes per gate.</li>
+    </ol>
+
+    <table>
+      <thead><tr><th>Camera count</th><th>Throughput (typical)</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>1 camera</td><td>~25–35 students/min</td><td>OK for small schools (&lt; 300 students); single point of failure.</td></tr>
+        <tr><td>2 cameras</td><td>~50–70 students/min</td><td><span class="pill recommended">Recommended</span> Best throughput-per-dollar; redundancy if one fails.</td></tr>
+        <tr><td>3 cameras</td><td>~70–90 students/min</td><td>Useful only if students physically queue in 3 parallel lanes. Otherwise the extra camera is idle.</td></tr>
+        <tr><td>4+ cameras</td><td>marginal gain</td><td>Hits CPU and USB-bandwidth ceilings on mid-range hardware; <code>AdaptiveDecodeThrottle</code> will start downscaling frame rates.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>Counter-intuitive:</strong> three <em>mediocre</em> webcams (slow autofocus, fixed-focus lenses, noisy sensors) can deliver <em>worse</em> aggregate throughput than two good ones — wasted decode CPU on unfocused frames hurts every lane.
+    </div>
+
+    <h3>Recommended models</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Resolution</th><th>Notes</th><th>Tier</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Logitech C920 / C920s</td>
+          <td>1080p @ 30fps MJPEG</td>
+          <td>Glass lens, autofocus, broad UVC support, well-tested on Windows MediaFoundation.</td>
+          <td><span class="pill recommended">Recommended</span></td>
+        </tr>
+        <tr>
+          <td>Logitech C922 Pro</td>
+          <td>1080p @ 30fps / 720p @ 60fps</td>
+          <td>Same optics as C920, faster low-light AF. Slight price premium.</td>
+          <td><span class="pill recommended">Recommended</span></td>
+        </tr>
+        <tr>
+          <td>Logitech Brio 100 / 300</td>
+          <td>1080p</td>
+          <td>Newer, smaller, plastic lens. Acceptable but slower AF than C920 in mixed light.</td>
+          <td><span class="pill budget">Acceptable</span></td>
+        </tr>
+        <tr>
+          <td>Razer Kiyo</td>
+          <td>1080p @ 30fps</td>
+          <td>Built-in ring light — useful for shaded gate areas.</td>
+          <td><span class="pill premium">Premium</span></td>
+        </tr>
+        <tr>
+          <td>Anker PowerConf C200</td>
+          <td>2K MJPEG</td>
+          <td>Good budget pick if Logitech is unavailable. Verify MJPEG is selected (not YUY2).</td>
+          <td><span class="pill budget">Budget</span></td>
+        </tr>
+        <tr>
+          <td>Generic "1080p USB webcam" no-name</td>
+          <td>nominal 1080p</td>
+          <td>Fixed focus, plastic lens, often YUY2-only → high USB bandwidth, slow decode. Frequently lack stable Windows device paths (breaks identical-model differentiation).</td>
+          <td><span class="pill avoid">Avoid</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Key technical requirements</h3>
+    <ul>
+      <li><strong>UVC-compliant</strong> (USB Video Class) — works without vendor drivers; required by Windows MediaFoundation pipeline.</li>
+      <li><strong>MJPEG output supported</strong> — uses ~10× less USB bandwidth than uncompressed YUY2 at the same resolution. Critical when running 3 cameras on shared controllers.</li>
+      <li><strong>Autofocus or fixed focus calibrated for ~30–60 cm</strong> — that is the realistic distance from camera to a phone screen showing a QR.</li>
+      <li><strong>Stable USB device path</strong> — the multi-camera service distinguishes identical-model webcams by device path, not friendly name.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Resolution sweet spot</strong>
+      720p is sufficient for QR codes printed on student ID cards or shown on phone screens at typical scan distances. Configure cameras to 720p in <code>SetupPage</code> if 1080p shows no improvement in decode latency — you save ~50% of USB bandwidth and CPU per camera.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= SCANNERS ========================= -->
+<div class="module" id="scanners">
+  <div class="module-header">
+    <div class="module-icon">📡</div>
+    <div class="module-title">Fixed Presentation Scanner (Optional)</div>
+  </div>
+  <div class="module-body">
+
+    <div class="callout info">
+      <strong>Hands-free constraint</strong>
+      A presentation scanner is a fixed, hands-free unit mounted on the gate counter. The student presents the QR to it themselves — no operator. Think supermarket self-checkout barcode reader. This is <em>only</em> suggested as a supplement to cameras, not a replacement.
+    </div>
+
+    <h3>When to add one (and when not to)</h3>
+    <ul>
+      <li><strong>Add one if:</strong> the student demographic is older / familiar with kiosks, queues are long, or webcam-only trials show students struggling to position phones in the camera's focus zone.</li>
+      <li><strong>Skip it if:</strong> students are young (kindergarten/elementary), the gate is well-lit, or you want a single uniform UX across all lanes. Two cameras alone handle most schools comfortably.</li>
+      <li><strong>Never deploy 2+:</strong> see the Critical Caveat — multiple wedge devices on one PC corrupt scans.</li>
+    </ul>
+
+    <h3>Recommended hands-free models</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Form factor</th><th>Notes</th><th>Tier</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Honeywell Genesis 7580g</td>
+          <td>Desktop omnidirectional 2D imager</td>
+          <td>Industry-standard self-service unit. Bright red illumination, audible beep + LED on success, very fast omnidirectional QR decode. HID or COM mode (COM mode is the multi-scanner escape hatch).</td>
+          <td><span class="pill recommended">Recommended</span></td>
+        </tr>
+        <tr>
+          <td>Zebra DS9308</td>
+          <td>Desktop hands-free 2D imager</td>
+          <td>Direct competitor to Genesis 7580g. Slightly larger read window — good for students fumbling phone position. Same HID / COM dual-mode flexibility.</td>
+          <td><span class="pill recommended">Recommended</span></td>
+        </tr>
+        <tr>
+          <td>Datalogic Magellan 1100i</td>
+          <td>Desktop hands-free 2D imager</td>
+          <td>Compact retail-grade unit; reliable but pricier than the Honeywell.</td>
+          <td><span class="pill premium">Premium</span></td>
+        </tr>
+        <tr>
+          <td>Eyoyo MJ-5500 / desktop presentation models</td>
+          <td>Desktop hands-free 2D</td>
+          <td>Budget option. Acceptable decode rate but plastic build; HID-only (no COM mode escape hatch). Verify the specific SKU supports auto-sense / motion-triggered scanning before ordering.</td>
+          <td><span class="pill budget">Budget</span></td>
+        </tr>
+        <tr>
+          <td>Any handheld (Eyoyo EY-007L, etc.) <span class="pill avoid">Avoid for this deployment</span></td>
+          <td>Handheld trigger</td>
+          <td>Requires an operator to aim and pull a trigger — violates the hands-free / self-service constraint.</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>1D laser scanners (any)</td>
+          <td>—</td>
+          <td>Cannot read 2D QR codes; suitable only for 1D barcodes. Do not buy for this app.</td>
+          <td><span class="pill avoid">Avoid</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Mounting a presentation scanner</h3>
+    <ul>
+      <li>Mount at <strong>chest height (~110–130 cm)</strong> on a fixed stand or counter, scan window angled ~30° upward toward the approaching student.</li>
+      <li>Leave clear floor space ~40–60 cm in front so students naturally stop within scan range.</li>
+      <li>Add a printed sign with a phone-icon arrow showing where to present the QR — students take 2–3× longer the first time without visual instruction.</li>
+      <li>Run the USB cable internally through the stand to avoid trip hazards and tampering.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>USB receiver placement (if wireless)</strong>
+      Most desktop presentation scanners are wired (recommended — no battery to fail). If you do choose a wireless variant, plug its USB receiver into a <em>front-panel USB 2.0 port</em>, not USB 3.0. USB 3.0 controllers emit RF interference in the 2.4 GHz band that can shorten wireless range by 3–5 m.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= HOST PC ========================= -->
+<div class="module" id="host">
+  <div class="module-header">
+    <div class="module-icon">🖥️</div>
+    <div class="module-title">Host PC Specification</div>
+  </div>
+  <div class="module-body">
+
+    <h3>Minimum vs recommended</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Minimum (1–2 cams)</th><th>Recommended (2–3 cams)</th><th>Comfortable (3–4 cams)</th></tr></thead>
+      <tbody>
+        <tr><td>CPU</td><td>Intel i3-10100 / Ryzen 3 3200G</td><td><strong>Intel i5-12400 / Ryzen 5 5600G</strong></td><td>Intel i7-13700 / Ryzen 7 7700</td></tr>
+        <tr><td>Cores / threads</td><td>4C / 8T</td><td>6C / 12T</td><td>8C / 16T</td></tr>
+        <tr><td>RAM</td><td>8 GB</td><td><strong>16 GB</strong></td><td>16–32 GB</td></tr>
+        <tr><td>Storage</td><td>256 GB SATA SSD</td><td><strong>256 GB NVMe</strong></td><td>500 GB NVMe</td></tr>
+        <tr><td>USB controllers</td><td>1× USB 3.0 controller</td><td><strong>2× independent controllers</strong></td><td>2+ controllers, ideally with PCIe USB add-in card</td></tr>
+        <tr><td>Display</td><td>1080p</td><td>1080p</td><td>1080p (multi-camera grid is designed for 1920×1080)</td></tr>
+        <tr><td>Form factor</td><td>Any</td><td>Mini-PC (Intel NUC, Beelink, MinisForum)</td><td>Mini-PC or compact desktop</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Why a mini-PC over a laptop?</h3>
+    <ul>
+      <li><strong>Thermals:</strong> The decode pipeline + UI is sustained CPU load. Laptops thermally throttle within 10–15 min; mini-PCs run flat-out indefinitely.</li>
+      <li><strong>USB ports:</strong> Most laptops expose 2 USB-A ports — not enough for 3 cameras + 1 scanner + keyboard/mouse without a hub.</li>
+      <li><strong>Cost:</strong> A new i5 mini-PC is typically cheaper than a comparable-CPU laptop and lacks a screen/battery you don't need.</li>
+      <li><strong>Mounting:</strong> Mini-PCs have VESA brackets — mount behind the gate display and run cables cleanly.</li>
+    </ul>
+
+    <h3>Why <em>not</em> a Raspberry Pi?</h3>
+    <p>Tempting for cost, but:</p>
+    <ul>
+      <li>.NET 8 MAUI Windows is the supported deployment target. A Pi would require a Linux port (significant rewrite).</li>
+      <li>Single shared USB 2.0 controller — 3 cameras will saturate it.</li>
+      <li>ARM CPU is decode-throttled even with 1 camera at 1080p.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================= USB TOPOLOGY ========================= -->
+<div class="module" id="usb">
+  <div class="module-header">
+    <div class="module-icon">🔌</div>
+    <div class="module-title">USB Topology &amp; Bandwidth</div>
+  </div>
+  <div class="module-body">
+
+    <h3>The hidden bottleneck</h3>
+    <p>Camera count is rarely the limit. The limit is which physical USB <em>controller</em> each camera lands on. All ports on one controller share a single bandwidth pool.</p>
+
+    <table>
+      <thead><tr><th>USB standard</th><th>Theoretical</th><th>Practical sustained</th><th>720p MJPEG @30fps consumes</th></tr></thead>
+      <tbody>
+        <tr><td>USB 2.0</td><td>480 Mbps</td><td>~280–320 Mbps</td><td>~25–40 Mbps per camera</td></tr>
+        <tr><td>USB 3.0 (3.2 Gen 1)</td><td>5 Gbps</td><td>~3.2 Gbps</td><td>~25–40 Mbps per camera</td></tr>
+        <tr><td>USB 3.0 with YUY2 (uncompressed)</td><td>5 Gbps</td><td>~3.2 Gbps</td><td>~470 Mbps per camera (!)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout danger">
+      <strong>YUY2 trap</strong>
+      A single 1080p YUY2 webcam consumes ~950 Mbps. Three of them on one USB 2.0 controller will silently drop frames or fail to enumerate. Always verify cameras negotiate <strong>MJPEG</strong> on startup (logs report the chosen subtype).
+    </div>
+
+    <h3>Recommended topology for 3 cameras + 1 scanner</h3>
+    <ul>
+      <li>Camera 1 → motherboard rear USB 3.0 port (controller A)</li>
+      <li>Camera 2 → motherboard rear USB 3.0 port (controller B, if available)</li>
+      <li>Camera 3 → motherboard front USB 3.0 port (often a third controller via header)</li>
+      <li>Eyoyo wireless dongle → front USB <strong>2.0</strong> port (avoids 2.4 GHz interference)</li>
+      <li>Keyboard / mouse → any remaining USB 2.0 port</li>
+    </ul>
+
+    <p>Check controllers in Device Manager → View → "Devices by connection". Each USB Host Controller is a separate bandwidth pool.</p>
+
+    <h3>Cabling</h3>
+    <ul>
+      <li>Use the cables that ship with the camera; do not extend with cheap passive 5 m cables — they cause enumeration drops.</li>
+      <li>If the camera must be &gt; 3 m from the PC, use an <strong>active USB 3.0 extension</strong> (with built-in repeater) — Cable Matters and StarTech make reliable ones.</li>
+      <li>Avoid daisy-chaining hubs. One powered hub between PC and devices is fine; two hubs in series often causes power negotiation failures.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================= LIGHTING ========================= -->
+<div class="module" id="lighting">
+  <div class="module-header">
+    <div class="module-icon">💡</div>
+    <div class="module-title">Lighting, Mounting &amp; Environment</div>
+  </div>
+  <div class="module-body">
+
+    <h3>Lighting matters more than camera spec</h3>
+    <p>The cheapest reliable improvement to decode rate is even, diffuse light at the scan zone. Direct sunlight, harsh fluorescent flicker, and dark shadows all hurt decode rate more than a 50% camera resolution drop would.</p>
+    <ul>
+      <li>Aim for <strong>300–500 lux</strong> at the QR plane (a phone exposure-meter app can verify).</li>
+      <li>Avoid backlighting — never put the camera facing a window or open doorway during morning hours.</li>
+      <li>Add a small LED strip above the scan zone if the gate is shaded; the Razer Kiyo has one built-in.</li>
+      <li>Anti-glare matters: students presenting glossy phone screens at an angle into a low sun will fail to scan even on a perfect camera.</li>
+    </ul>
+
+    <h3>Mounting geometry</h3>
+    <ul>
+      <li>Camera at chest-to-shoulder height (~120–140 cm), tilted slightly downward.</li>
+      <li>QR presentation distance: 30–50 cm — verify autofocus locks at this range during calibration.</li>
+      <li>For 3-camera lane setup, space cameras ~80 cm apart so each owns a clear "lane" with no overlap.</li>
+      <li>Mark a floor sticker / footprint where students should stand — consistent geometry &gt; clever software.</li>
+    </ul>
+
+    <h3>Display visibility</h3>
+    <p>The student-feedback card must be readable at 2–3 m. The current 1080p layout is sized for that distance. If the host PC drives an external monitor, choose at least a 21" screen at 1080p facing the student queue.</p>
+  </div>
+</div>
+
+<!-- ========================= NETWORK ========================= -->
+<div class="module" id="network">
+  <div class="module-header">
+    <div class="module-icon">🌐</div>
+    <div class="module-title">Network Connectivity</div>
+  </div>
+  <div class="module-body">
+    <ul>
+      <li><strong>Wired Gigabit Ethernet preferred.</strong> The app's <code>BackgroundSyncService</code> polls health every 15 s; Wi-Fi micro-disconnects (common in school networks) cause the offline queue to fill briefly even when nothing is wrong.</li>
+      <li>If Wi-Fi is mandatory, use 5 GHz SSID — 2.4 GHz collides with the wireless scanner and other school devices.</li>
+      <li>Whitelist the SmartLog backend hostname/IP in any school proxy. The Polly retry policy (3× exponential + circuit breaker at 5 failures / 30 s) handles transient blips, not sustained proxy outages.</li>
+      <li>Backup connectivity: a USB-tethered phone or 4G LTE dongle is a worthwhile insurance policy for high-traffic gate hours. The offline queue covers brief outages but a 30-minute outage at peak fills the queue.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================= BOM ========================= -->
+<div class="module" id="bom">
+  <div class="module-header">
+    <div class="module-icon">📦</div>
+    <div class="module-title">Bill of Materials — Three Tiers</div>
+  </div>
+  <div class="module-body">
+
+    <p>Indicative pricing, PHP / USD; verify locally. Tier choice should follow expected daily scan volume — see § Capacity Planning.</p>
+
+    <table>
+      <thead><tr><th>Item</th><th>Lean (≤ 300 students)</th><th>Standard (300–800 students) <span class="pill recommended">Recommended</span></th><th>High-volume (800+ students)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Cameras</td>
+          <td>1× Logitech C920</td>
+          <td><strong>2× Logitech C920</strong></td>
+          <td>3× Logitech C922 Pro</td>
+        </tr>
+        <tr>
+          <td>Presentation scanner <em>(optional)</em></td>
+          <td>none (cameras only)</td>
+          <td><strong>none</strong> — or 1× Honeywell Genesis 7580g if kiosk lane is desired</td>
+          <td>1× Honeywell Genesis 7580g <strong>or</strong> Zebra DS9308 (one only — see Critical Caveat)</td>
+        </tr>
+        <tr>
+          <td>Host PC</td>
+          <td>i3 mini-PC, 8 GB RAM, 256 GB SSD</td>
+          <td><strong>i5-12400 mini-PC, 16 GB RAM, 256 GB NVMe</strong></td>
+          <td>i7 mini-PC or compact desktop, 16 GB RAM, 500 GB NVMe</td>
+        </tr>
+        <tr>
+          <td>Display</td>
+          <td>21" 1080p</td>
+          <td>24" 1080p</td>
+          <td>27" 1080p</td>
+        </tr>
+        <tr>
+          <td>Network</td>
+          <td>Wi-Fi (school)</td>
+          <td><strong>Wired Gigabit Ethernet</strong></td>
+          <td>Wired + 4G LTE failover dongle</td>
+        </tr>
+        <tr>
+          <td>USB hub</td>
+          <td>none</td>
+          <td>none (use motherboard ports)</td>
+          <td>1× powered USB 3.0 hub (Anker / Sabrent 7-port)</td>
+        </tr>
+        <tr>
+          <td>UPS / surge</td>
+          <td>Surge strip</td>
+          <td><strong>Small UPS (650 VA)</strong></td>
+          <td>1500 VA UPS with USB monitor</td>
+        </tr>
+        <tr>
+          <td>Cabling</td>
+          <td>Stock cables</td>
+          <td>Stock cables</td>
+          <td>Active USB 3.0 extensions for any &gt; 3 m run</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Why a UPS</strong>
+      Mid-scan power loss corrupts in-flight scans and risks SQLite write tearing on the offline queue. A 650 VA UPS gives the app 5–10 minutes to drain the queue and shut down gracefully — it is the highest-value cheap accessory in this list.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= CAPACITY ========================= -->
+<div class="module" id="capacity">
+  <div class="module-header">
+    <div class="module-icon">📊</div>
+    <div class="module-title">Capacity Planning</div>
+  </div>
+  <div class="module-body">
+
+    <p>Use this table to right-size cameras to expected gate throughput. "Peak window" is the busiest 15-minute block of the morning.</p>
+
+    <table>
+      <thead><tr><th>School size</th><th>Peak arrivals (per 15 min)</th><th>Required throughput</th><th>Recommended cameras</th><th>Presentation scanner?</th></tr></thead>
+      <tbody>
+        <tr><td>Small (&lt; 300)</td><td>~120</td><td>~8/min</td><td>1</td><td>No</td></tr>
+        <tr><td>Medium (300–600)</td><td>~250</td><td>~17/min</td><td>2</td><td>Optional kiosk lane</td></tr>
+        <tr><td>Large (600–1000)</td><td>~450</td><td>~30/min</td><td>2–3</td><td>Recommended (1 unit)</td></tr>
+        <tr><td>Very large (1000+)</td><td>~700+</td><td>~50/min</td><td>3 (consider 2 gates)</td><td>1 per gate (separate PCs)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>When to add a second gate (separate PC) instead of more cameras</h3>
+    <ul>
+      <li>Required throughput &gt; 60 students/min — physical queueing becomes the bottleneck, not decode rate.</li>
+      <li>One gate would require 4+ cameras — better to split traffic across two gates with 2 cameras each (also gives redundancy if one PC fails).</li>
+      <li>School has multiple physical entrances — one host PC per entrance scales linearly; the backend already deduplicates across devices via the tiered time-window dedup (3 s / 60 s / 300 s).</li>
+    </ul>
+
+    <h3>Validating in production</h3>
+    <p>After deployment, the <em>Statistics footer</em> on <code>MainPage</code> reports per-camera scan counts. If one camera consistently shows &lt; 15% of the total over a week, it is mis-positioned (or its lane is unused) — relocate or remove rather than leaving it idle consuming USB bandwidth and CPU.</p>
+  </div>
+</div>
+
+<!-- ========================= SUMMARY ========================= -->
+<div class="module">
+  <div class="module-header">
+    <div class="module-icon">✅</div>
+    <div class="module-title">Final Recommendation Against Your Original Plan</div>
+  </div>
+  <div class="module-body">
+    <table>
+      <thead><tr><th>Original plan</th><th>Verdict</th><th>Suggested adjustment</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>3 webcams to prevent decode bottleneck</td>
+          <td>Defensible, but probably over-provisioned</td>
+          <td>Start with 2 high-quality cameras (Logitech C920). Add a third only if measured peak throughput exceeds ~40 students/min.</td>
+        </tr>
+        <tr>
+          <td>1 Eyoyo handheld scanner</td>
+          <td>❌ Removed — violates the hands-free / no-operator constraint</td>
+          <td>Drop the handheld entirely. If a non-camera scan path is desired, add <strong>one</strong> fixed presentation scanner (Honeywell Genesis 7580g) so students self-present. Keep it to one unit because of the keyboard-buffer caveat.</td>
+        </tr>
+        <tr>
+          <td>(Implicit) any PC will do</td>
+          <td>The biggest hidden risk</td>
+          <td>Specify a mid-range mini-PC (i5 / 16 GB / NVMe). The decode pipeline is sustained CPU load — laptops will throttle.</td>
+        </tr>
+        <tr>
+          <td>(Implicit) plug everything into a hub</td>
+          <td>Common failure mode</td>
+          <td>Use motherboard ports across multiple USB controllers; only add a powered USB 3.0 hub if you exhaust ports.</td>
+        </tr>
+        <tr>
+          <td>(New) Hands-free / self-service requirement</td>
+          <td>✅ Correctly identified — drives the entire design</td>
+          <td>Cameras are the primary path because they're inherently hands-free, give visual feedback the student can self-correct from, and scale via independent USB Video pipelines (no keyboard-buffer collision).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+</body>
+</html>

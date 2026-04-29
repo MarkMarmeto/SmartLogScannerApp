@@ -158,8 +158,9 @@ public class UsbQrScannerService : IQrScannerService
             var payload = _inputBuffer.ToString();
             _inputBuffer.Clear();
 
-            // AC4: Only process if it starts with SMARTLOG:
-            if (payload.StartsWith("SMARTLOG:", StringComparison.Ordinal))
+            // AC4: Only process if it starts with SMARTLOG: (student) or SMARTLOG-V: (visitor pass)
+            if (payload.StartsWith("SMARTLOG:", StringComparison.Ordinal) ||
+                payload.StartsWith("SMARTLOG-V:", StringComparison.Ordinal))
             {
                 _logger.LogInformation("Timeout - valid SMARTLOG pattern detected, processing: {Payload}", payload);
                 _ = ProcessPayloadAsync(payload);
@@ -190,16 +191,18 @@ public class UsbQrScannerService : IQrScannerService
 
         if (validationResult.IsValid)
         {
-            _logger.LogInformation("Valid USB scan - StudentId: {StudentId}", validationResult.StudentId);
+            var dedupKey = validationResult.IsVisitorScan
+                ? validationResult.PassCode!
+                : validationResult.StudentId!;
+
+            _logger.LogInformation("Valid USB scan - {Kind}: {Id}",
+                validationResult.IsVisitorScan ? "PassCode" : "StudentId", dedupKey);
 
             var scanType = _preferences.GetDefaultScanType();
             var scannedAt = _timeService.UtcNow;
 
-            // Student-level deduplication check (after HMAC validation)
-            var dedupResult = _dedup.CheckAndRecord(
-                validationResult.StudentId!,
-                scanType,
-                studentName: null); // Name will be populated by server response
+            // Deduplication check — visitor passes use PassCode as key, students use StudentId
+            var dedupResult = _dedup.CheckAndRecord(dedupKey, scanType, studentName: null);
 
             switch (dedupResult.Action)
             {
@@ -221,7 +224,8 @@ public class UsbQrScannerService : IQrScannerService
                         Status = ScanStatus.DebouncedLocally,
                         Message = dedupResult.Message ?? "Already scanned. Please proceed.",
                         StudentId = validationResult.StudentId,
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
 
                     ScanCompleted?.Invoke(this, scanResult);
@@ -240,6 +244,11 @@ public class UsbQrScannerService : IQrScannerService
                 _logger.LogDebug("Server online - submitting USB scan to API");
                 scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType, cameraName: "USB Scanner");
 
+                // Server rejected the scan (e.g. deactivated pass, inactive student). Remove the
+                // dedup entry so the next re-scan reaches the server instead of showing "Duplicate".
+                if (scanResult.Status == ScanStatus.Rejected)
+                    _dedup.Remove(dedupKey, scanType);
+
                 // US0017 AC3: Mid-request failure fallback to queue (also covers rate limiting)
                 if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error
                     || scanResult.Status == ScanStatus.RateLimited)
@@ -250,7 +259,7 @@ public class UsbQrScannerService : IQrScannerService
                     {
                         // Check if already queued before enqueuing
                         var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                            validationResult.StudentId!, scanType);
+                            dedupKey, scanType);
 
                         if (!alreadyQueued)
                         {
@@ -258,8 +267,8 @@ public class UsbQrScannerService : IQrScannerService
                         }
                         else
                         {
-                            _logger.LogDebug("USB scan already queued for student {StudentId}, skipping duplicate enqueue",
-                                validationResult.StudentId);
+                            _logger.LogDebug("USB scan already queued for {DedupKey}, skipping duplicate enqueue",
+                                dedupKey);
                         }
                     }
                     catch (Exception ex)
@@ -273,13 +282,14 @@ public class UsbQrScannerService : IQrScannerService
                         ValidationResult = validationResult,
                         Status = ScanStatus.Queued,
                         Message = "Scan queued (offline)",
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
                 }
                 else
                 {
-                    // Preserve validation result for compatibility
-                    scanResult = scanResult with { ValidationResult = validationResult };
+                    // Preserve validation result and mark source for compatibility
+                    scanResult = scanResult with { ValidationResult = validationResult, Source = ScanSource.UsbScanner };
                 }
             }
             else
@@ -289,15 +299,15 @@ public class UsbQrScannerService : IQrScannerService
 
                 try
                 {
-                    // Check if already queued for this student+scanType
+                    // Check if already queued for this student/pass+scanType
                     var alreadyQueued = await _offlineQueue.HasPendingForStudentAsync(
-                        validationResult.StudentId!, scanType);
+                        dedupKey, scanType);
 
                     if (alreadyQueued)
                     {
                         // Already in queue - show amber feedback instead of blue
-                        _logger.LogDebug("USB scan already queued for student {StudentId}, scan type {ScanType}",
-                            validationResult.StudentId, scanType);
+                        _logger.LogDebug("USB scan already queued for {DedupKey}, scan type {ScanType}",
+                            dedupKey, scanType);
 
                         scanResult = new ScanResult
                         {
@@ -306,7 +316,8 @@ public class UsbQrScannerService : IQrScannerService
                             Status = ScanStatus.DebouncedLocally,
                             Message = "Already queued. Please proceed.",
                             StudentId = validationResult.StudentId,
-                            ScannedAt = scannedAt
+                            ScannedAt = scannedAt,
+                            Source = ScanSource.UsbScanner
                         };
                     }
                     else
@@ -320,7 +331,8 @@ public class UsbQrScannerService : IQrScannerService
                             ValidationResult = validationResult,
                             Status = ScanStatus.Queued,
                             Message = "Scan queued (offline)",
-                            ScannedAt = scannedAt
+                            ScannedAt = scannedAt,
+                            Source = ScanSource.UsbScanner
                         };
                     }
                 }
@@ -334,7 +346,8 @@ public class UsbQrScannerService : IQrScannerService
                         ValidationResult = validationResult,
                         Status = ScanStatus.Error,
                         Message = "Failed to save scan",
-                        ScannedAt = scannedAt
+                        ScannedAt = scannedAt,
+                        Source = ScanSource.UsbScanner
                     };
                 }
             }
@@ -350,7 +363,8 @@ public class UsbQrScannerService : IQrScannerService
                 ValidationResult = validationResult,
                 Status = ScanStatus.Rejected,
                 Message = validationResult.RejectionReason,
-                ScannedAt = DateTimeOffset.UtcNow
+                ScannedAt = DateTimeOffset.UtcNow,
+                Source = ScanSource.UsbScanner
             };
         }
 

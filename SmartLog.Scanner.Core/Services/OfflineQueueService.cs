@@ -69,12 +69,13 @@ public class OfflineQueueService : IOfflineQueueService
     private static string ExtractStudentIdFromPayload(string qrPayload)
     {
         var parts = qrPayload.Split(':');
+        // Student: SMARTLOG:{studentId}:{timestamp}:{hmac}
         if (parts.Length >= 4 && parts[0] == "SMARTLOG")
-        {
             return parts[1];
-        }
+        // Visitor: SMARTLOG-V:{passCode}:{hmac}
+        if (parts.Length >= 3 && parts[0] == "SMARTLOG-V")
+            return parts[1];
 
-        // Fallback if format is unexpected (shouldn't happen after HMAC validation)
         return "UNKNOWN";
     }
 

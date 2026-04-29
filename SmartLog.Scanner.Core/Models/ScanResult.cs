@@ -1,6 +1,15 @@
 namespace SmartLog.Scanner.Core.Models;
 
 /// <summary>
+/// EP0012/US0121: Identifies which physical input device produced a scan.
+/// </summary>
+public enum ScanSource
+{
+    Camera,
+    UsbScanner
+}
+
+/// <summary>
 /// US0007/US0010: Result of a QR code scan (camera or USB) and server submission.
 /// Contains the raw payload, validation outcome, and server response.
 /// </summary>
@@ -116,6 +125,11 @@ public record ScanResult
     /// EP0011/US0090: User-assigned display name of the camera slot. Null for USB scanner.
     /// </summary>
     public string? CameraName { get; init; }
+
+    /// <summary>
+    /// EP0012/US0121: Physical device that produced this scan.
+    /// </summary>
+    public ScanSource Source { get; init; } = ScanSource.Camera;
 
     /// <summary>
     /// True if the QR code passed HMAC validation.

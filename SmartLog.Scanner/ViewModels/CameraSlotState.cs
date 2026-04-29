@@ -32,6 +32,48 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Friendly status message shown briefly under the camera name (e.g. "Already scanned").</summary>
     [ObservableProperty] private string? _lastScanMessage;
 
+    // ── US0124: Student detail fields (populated during ShowFlash, cleared on reset) ─────────
+
+    /// <summary>Student number / ID. Visitor scans show "Visitor Pass #N" via FlashStudentName instead.</summary>
+    [ObservableProperty] private string? _lastStudentId;
+
+    /// <summary>Learner Reference Number (12-digit DepEd ID).</summary>
+    [ObservableProperty] private string? _lastLrn;
+
+    /// <summary>Grade level (e.g., "Grade 11").</summary>
+    [ObservableProperty] private string? _lastGrade;
+
+    /// <summary>Section (e.g., "Section A").</summary>
+    [ObservableProperty] private string? _lastSection;
+
+    /// <summary>Program / strand (e.g., "STEM"). Optional — omitted from LastGradeSection when null.</summary>
+    [ObservableProperty] private string? _lastProgram;
+
+    /// <summary>Local-time scan timestamp (HH:mm:ss) for the per-card bottom banner.</summary>
+    [ObservableProperty] private string? _lastScanTime;
+
+    /// <summary>True when the last scan was a visitor pass — drives header label and hides student-only rows.</summary>
+    [ObservableProperty] private bool _isVisitorScan;
+
+    /// <summary>Composed "Grade · Program · Section" string. Program omitted when null/empty.</summary>
+    public string? LastGradeSection
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(LastGrade) && string.IsNullOrEmpty(LastSection))
+                return null;
+            var grade = LastGrade ?? string.Empty;
+            var section = LastSection ?? string.Empty;
+            return string.IsNullOrEmpty(LastProgram)
+                ? $"{grade} · {section}".Trim(' ', '·')
+                : $"{grade} · {LastProgram} · {section}".Trim(' ', '·');
+        }
+    }
+
+    partial void OnLastGradeChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastSectionChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+    partial void OnLastProgramChanged(string? value) => OnPropertyChanged(nameof(LastGradeSection));
+
     /// <summary>Formatted frame rate string. Updated by the 1s timer in MainViewModel.</summary>
     [ObservableProperty] private string _frameRateDisplay = "—";
 
@@ -46,11 +88,9 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Human-readable status line for the status card.</summary>
     public string StatusText => Status switch
     {
-        CameraStatus.Scanning => "● Scanning",
-        CameraStatus.Error    => $"⚠ {ErrorMessage ?? "Error"}",
-        CameraStatus.Offline  => "⊘ Offline",
-        CameraStatus.NoSignal => "? No Signal",
-        _                     => "○ Idle"
+        CameraStatus.Error   => $"⚠ {ErrorMessage ?? "Error"}",
+        CameraStatus.Offline => "⊘ Offline",
+        _                    => "● Ready to Scan"
     };
 
     /// <summary>Color of the scan-type badge (teal = ENTRY, red = EXIT).</summary>
@@ -64,11 +104,9 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Border color indicating camera health.</summary>
     public Brush StatusBrush => new SolidColorBrush(Status switch
     {
-        CameraStatus.Scanning => Color.FromArgb("#4CAF50"),
-        CameraStatus.Error    => Color.FromArgb("#F44336"),
-        CameraStatus.Offline  => Color.FromArgb("#9E9E9E"),
-        CameraStatus.NoSignal => Color.FromArgb("#FF9800"),
-        _                     => Color.FromArgb("#E0E0E0")
+        CameraStatus.Error   => Color.FromArgb("#F44336"),
+        CameraStatus.Offline => Color.FromArgb("#9E9E9E"),
+        _                    => Color.FromArgb("#4D9B91")
     });
 
     /// <summary>Color matching the central student card palette for the most recent scan outcome.</summary>
@@ -103,6 +141,24 @@ public partial class CameraSlotState : ObservableObject
     /// <summary>Border stroke that swaps to the flash color while a scan is being shown.</summary>
     public Brush DisplayBrush => ShowFlash ? FlashBrush : StatusBrush;
 
+    // ── US0126: Bottom device strip ──────────────────────────────────────────
+
+    /// <summary>
+    /// Bottom strip status text — line 2 of the device identity strip.
+    /// Idle: "Ready to Scan". During flash: the friendly scan message ("✓ Juan Cruz — Accepted").
+    /// </summary>
+    public string BottomStripStatusText => ShowFlash
+        ? (LastScanMessage ?? "Scan complete")
+        : "Ready to Scan";
+
+    /// <summary>
+    /// Bottom strip background colour. Default teal (camera identity).
+    /// Shifts to FlashColor (status-coloured) during a 1-second flash, then reverts.
+    /// </summary>
+    public Color BottomStripColor => ShowFlash
+        ? FlashColor
+        : Color.FromArgb("#4D9B91");
+
     // Frame-rate measurement — incremented externally, read by 1s timer
     private int _frameCounter;
     public void IncrementFrameCount() => Interlocked.Increment(ref _frameCounter);
@@ -135,10 +191,18 @@ public partial class CameraSlotState : ObservableObject
         OnPropertyChanged(nameof(FlashBrush));
         OnPropertyChanged(nameof(FlashIcon));
         OnPropertyChanged(nameof(DisplayBrush));
+        OnPropertyChanged(nameof(BottomStripColor));
     }
 
-    partial void OnShowFlashChanged(bool value) =>
+    partial void OnShowFlashChanged(bool value)
+    {
         OnPropertyChanged(nameof(DisplayBrush));
+        OnPropertyChanged(nameof(BottomStripStatusText));
+        OnPropertyChanged(nameof(BottomStripColor));
+    }
+
+    partial void OnLastScanMessageChanged(string? value) =>
+        OnPropertyChanged(nameof(BottomStripStatusText));
 
     // ── Commands ──────────────────────────────────────────────────────────────
 

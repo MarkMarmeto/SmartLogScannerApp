@@ -47,9 +47,9 @@ public class CameraQrScannerService : IQrScannerService
     /// </summary>
     public void SetScanTypeOverride(string? scanType) => _scanTypeOverride = scanType;
 
-    // How long to lock out the same QR payload after processing.
-    // Matches the UI feedback duration (3s) so the scanner is ready the moment feedback clears.
-    // The student-level dedup service handles repeat-student protection beyond this window.
+    // Secondary lockout: same raw payload is silently ignored for 3s after processing.
+    // Intentionally longer than the 1s UI flash — acts as a safety net if the QR card
+    // lingers in frame after the slot gate (MainViewModel) has already reset.
     private static readonly TimeSpan PayloadLockoutWindow = TimeSpan.FromSeconds(3);
 
     public event EventHandler<ScanResult>? ScanCompleted;
@@ -142,13 +142,18 @@ public class CameraQrScannerService : IQrScannerService
             return;
         }
 
-        _logger.LogInformation("Valid QR code - StudentId: {StudentId}", validationResult.StudentId);
+        var dedupKey = validationResult.IsVisitorScan
+            ? validationResult.PassCode!
+            : validationResult.StudentId!;
+
+        _logger.LogInformation("Valid QR code - {Kind}: {Id}",
+            validationResult.IsVisitorScan ? "PassCode" : "StudentId", dedupKey);
 
         var scanType = _scanTypeOverride ?? _preferences.GetDefaultScanType();
         var scannedAt = _timeService.UtcNow;
 
-        // Student-level deduplication check (~2ms)
-        var dedupResult = _dedup.CheckAndRecord(validationResult.StudentId!, scanType, studentName: null);
+        // Deduplication check — visitor passes use PassCode as key, students use StudentId
+        var dedupResult = _dedup.CheckAndRecord(dedupKey, scanType, studentName: null);
 
         if (dedupResult.Action == DeduplicationAction.SuppressSilent)
         {
@@ -208,6 +213,11 @@ public class CameraQrScannerService : IQrScannerService
                     await TryEnqueueAsync(payload, scannedAt, scanType, validationResult);
                     return;
                 }
+
+                // Server rejected the scan (e.g. deactivated pass, inactive student). Remove the
+                // dedup entry so the next re-scan reaches the server instead of showing "Duplicate".
+                if (serverResult.Status == ScanStatus.Rejected)
+                    _dedup.Remove(dedupKey, scanType);
 
                 ScanUpdated?.Invoke(this, serverResult with
                 {

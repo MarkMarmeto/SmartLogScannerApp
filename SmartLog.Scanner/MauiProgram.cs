@@ -206,6 +206,22 @@ public static class MauiProgram
 			});
 		// NOTE: No Polly policies for health checks - we want fast, deterministic failures
 
+		// US0120: Register dedicated HttpClient for heartbeat (no Polly — backoff managed by HeartbeatService loop)
+		builder.Services.AddHttpClient("Heartbeat")
+			.ConfigurePrimaryHttpMessageHandler(() =>
+			{
+				var handler = new HttpClientHandler();
+				if (acceptSelfSigned)
+				{
+					handler.ServerCertificateCustomValidationCallback = certificateValidator;
+				}
+				return handler;
+			})
+			.ConfigureHttpClient(client =>
+			{
+				client.Timeout = TimeSpan.FromSeconds(10);
+			});
+
 		// US0002: Register named HttpClient "SmartLogApi" with resilience policies (AC1-AC8)
 		builder.Services.AddHttpClient("SmartLogApi")
 			.ConfigurePrimaryHttpMessageHandler(() =>
@@ -300,6 +316,8 @@ public static class MauiProgram
 
 		// US0008: Register USB keyboard wedge scanner service
 		builder.Services.AddSingleton<UsbQrScannerService>();
+		// EP0012/US0121: Alias so HeartbeatService can resolve IQrScannerService → UsbQrScannerService singleton.
+		builder.Services.AddSingleton<IQrScannerService>(sp => sp.GetRequiredService<UsbQrScannerService>());
 
 		// EP0011: Register multi-camera manager + adaptive throttle
 		builder.Services.AddSingleton<AdaptiveDecodeThrottle>();
@@ -324,6 +342,9 @@ public static class MauiProgram
 
 		// US0015: Register health check monitoring service
 		builder.Services.AddSingleton<IHealthCheckService, HealthCheckService>();
+
+		// US0120: Register heartbeat service — pushes scanner vitals to admin server
+		builder.Services.AddSingleton<IHeartbeatService, HeartbeatService>();
 
 		// Time sync service — corrects device clock drift using server time on startup
 		builder.Services.AddSingleton<ITimeService, TimeService>();

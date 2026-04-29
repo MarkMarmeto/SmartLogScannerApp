@@ -8,491 +8,523 @@
              Title="Device Setup"
              BackgroundColor="#F8F9FA">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20" MaximumWidthRequest="600">
+    <!-- US0125: Page-level 4-row Grid — header, save error banner, scrollable body, sticky save bar. -->
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-            <!-- Modern Header -->
-            <VerticalStackLayout Spacing="5" Margin="0,20,0,30">
-                <Label Text="SmartLog Scanner"
-                       FontSize="32"
-                       FontAttributes="Bold"
-                       TextColor="#2C5F5D"
-                       HorizontalOptions="Center" />
-                <Label Text="{Binding PageTitle}"
-                       FontSize="16"
-                       TextColor="#666666"
-                       HorizontalOptions="Center" />
-            </VerticalStackLayout>
+        <!-- ──────────────────────── Row 0: Header (fixed at top) ──────────────────────── -->
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="5"
+                             Padding="30,30,30,20"
+                             HorizontalOptions="Center">
+            <Label Text="SmartLog Scanner"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   TextColor="#2C5F5D"
+                   HorizontalOptions="Center" />
+            <Label Text="{Binding PageTitle}"
+                   FontSize="16"
+                   TextColor="#666666"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
 
-            <!-- Save Error Banner (Modern) -->
-            <Border IsVisible="{Binding SaveError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                    BackgroundColor="#F44336"
-                    Padding="16,12"
-                    StrokeThickness="0"
-                    Margin="0,0,0,10">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,2" />
-                </Border.Shadow>
-                <HorizontalStackLayout Spacing="10">
-                    <Label Text="⚠️" FontSize="18" VerticalOptions="Center" />
-                    <Label Text="{Binding SaveError}"
-                           TextColor="White"
-                           VerticalOptions="Center"
-                           LineBreakMode="WordWrap" />
-                </HorizontalStackLayout>
-            </Border>
+        <!-- ──────────────── Row 1: Save error banner (fixed, conditional) ──────────────── -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding SaveError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                BackgroundColor="#F44336"
+                Padding="16,12"
+                StrokeThickness="0"
+                Margin="30,0,30,10">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,2" />
+            </Border.Shadow>
+            <HorizontalStackLayout Spacing="10">
+                <Label Text="⚠️" FontSize="18" VerticalOptions="Center" />
+                <Label Text="{Binding SaveError}"
+                       TextColor="White"
+                       VerticalOptions="Center"
+                       LineBreakMode="WordWrap" />
+            </HorizontalStackLayout>
+        </Border>
 
-            <!-- Server Configuration Card -->
-            <Border BackgroundColor="White"
-                    Padding="20"
-                    StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
-                </Border.Shadow>
+        <!-- ────────────── Row 2: Body (scrollable) — adaptive 2/1 column Grid ────────────── -->
+        <ScrollView Grid.Row="2" x:Name="BodyScrollView" Padding="30,0,30,20">
+            <Grid x:Name="BodyGrid"
+                  RowDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="*,*"
+                  RowSpacing="20"
+                  ColumnSpacing="20">
 
-                <VerticalStackLayout Spacing="15">
-                    <Label Text="🌐 Server Connection"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
+                <!-- ─── Body Row 0, Col 0: Server Connection ─── -->
+                <Border x:Name="ServerCard"
+                        Grid.Row="0" Grid.Column="0"
+                        BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
+                    </Border.Shadow>
 
-                    <!-- Server URL -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Server URL"
-                               FontSize="14"
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="🌐 Server Connection"
+                               FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Border BackgroundColor="#F9F9F9"
-                                StrokeThickness="1"
-                                Stroke="#DDDDDD"
-                                Padding="12,10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Entry Text="{Binding ServerUrl, Mode=TwoWay}"
-                                   Placeholder="http://192.168.1.100:8080"
-                                   Keyboard="Url"
-                                   BackgroundColor="Transparent"
-                                   PlaceholderColor="#999999" />
-                        </Border>
-                        <Label Text="{Binding ServerUrlError}"
-                               IsVisible="{Binding ServerUrlError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                               TextColor="#F44336"
-                               FontSize="12"
-                               Margin="5,0,0,0" />
-                    </VerticalStackLayout>
+                               TextColor="#2C5F5D" />
 
-                    <!-- API Key -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="API Key"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Border BackgroundColor="#F9F9F9"
-                                StrokeThickness="1"
-                                Stroke="#DDDDDD"
-                                Padding="12,10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Entry Text="{Binding ApiKey, Mode=TwoWay}"
-                                   Placeholder="Enter device API key"
-                                   IsPassword="True"
-                                   BackgroundColor="Transparent"
-                                   PlaceholderColor="#999999" />
-                        </Border>
-                        <Label Text="{Binding ApiKeyError}"
-                               IsVisible="{Binding ApiKeyError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                               TextColor="#F44336"
-                               FontSize="12"
-                               Margin="5,0,0,0" />
-                    </VerticalStackLayout>
+                        <!-- Server URL -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Server URL"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#333333" />
+                            <Border BackgroundColor="#F9F9F9"
+                                    StrokeThickness="1"
+                                    Stroke="#DDDDDD"
+                                    Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Entry Text="{Binding ServerUrl, Mode=TwoWay}"
+                                       Placeholder="http://192.168.1.100:8080"
+                                       Keyboard="Url"
+                                       BackgroundColor="Transparent"
+                                       PlaceholderColor="#999999" />
+                            </Border>
+                            <Label Text="{Binding ServerUrlError}"
+                                   IsVisible="{Binding ServerUrlError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                   TextColor="#F44336"
+                                   FontSize="12"
+                                   Margin="5,0,0,0" />
+                        </VerticalStackLayout>
 
-                    <!-- Test Connection Button -->
-                    <Button Text="{Binding IsTestingConnection, Converter={StaticResource TestingTextConverter}}"
-                            Command="{Binding TestConnectionCommand}"
-                            IsEnabled="{Binding IsTestingConnection, Converter={StaticResource InvertedBoolConverter}}"
-                            BackgroundColor="Transparent"
-                            BorderColor="#4D9B91"
-                            BorderWidth="2"
-                            TextColor="#2C5F5D"
-                            CornerRadius="8"
-                            Padding="16,12"
-                            Margin="0,10,0,0"
-                            FontAttributes="Bold" />
+                        <!-- API Key -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="API Key"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#333333" />
+                            <Border BackgroundColor="#F9F9F9"
+                                    StrokeThickness="1"
+                                    Stroke="#DDDDDD"
+                                    Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Entry Text="{Binding ApiKey, Mode=TwoWay}"
+                                       Placeholder="Enter device API key"
+                                       IsPassword="True"
+                                       BackgroundColor="Transparent"
+                                       PlaceholderColor="#999999" />
+                            </Border>
+                            <Label Text="{Binding ApiKeyError}"
+                                   IsVisible="{Binding ApiKeyError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                   TextColor="#F44336"
+                                   FontSize="12"
+                                   Margin="5,0,0,0" />
+                        </VerticalStackLayout>
 
-                    <!-- Test Connection Result -->
-                    <Border IsVisible="{Binding TestResult, Converter={StaticResource EnumNotNoneConverter}}"
-                            BackgroundColor="#F0F0F0"
-                            Padding="12,10"
-                            StrokeThickness="0"
-                            Margin="0,5,0,0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="6" />
-                        </Border.StrokeShape>
-                        <HorizontalStackLayout Spacing="10">
-                            <Label Text="{Binding TestResult, Converter={StaticResource TestResultIconConverter}}"
-                                   FontSize="20"
-                                   TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
-                                   VerticalOptions="Center" />
-                            <Label Text="{Binding TestResultMessage}"
-                                   TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
-                                   VerticalOptions="Center"
-                                   FontSize="14" />
-                        </HorizontalStackLayout>
-                    </Border>
+                        <!-- Test Connection Button -->
+                        <Button Text="{Binding IsTestingConnection, Converter={StaticResource TestingTextConverter}}"
+                                Command="{Binding TestConnectionCommand}"
+                                IsEnabled="{Binding IsTestingConnection, Converter={StaticResource InvertedBoolConverter}}"
+                                BackgroundColor="Transparent"
+                                BorderColor="#4D9B91"
+                                BorderWidth="2"
+                                TextColor="#2C5F5D"
+                                CornerRadius="8"
+                                Padding="16,12"
+                                Margin="0,10,0,0"
+                                FontAttributes="Bold" />
 
-                    <!-- ActivityIndicator -->
-                    <ActivityIndicator IsRunning="{Binding IsTestingConnection}"
-                                       IsVisible="{Binding IsTestingConnection}"
-                                       Color="#4D9B91"
-                                       HeightRequest="30"
-                                       Margin="0,10,0,0" />
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- Security Configuration Card -->
-            <Border BackgroundColor="White"
-                    Padding="20"
-                    StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
-                </Border.Shadow>
-
-                <VerticalStackLayout Spacing="15">
-                    <Label Text="🔐 Security Configuration"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
-
-                    <!-- HMAC Secret -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="HMAC Secret Key"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Label Text="Must match the server's HMAC configuration"
-                               FontSize="12"
-                               TextColor="#666666"
-                               Margin="0,0,0,5" />
-                        <Border BackgroundColor="#F9F9F9"
-                                StrokeThickness="1"
-                                Stroke="#DDDDDD"
-                                Padding="12,10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Entry Text="{Binding HmacSecret, Mode=TwoWay}"
-                                   Placeholder="Enter HMAC secret (same as server)"
-                                   IsPassword="True"
-                                   BackgroundColor="Transparent"
-                                   PlaceholderColor="#999999" />
-                        </Border>
-                        <Label Text="{Binding HmacSecretError}"
-                               IsVisible="{Binding HmacSecretError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                               TextColor="#F44336"
-                               FontSize="12"
-                               Margin="5,0,0,0" />
-                    </VerticalStackLayout>
-
-                    <!-- SECURITY: TLS Certificate Validation Setting -->
-                    <VerticalStackLayout Spacing="10" Margin="0,15,0,0">
-                        <Border BackgroundColor="#FFF3E0"
-                                StrokeThickness="2"
-                                Stroke="#FF9800"
-                                Padding="16,12">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="8" />
-                            </Border.StrokeShape>
-                            <VerticalStackLayout Spacing="10">
-                                <HorizontalStackLayout Spacing="10">
-                                    <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
-                                    <Label Text="TLS Certificate Security"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           TextColor="#E65100"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
-
-                                <Label FontSize="13" TextColor="#6D4C41" LineBreakMode="WordWrap">
-                                    <Label.FormattedText>
-                                        <FormattedString>
-                                            <Span Text="By default, this app requires valid TLS certificates. Only enable the option below if your server uses a self-signed certificate on a " />
-                                            <Span Text="trusted network. " FontAttributes="Bold" />
-                                            <Span Text="Accepting self-signed certificates reduces TLS security and may expose you to man-in-the-middle attacks." />
-                                        </FormattedString>
-                                    </Label.FormattedText>
-                                </Label>
-
-                                <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
-                                    <CheckBox IsChecked="{Binding AcceptSelfSignedCerts, Mode=TwoWay}"
-                                              Color="#FF9800"
-                                              VerticalOptions="Center" />
-                                    <Label Text="Accept self-signed certificates (not recommended for production)"
-                                           FontSize="13"
-                                           TextColor="#E65100"
-                                           FontAttributes="Bold"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
-                            </VerticalStackLayout>
-                        </Border>
-                    </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- Scanner Configuration Card -->
-            <Border BackgroundColor="White"
-                    Padding="20"
-                    StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
-                </Border.Shadow>
-
-                <VerticalStackLayout Spacing="15">
-                    <Label Text="📷 Scanner Configuration"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
-
-                    <!-- Detected Devices -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Detected Device"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Border BackgroundColor="#E3F2FD"
+                        <!-- Test Connection Result -->
+                        <Border IsVisible="{Binding TestResult, Converter={StaticResource EnumNotNoneConverter}}"
+                                BackgroundColor="#F0F0F0"
                                 Padding="12,10"
-                                StrokeThickness="1"
-                                Stroke="#4D9B91">
+                                StrokeThickness="0"
+                                Margin="0,5,0,0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="6" />
                             </Border.StrokeShape>
                             <HorizontalStackLayout Spacing="10">
-                                <ActivityIndicator IsRunning="{Binding IsDetectingDevices}"
-                                                 IsVisible="{Binding IsDetectingDevices}"
-                                                 Color="#4D9B91"
-                                                 WidthRequest="20"
-                                                 HeightRequest="20"
-                                                 VerticalOptions="Center" />
-                                <Label Text="{Binding DetectedDevicesMessage}"
+                                <Label Text="{Binding TestResult, Converter={StaticResource TestResultIconConverter}}"
+                                       FontSize="20"
+                                       TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
+                                       VerticalOptions="Center" />
+                                <Label Text="{Binding TestResultMessage}"
+                                       TextColor="{Binding TestResult, Converter={StaticResource TestResultColorConverter}}"
                                        VerticalOptions="Center"
-                                       TextColor="#2C5F5D"
-                                       FontSize="14"
-                                       FontAttributes="Bold" />
+                                       FontSize="14" />
                             </HorizontalStackLayout>
                         </Border>
+
+                        <!-- ActivityIndicator -->
+                        <ActivityIndicator IsRunning="{Binding IsTestingConnection}"
+                                           IsVisible="{Binding IsTestingConnection}"
+                                           Color="#4D9B91"
+                                           HeightRequest="30"
+                                           Margin="0,10,0,0" />
                     </VerticalStackLayout>
+                </Border>
 
-                    <!-- Camera Picker -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Camera"
-                               FontSize="14"
+                <!-- ─── Body Row 0, Col 1: Security Configuration ─── -->
+                <Border x:Name="SecurityCard"
+                        Grid.Row="0" Grid.Column="1"
+                        BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="🔐 Security Configuration"
+                               FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Label Text="{Binding CameraPickerMessage}"
-                               FontSize="12"
-                               TextColor="#666666" />
-                        <Border BackgroundColor="#F9F9F9"
-                                StrokeThickness="1"
-                                Stroke="#DDDDDD"
-                                Padding="12,10"
-                                IsVisible="{Binding HasCameras}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Picker ItemsSource="{Binding AvailableCameras}"
-                                    SelectedItem="{Binding SelectedCamera, Mode=TwoWay}"
-                                    ItemDisplayBinding="{Binding Name}"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#333333" />
-                        </Border>
-                    </VerticalStackLayout>
+                               TextColor="#2C5F5D" />
 
-                    <!-- Default Scan Type -->
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Default Scan Type"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <Border BackgroundColor="#F9F9F9"
-                                StrokeThickness="1"
-                                Stroke="#DDDDDD"
-                                Padding="12,10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="6" />
-                            </Border.StrokeShape>
-                            <Picker ItemsSource="{Binding ScanTypeOptions}"
-                                    SelectedItem="{Binding SelectedScanType, Mode=TwoWay}"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#333333" />
-                        </Border>
-                    </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- EP0011: Multi-Camera Configuration Card -->
-            <Border BackgroundColor="White"
-                    Padding="20"
-                    StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
-                </Border.Shadow>
-
-                <VerticalStackLayout Spacing="15">
-                    <Label Text="🎥 Camera Configuration"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2C5F5D" />
-
-                    <!-- Number of Cameras -->
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Number of Cameras (1–8)"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="#333333" />
-                        <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
-                            <Stepper Minimum="1"
-                                     Maximum="8"
-                                     Increment="1"
-                                     Value="{Binding CameraCount, Mode=TwoWay}"
-                                     VerticalOptions="Center" />
-                            <Label Text="{Binding CameraCount, StringFormat='{0} camera(s)'}"
-                                   FontSize="15"
+                        <!-- HMAC Secret -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="HMAC Secret Key"
+                                   FontSize="14"
                                    FontAttributes="Bold"
-                                   TextColor="#2C5F5D"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </VerticalStackLayout>
+                                   TextColor="#333333" />
+                            <Label Text="Must match the server's HMAC configuration"
+                                   FontSize="12"
+                                   TextColor="#666666"
+                                   Margin="0,0,0,5" />
+                            <Border BackgroundColor="#F9F9F9"
+                                    StrokeThickness="1"
+                                    Stroke="#DDDDDD"
+                                    Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Entry Text="{Binding HmacSecret, Mode=TwoWay}"
+                                       Placeholder="Enter HMAC secret (same as server)"
+                                       IsPassword="True"
+                                       BackgroundColor="Transparent"
+                                       PlaceholderColor="#999999" />
+                            </Border>
+                            <Label Text="{Binding HmacSecretError}"
+                                   IsVisible="{Binding HmacSecretError, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                   TextColor="#F44336"
+                                   FontSize="12"
+                                   Margin="5,0,0,0" />
+                        </VerticalStackLayout>
 
-                    <!-- USB 3.0 Warning -->
-                    <Border BackgroundColor="#FFF3E0"
-                            StrokeThickness="1"
-                            Stroke="#FF9800"
-                            Padding="12,10"
-                            IsVisible="{Binding ShowUsb3Warning}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="6" />
-                        </Border.StrokeShape>
-                        <Label Text="⚠️ 3+ cameras require USB 3.0 ports for optimal performance. Using USB 2.0 hubs may cause dropped frames or camera failures."
-                               FontSize="13"
-                               TextColor="#E65100"
-                               LineBreakMode="WordWrap" />
-                    </Border>
+                        <!-- SECURITY: TLS Certificate Validation Setting (visual unchanged from US0004) -->
+                        <VerticalStackLayout Spacing="10" Margin="0,15,0,0">
+                            <Border BackgroundColor="#FFF3E0"
+                                    StrokeThickness="2"
+                                    Stroke="#FF9800"
+                                    Padding="16,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="10">
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
+                                        <Label Text="TLS Certificate Security"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="#E65100"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
 
-                    <!-- Per-Camera Rows -->
-                    <CollectionView ItemsSource="{Binding CameraSlots}"
-                                    SelectionMode="None">
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="cvm:CameraSlotViewModel">
-                                <Border BackgroundColor="#F9F9F9"
-                                        StrokeThickness="1"
-                                        Stroke="#E0E0E0"
-                                        Padding="12"
-                                        Margin="0,4">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
+                                    <Label FontSize="13" TextColor="#6D4C41" LineBreakMode="WordWrap">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="By default, this app requires valid TLS certificates. Only enable the option below if your server uses a self-signed certificate on a " />
+                                                <Span Text="trusted network. " FontAttributes="Bold" />
+                                                <Span Text="Accepting self-signed certificates reduces TLS security and may expose you to man-in-the-middle attacks." />
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
 
-                                    <VerticalStackLayout Spacing="8">
-
-                                        <!-- Camera Header Row -->
-                                        <HorizontalStackLayout Spacing="10">
-                                            <Label Text="{Binding DisplayNumber, StringFormat='Camera {0}'}"
-                                                   FontSize="14"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#2C5F5D"
-                                                   VerticalOptions="Center" />
-                                            <Switch IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                                    VerticalOptions="Center" />
-                                            <Label Text="Enabled"
-                                                   FontSize="12"
-                                                   TextColor="#666666"
-                                                   VerticalOptions="Center" />
-                                        </HorizontalStackLayout>
-
-                                        <!-- Display Name -->
-                                        <Entry Text="{Binding DisplayName, Mode=TwoWay}"
-                                               Placeholder="Display name (e.g. Gate A)"
+                                    <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
+                                        <CheckBox IsChecked="{Binding AcceptSelfSignedCerts, Mode=TwoWay}"
+                                                  Color="#FF9800"
+                                                  VerticalOptions="Center" />
+                                        <Label Text="Accept self-signed certificates (not recommended for production)"
                                                FontSize="13"
-                                               BackgroundColor="White" />
+                                               TextColor="#E65100"
+                                               FontAttributes="Bold"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
 
-                                        <!-- Device Picker -->
-                                        <Picker ItemsSource="{Binding AvailableDevices}"
-                                                SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                                                ItemDisplayBinding="{Binding Name}"
-                                                Title="Select camera device"
-                                                TextColor="#333333"
-                                                BackgroundColor="White" />
+                <!-- ─── Body Row 1 (full width): Scanner Configuration ─── -->
+                <Border x:Name="ScannerCard"
+                        Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                        BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
+                    </Border.Shadow>
 
-                                        <Button Text="Test"
-                                                Command="{Binding TestCameraCommand}"
-                                                IsEnabled="{Binding IsTestRunning, Converter={StaticResource InvertedBoolConverter}}"
-                                                BackgroundColor="#4D9B91"
-                                                TextColor="White"
-                                                CornerRadius="6"
-                                                Padding="10,6"
-                                                FontSize="13"
-                                                HorizontalOptions="Start" />
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="📷 Scanner Configuration"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#2C5F5D" />
 
-                                        <!-- Test Result -->
-                                        <Label Text="{Binding TestResult}"
-                                               IsVisible="{Binding TestResult, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                                               FontSize="12"
-                                               TextColor="#666666" />
+                        <!-- Detected Devices -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Detected Device"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#333333" />
+                            <Border BackgroundColor="#E3F2FD"
+                                    Padding="12,10"
+                                    StrokeThickness="1"
+                                    Stroke="#4D9B91">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <HorizontalStackLayout Spacing="10">
+                                    <ActivityIndicator IsRunning="{Binding IsDetectingDevices}"
+                                                     IsVisible="{Binding IsDetectingDevices}"
+                                                     Color="#4D9B91"
+                                                     WidthRequest="20"
+                                                     HeightRequest="20"
+                                                     VerticalOptions="Center" />
+                                    <Label Text="{Binding DetectedDevicesMessage}"
+                                           VerticalOptions="Center"
+                                           TextColor="#2C5F5D"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
 
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                        <!-- Camera Picker -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Camera"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#333333" />
+                            <Label Text="{Binding CameraPickerMessage}"
+                                   FontSize="12"
+                                   TextColor="#666666" />
+                            <Border BackgroundColor="#F9F9F9"
+                                    StrokeThickness="1"
+                                    Stroke="#DDDDDD"
+                                    Padding="12,10"
+                                    IsVisible="{Binding HasCameras}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Picker ItemsSource="{Binding AvailableCameras}"
+                                        SelectedItem="{Binding SelectedCamera, Mode=TwoWay}"
+                                        ItemDisplayBinding="{Binding Name}"
+                                        BackgroundColor="Transparent"
+                                        TextColor="#333333" />
+                            </Border>
+                        </VerticalStackLayout>
 
-                </VerticalStackLayout>
-            </Border>
+                        <!-- EP0012 (US0122): Concurrent scanner mode opt-in — hidden when no camera detected -->
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanEnableUsb}"
+                                             Margin="0,8,0,0">
+                            <HorizontalStackLayout Spacing="10">
+                                <CheckBox IsChecked="{Binding EnableUsbScannerInput, Mode=TwoWay}"
+                                          Color="#4D9B91"
+                                          VerticalOptions="Center" />
+                                <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Also accept USB scanner input alongside cameras"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#333333" />
+                                    <Label Text="Enable this if you have both webcam(s) and a handheld barcode scanner at this gate"
+                                           FontSize="12"
+                                           TextColor="#666666"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
-            <!-- Save Button (Modern) -->
-            <Button Text="{Binding SaveButtonText}"
-                    Command="{Binding SaveCommand}"
-                    IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
-                    BackgroundColor="#4D9B91"
-                    TextColor="White"
-                    CornerRadius="8"
-                    Padding="20,14"
-                    FontSize="16"
-                    FontAttributes="Bold"
-                    Margin="0,20,0,40">
-                <Button.Shadow>
-                    <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,4" />
-                </Button.Shadow>
-            </Button>
+                        <!-- Default Scan Type -->
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Default Scan Type"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#333333" />
+                            <Border BackgroundColor="#F9F9F9"
+                                    StrokeThickness="1"
+                                    Stroke="#DDDDDD"
+                                    Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Picker ItemsSource="{Binding ScanTypeOptions}"
+                                        SelectedItem="{Binding SelectedScanType, Mode=TwoWay}"
+                                        BackgroundColor="Transparent"
+                                        TextColor="#333333" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- Back to Scanner Button (Edit Mode Only) -->
-            <Button Text="← Back to Scanner"
-                    IsVisible="{Binding IsEditMode}"
-                    Command="{Binding CancelCommand}"
-                    BackgroundColor="Transparent"
-                    BorderColor="#999999"
-                    BorderWidth="1"
-                    TextColor="#666666"
-                    CornerRadius="8"
-                    Padding="20,14"
-                    FontSize="14"
-                    Margin="0,-30,0,40" />
+                <!-- ─── Body Row 2 (full width): Camera Configuration ─── -->
+                <Border x:Name="CameraCard"
+                        Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                        BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.1" Radius="12" Offset="0,4" />
+                    </Border.Shadow>
 
-        </VerticalStackLayout>
-    </ScrollView>
+                    <VerticalStackLayout Spacing="15">
+
+                        <!-- Section header + detected count -->
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="🎥 Camera Configuration"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="#2C5F5D" />
+                            <Label Text="{Binding CameraPickerMessage}"
+                                   FontSize="13"
+                                   TextColor="#666666" />
+                        </VerticalStackLayout>
+
+                        <!-- Per-Camera Rows (auto-detected, read-only device) -->
+                        <CollectionView ItemsSource="{Binding CameraSlots}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="cvm:CameraSlotViewModel">
+                                    <Border BackgroundColor="#F9F9F9"
+                                            StrokeThickness="1"
+                                            Stroke="#E0E0E0"
+                                            Padding="12"
+                                            Margin="0,4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+
+                                        <VerticalStackLayout Spacing="8">
+
+                                            <!-- Camera Header Row -->
+                                            <HorizontalStackLayout Spacing="10">
+                                                <Label Text="{Binding DisplayNumber, StringFormat='Camera {0}'}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#2C5F5D"
+                                                       VerticalOptions="Center" />
+                                                <Switch IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                                        VerticalOptions="Center" />
+                                                <Label Text="Enabled"
+                                                       FontSize="12"
+                                                       TextColor="#666666"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+
+                                            <!-- Device label (auto-assigned, read-only) -->
+                                            <Label Text="{Binding DeviceName, StringFormat='Device: {0}'}"
+                                                   FontSize="13"
+                                                   TextColor="#666666"
+                                                   FontAttributes="Italic" />
+
+                                            <!-- Display Name -->
+                                            <Entry Text="{Binding DisplayName, Mode=TwoWay}"
+                                                   Placeholder="Display name (e.g. Gate A)"
+                                                   FontSize="13"
+                                                   BackgroundColor="White" />
+
+                                            <Button Text="Test"
+                                                    Command="{Binding TestCameraCommand}"
+                                                    IsEnabled="{Binding IsTestRunning, Converter={StaticResource InvertedBoolConverter}}"
+                                                    BackgroundColor="#4D9B91"
+                                                    TextColor="White"
+                                                    CornerRadius="6"
+                                                    Padding="10,6"
+                                                    FontSize="13"
+                                                    HorizontalOptions="Start" />
+
+                                            <!-- Test Result -->
+                                            <Label Text="{Binding TestResult}"
+                                                   IsVisible="{Binding TestResult, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                                   FontSize="12"
+                                                   TextColor="#666666" />
+
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+            </Grid>
+        </ScrollView>
+
+        <!-- ──────────────── Row 3: Sticky save bar (always visible) ──────────────── -->
+        <Border Grid.Row="3"
+                BackgroundColor="White"
+                Padding="30,16"
+                StrokeThickness="0">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.08" Radius="16" Offset="0,-6" />
+            </Border.Shadow>
+
+            <Grid ColumnDefinitions="Auto,*,Auto">
+
+                <!-- Back button — left, only in edit mode -->
+                <Button Grid.Column="0"
+                        Text="← Back to Scanner"
+                        IsVisible="{Binding IsEditMode}"
+                        Command="{Binding CancelCommand}"
+                        BackgroundColor="Transparent"
+                        BorderColor="#999999"
+                        BorderWidth="1"
+                        TextColor="#666666"
+                        CornerRadius="8"
+                        Padding="20,12"
+                        FontSize="14"
+                        VerticalOptions="Center" />
+
+                <!-- Save button — right, always visible -->
+                <Button Grid.Column="2"
+                        Text="{Binding SaveButtonText}"
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
+                        BackgroundColor="#4D9B91"
+                        TextColor="White"
+                        CornerRadius="8"
+                        Padding="24,14"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        VerticalOptions="Center"
+                        MinimumWidthRequest="200">
+                    <Button.Shadow>
+                        <Shadow Brush="Black" Opacity="0.2" Radius="8" Offset="0,4" />
+                    </Button.Shadow>
+                </Button>
+
+            </Grid>
+        </Border>
+
+    </Grid>
 </ContentPage>

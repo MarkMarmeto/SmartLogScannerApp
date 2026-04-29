@@ -13,6 +13,7 @@ public partial class MainPage : ContentPage
     private MainViewModel? _viewModel;
     private string _scannerMode = "Camera";
     private bool _windowDestroyingHooked;
+    private bool _initialized;
 
     // Parameterless constructor for DataTemplate
     public MainPage()
@@ -29,8 +30,8 @@ public partial class MainPage : ContentPage
         // Read scanner mode from preferences
         _scannerMode = Preferences.Get("Scanner.Mode", "Camera");
 
-        // Enable keyboard input for USB scanner mode
-        if (_scannerMode == "USB")
+        // EP0012/US0121: Subscribe focus handler when USB pipeline is active.
+        if (_viewModel.IsUsbMode)
         {
             this.Focused += OnPageFocused;
         }
@@ -39,25 +40,51 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (_viewModel != null)
+
+        // EP0012: Only initialize once — scanner runs continuously until app close.
+        // Navigating to settings/logs and back does NOT restart the pipeline.
+        if (_viewModel != null && !_initialized)
         {
+            _initialized = true;
+
             await _viewModel.InitializeAsync();
 
-            // EP0011: Attach camera 0 preview after cameras are running
+            // EP0011/EP0012: Attach camera 0 preview when camera pipeline is active.
 #if MACCATALYST
-            if (_scannerMode == "Camera")
+            if (_viewModel.IsCameraMode)
                 AttachCameraPreview();
 #elif WINDOWS
-            if (_scannerMode == "Camera")
+            if (_viewModel.IsCameraMode)
                 AttachCameraPreview();
 #endif
 
-            // Focus the page for keyboard input in USB mode
-            if (_scannerMode == "USB")
+            // Focus the page for keyboard input when USB pipeline is active.
+            if (_viewModel.IsUsbMode)
                 this.Focus();
         }
+        else if (_viewModel != null && _viewModel.IsCameraMode)
+        {
+            // Returning from Setup — reload pipeline if camera count changed.
+            var reloaded = await _viewModel.ReloadCameraConfigAsync();
+            if (reloaded)
+            {
+#if MACCATALYST
+                AttachCameraPreview();
+#elif WINDOWS
+                AttachCameraPreview();
+#endif
+            }
 
-        // EP0011: Hook Window.Destroying once to ensure StopAllAsync is called on app close
+            if (_viewModel.IsUsbMode)
+                this.Focus();
+        }
+        else if (_viewModel?.IsUsbMode == true)
+        {
+            // Re-focus for USB keyboard input when returning from another page.
+            this.Focus();
+        }
+
+        // EP0011: Hook Window.Destroying once to ensure clean shutdown on app close
         if (!_windowDestroyingHooked && Window is not null)
         {
             Window.Destroying += OnWindowDestroying;
@@ -101,11 +128,11 @@ public partial class MainPage : ContentPage
     }
 #endif
 
-    protected override async void OnDisappearing()
+    protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        if (_viewModel != null)
-            await _viewModel.DisposeAsync();
+        // Scanner keeps running when navigating to other pages.
+        // Full teardown happens in OnWindowDestroying (app close only).
     }
 
     /// <summary>
@@ -114,7 +141,7 @@ public partial class MainPage : ContentPage
     private async void OnWindowDestroying(object? sender, EventArgs e)
     {
         if (_viewModel != null)
-            await _viewModel.StopCamerasAsync();
+            await _viewModel.DisposeAsync();
     }
 
     /// <summary>
@@ -153,6 +180,27 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
+    /// US0124: Feeds body width into MainViewModel.BodyWidth so CardWidth recomputes
+    /// when the page resizes (window drag, fullscreen toggle, display attach/detach).
+    /// </summary>
+    private void OnBodyGridSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is VisualElement v && _viewModel != null && v.Width > 0)
+            _viewModel.BodyWidth = v.Width;
+    }
+
+    /// <summary>
+    /// US0126: Feeds the cards-area height into MainViewModel.BodyHeight so CardHeight
+    /// recomputes on resize. The ScrollView lives in the * row so its height already
+    /// excludes the camera preview above it.
+    /// </summary>
+    private void OnCardsAreaSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is VisualElement v && _viewModel != null && v.Height > 0)
+            _viewModel.BodyHeight = v.Height;
+    }
+
+    /// <summary>
     /// US0008: Handle page focus for USB scanner keyboard input.
     /// </summary>
     private void OnPageFocused(object? sender, FocusEventArgs e)
@@ -180,8 +228,8 @@ public partial class MainPage : ContentPage
                 // Read scanner mode from preferences
                 _scannerMode = Preferences.Get("Scanner.Mode", "Camera");
 
-                // Enable keyboard input for USB scanner mode
-                if (_scannerMode == "USB")
+                // EP0012/US0121: Subscribe focus handler when USB pipeline is active.
+                if (_viewModel.IsUsbMode)
                 {
                     this.Focused += OnPageFocused;
                 }
@@ -189,9 +237,9 @@ public partial class MainPage : ContentPage
         }
 
 #if MACCATALYST
-        if (_scannerMode == "USB" && Handler?.PlatformView is UIKit.UIView view)
+        // EP0012/US0121: Attach Mac keyboard handler when USB pipeline is active.
+        if (_viewModel?.IsUsbMode == true && Handler?.PlatformView is UIKit.UIView view)
         {
-            // MacCatalyst: Attach NSEvent monitor for keyboard input
             AttachMacKeyboardHandler(view);
         }
 #endif
