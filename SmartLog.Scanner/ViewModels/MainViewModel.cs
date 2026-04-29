@@ -260,8 +260,7 @@ public partial class MainViewModel : ObservableObject
             await _multiCameraManager.InitializeAsync(cameraConfigs);
             await _multiCameraManager.StartAllAsync();
 
-            var visible = CameraSlots.Count(s => s.IsVisible);
-            StatusMessage = $"DBG count={cameraCount} visible={visible} cfg0={cameraConfigs.ElementAtOrDefault(0)?.IsEnabled} cfg1={cameraConfigs.ElementAtOrDefault(1)?.IsEnabled}";
+            StatusMessage = "Ready to scan QR codes";
             StatusIcon = "📷";
         }
 
