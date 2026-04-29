@@ -244,6 +244,11 @@ public class UsbQrScannerService : IQrScannerService
                 _logger.LogDebug("Server online - submitting USB scan to API");
                 scanResult = await _scanApi.SubmitScanAsync(payload, scannedAt, scanType, cameraName: "USB Scanner");
 
+                // Server rejected the scan (e.g. deactivated pass, inactive student). Remove the
+                // dedup entry so the next re-scan reaches the server instead of showing "Duplicate".
+                if (scanResult.Status == ScanStatus.Rejected)
+                    _dedup.Remove(dedupKey, scanType);
+
                 // US0017 AC3: Mid-request failure fallback to queue (also covers rate limiting)
                 if (scanResult.Status == ScanStatus.Queued || scanResult.Status == ScanStatus.Error
                     || scanResult.Status == ScanStatus.RateLimited)

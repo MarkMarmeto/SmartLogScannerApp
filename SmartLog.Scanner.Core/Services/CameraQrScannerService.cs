@@ -214,6 +214,11 @@ public class CameraQrScannerService : IQrScannerService
                     return;
                 }
 
+                // Server rejected the scan (e.g. deactivated pass, inactive student). Remove the
+                // dedup entry so the next re-scan reaches the server instead of showing "Duplicate".
+                if (serverResult.Status == ScanStatus.Rejected)
+                    _dedup.Remove(dedupKey, scanType);
+
                 ScanUpdated?.Invoke(this, serverResult with
                 {
                     ValidationResult = validationResult,

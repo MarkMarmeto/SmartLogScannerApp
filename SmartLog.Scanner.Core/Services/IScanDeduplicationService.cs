@@ -24,6 +24,14 @@ public interface IScanDeduplicationService
     DeduplicationResult CheckAndRecord(string studentId, string scanType, string? studentName = null);
 
     /// <summary>
+    /// Removes the deduplication record for a specific key+scanType, allowing the next scan
+    /// to proceed to the server immediately. Call this when the server rejects a scan so that
+    /// a rejected QR (e.g. deactivated pass, inactive student) does not block subsequent
+    /// re-scans with a false "Duplicate" warning.
+    /// </summary>
+    void Remove(string key, string scanType);
+
+    /// <summary>
     /// Clears all deduplication records.
     /// Used for testing or manual cache reset.
     /// </summary>
