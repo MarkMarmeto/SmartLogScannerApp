@@ -344,15 +344,15 @@ public class HeartbeatServiceTests
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
+        // Do NOT call StartAsync — the background loop races with the explicit SendHeartbeatAsync
+        // call and can overwrite capturedBody with a payload captured before the event fired.
+        // ScanCompleted is subscribed in the constructor, so the event is captured without the loop.
         var service = BuildService();
-        await service.StartAsync();
 
-        // Raise USB scan event — HeartbeatService should record the timestamp.
         var usbResult = new ScanResult { Source = ScanSource.UsbScanner };
         _mockUsbScanner.Raise(s => s.ScanCompleted += null, _mockUsbScanner.Object, usbResult);
 
         await service.SendHeartbeatAsync(CancellationToken.None);
-        await service.StopAsync();
 
         Assert.NotNull(capturedBody);
         Assert.DoesNotContain("\"usbScannerLastScanAgeSeconds\":null", capturedBody);
@@ -375,13 +375,14 @@ public class HeartbeatServiceTests
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
+        // Do NOT call StartAsync — same race concern as the USB source test above.
         var service = BuildService();
-        await service.StartAsync();
+
         // Raise event with Camera source — should NOT update _lastUsbScanAtUtc
         var cameraResult = new ScanResult { Source = ScanSource.Camera };
         _mockUsbScanner.Raise(s => s.ScanCompleted += null, _mockUsbScanner.Object, cameraResult);
+
         await service.SendHeartbeatAsync(CancellationToken.None);
-        await service.StopAsync();
 
         Assert.NotNull(capturedBody);
         Assert.Contains("\"usbScannerLastScanAgeSeconds\":null", capturedBody);

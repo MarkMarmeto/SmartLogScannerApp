@@ -52,6 +52,10 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         _scanHistory = scanHistory;
         _usbScanner = usbScanner;
         _logger = logger;
+
+        // Subscribe in the constructor so USB scan timestamps are captured even before
+        // StartAsync is called, and so tests can raise the event without starting the loop.
+        _usbScanner.ScanCompleted += OnUsbScan;
     }
 
     public Task StartAsync(CancellationToken cancellationToken = default)
@@ -69,8 +73,6 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         _requestTimeoutSeconds = Math.Clamp(
             _config.GetValue<int>("Heartbeat:RequestTimeoutSeconds", 10), 5, 60);
         _currentIntervalSeconds = _baseIntervalSeconds;
-
-        _usbScanner.ScanCompleted += OnUsbScan;
 
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _loopTask = Task.Run(() => RunLoopAsync(_cts.Token));
