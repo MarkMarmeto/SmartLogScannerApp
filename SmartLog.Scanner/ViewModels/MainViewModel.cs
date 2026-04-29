@@ -36,6 +36,14 @@ public partial class MainViewModel : ObservableObject
     // US0009: Scan type toggle (ENTRY/EXIT)
     [ObservableProperty] private string _currentScanType = "ENTRY";
 
+    /// <summary>Pill background color — blue for ENTRY, deep orange for EXIT.</summary>
+    public Color ScanTypePillColor => CurrentScanType == "EXIT"
+        ? Color.FromArgb("#E64A19")
+        : Color.FromArgb("#1976D2");
+
+    partial void OnCurrentScanTypeChanged(string value)
+        => OnPropertyChanged(nameof(ScanTypePillColor));
+
     // EP0011: Camera that produced the most recent scan (used by logs / heartbeat — not UI-bound after US0124)
     [ObservableProperty] private string? _lastScanCameraName;
 

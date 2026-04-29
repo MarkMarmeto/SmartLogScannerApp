@@ -79,7 +79,7 @@
 
                 <!-- US0009: Scan Type Toggle -->
                 <Border Grid.Column="4"
-                        BackgroundColor="#4D9B91"
+                        BackgroundColor="{Binding ScanTypePillColor}"
                         Padding="18,10"
                         StrokeThickness="0"
                         VerticalOptions="Center"
@@ -88,7 +88,7 @@
                         <RoundRectangle CornerRadius="10" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#4D9B91" Opacity="0.4" Radius="8" Offset="0,3" />
+                        <Shadow Brush="{Binding ScanTypePillColor}" Opacity="0.4" Radius="8" Offset="0,3" />
                     </Border.Shadow>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding ToggleScanTypeCommand}" />

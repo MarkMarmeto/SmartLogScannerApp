@@ -106,7 +106,7 @@ public partial class CameraSlotState : ObservableObject
     {
         CameraStatus.Error   => Color.FromArgb("#F44336"),
         CameraStatus.Offline => Color.FromArgb("#9E9E9E"),
-        _                    => Color.FromArgb("#4CAF50")
+        _                    => Color.FromArgb("#4D9B91")
     });
 
     /// <summary>Color matching the central student card palette for the most recent scan outcome.</summary>
@@ -152,12 +152,12 @@ public partial class CameraSlotState : ObservableObject
         : "Ready to Scan";
 
     /// <summary>
-    /// Bottom strip background colour. Default green (camera identity).
+    /// Bottom strip background colour. Default teal (camera identity).
     /// Shifts to FlashColor (status-coloured) during a 1-second flash, then reverts.
     /// </summary>
     public Color BottomStripColor => ShowFlash
         ? FlashColor
-        : Color.FromArgb("#4CAF50");
+        : Color.FromArgb("#4D9B91");
 
     // Frame-rate measurement — incremented externally, read by 1s timer
     private int _frameCounter;
