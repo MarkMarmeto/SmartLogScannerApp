@@ -18,7 +18,10 @@ public sealed class CameraHeadlessWorker : ICameraWorker
     private readonly ILogger<CameraHeadlessWorker>? _logger;
     private AVCaptureSession? _captureSession;
     private AVCaptureMetadataOutput? _metadataOutput;
+    private AVCaptureVideoDataOutput? _videoDataOutput;
     private MetadataOutputDelegate? _delegate;
+    private VideoOutputDelegate? _videoDelegate;
+    private CoreFoundation.DispatchQueue? _videoQueue;
     private AVCaptureVideoPreviewLayer? _previewLayer;
     private bool _isRunning;
 
@@ -59,7 +62,6 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
 
         _captureSession = new AVCaptureSession();
-        _captureSession.SessionPreset = AVCaptureSession.PresetHigh;
 
         // Device selection
         AVCaptureDevice? device = null;
@@ -85,8 +87,13 @@ public sealed class CameraHeadlessWorker : ICameraWorker
             return;
         }
 
+        // Configure session inside Begin/Commit so AVFoundation re-evaluates
+        // capability checks once both the input and output are attached.
+        _captureSession.BeginConfiguration();
+
         if (!_captureSession.CanAddInput(input))
         {
+            _captureSession.CommitConfiguration();
             const string msg = "Cannot add video input to capture session";
             _logger?.LogError(msg);
             ErrorOccurred?.Invoke(this, msg);
@@ -98,6 +105,7 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         _metadataOutput = new AVCaptureMetadataOutput();
         if (!_captureSession.CanAddOutput(_metadataOutput))
         {
+            _captureSession.CommitConfiguration();
             const string msg = "Cannot add metadata output to capture session";
             _logger?.LogError(msg);
             ErrorOccurred?.Invoke(this, msg);
@@ -105,14 +113,85 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
         _captureSession.AddOutput(_metadataOutput);
 
+        // Video data output — only added for external USB cameras. Built-in
+        // cameras (FaceTime HD) work fine with just AVCaptureMetadataOutput,
+        // and adding a second output to every session saturates AVFoundation
+        // when multiple sessions run simultaneously, breaking QR detection on
+        // the built-in camera. External cameras need it because Mac Catalyst
+        // doesn't pump frames to AVCaptureMetadataOutput / AVCaptureVideoPreviewLayer
+        // for ExternalUnknown devices unless a video data output is attached.
+        var isExternal = device.DeviceType == AVCaptureDeviceType.ExternalUnknown;
+        if (isExternal)
+        {
+            _videoDataOutput = new AVCaptureVideoDataOutput { AlwaysDiscardsLateVideoFrames = true };
+            if (_captureSession.CanAddOutput(_videoDataOutput))
+            {
+                _captureSession.AddOutput(_videoDataOutput);
+            }
+            else
+            {
+                _logger?.LogWarning("CameraHeadlessWorker[{Device}]: video data output not addable", device.LocalizedName);
+                _videoDataOutput.Dispose();
+                _videoDataOutput = null;
+            }
+        }
+
+        // Pick the highest preset the device actually supports. USB webcams
+        // often don't advertise PresetHigh and StartRunning silently no-ops
+        // when the preset is unsupported, leaving the preview layer black.
+        var presets = new[]
+        {
+            AVCaptureSession.PresetHigh,
+            AVCaptureSession.PresetMedium,
+            AVCaptureSession.Preset640x480,
+            AVCaptureSession.PresetLow,
+        };
+        var chosenPreset = presets.FirstOrDefault(p => _captureSession.CanSetSessionPreset(p));
+        if (chosenPreset != null)
+        {
+            _captureSession.SessionPreset = chosenPreset;
+            _logger?.LogInformation("CameraHeadlessWorker: using preset {Preset}", chosenPreset);
+        }
+        else
+        {
+            _logger?.LogWarning("CameraHeadlessWorker: no preset supported, leaving session default");
+        }
+
+        _captureSession.CommitConfiguration();
+
         _delegate = new MetadataOutputDelegate(this);
         _metadataOutput.SetDelegate(_delegate, CoreFoundation.DispatchQueue.MainQueue);
         _metadataOutput.MetadataObjectTypes = AVMetadataObjectType.QRCode;
 
-        await Task.Run(() => _captureSession.StartRunning());
-        _isRunning = true;
+        // AVCaptureVideoDataOutput requires a sample-buffer delegate on a serial
+        // dispatch queue or AVFoundation skips frame delivery entirely. We don't
+        // process the buffers — the delegate exists purely to keep the pipeline
+        // pumping so the preview layer (and metadata output) receive frames on
+        // external USB cameras under Mac Catalyst.
+        if (_videoDataOutput != null)
+        {
+            _videoQueue = new CoreFoundation.DispatchQueue("smartlog.camera.video");
+            _videoDelegate = new VideoOutputDelegate(device.LocalizedName, _logger);
+            _videoDataOutput.SetSampleBufferDelegate(_videoDelegate, _videoQueue);
+            _logger?.LogInformation("CameraHeadlessWorker[{Device}]: video delegate attached", device.LocalizedName);
+        }
+        else
+        {
+            _logger?.LogWarning("CameraHeadlessWorker[{Device}]: no video output — frames will not be diagnosable", device.LocalizedName);
+        }
 
-        _logger?.LogInformation("CameraHeadlessWorker: running");
+        await Task.Run(() => _captureSession.StartRunning());
+
+        if (!_captureSession.Running)
+        {
+            var msg = $"Capture session failed to start (device {device.LocalizedName})";
+            _logger?.LogError(msg);
+            ErrorOccurred?.Invoke(this, msg);
+            return;
+        }
+
+        _isRunning = true;
+        _logger?.LogInformation("CameraHeadlessWorker: running ({Device})", device.LocalizedName);
     }
 
     public Task StopAsync()
@@ -125,12 +204,19 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         _metadataOutput?.SetDelegate(null, CoreFoundation.DispatchQueue.MainQueue);
         DetachPreview();
 
+        _videoDataOutput?.SetSampleBufferDelegate(null, null);
+
         _captureSession?.Dispose();
         _metadataOutput?.Dispose();
+        _videoDataOutput?.Dispose();
+        _videoQueue?.Dispose();
 
         _captureSession = null;
         _metadataOutput = null;
+        _videoDataOutput = null;
         _delegate = null;
+        _videoDelegate = null;
+        _videoQueue = null;
         _isRunning = false;
 
         _logger?.LogInformation("CameraHeadlessWorker: stopped");
@@ -202,6 +288,37 @@ public sealed class CameraHeadlessWorker : ICameraWorker
             {
                 _parent.OnQrCodeDetected(readable.StringValue);
             }
+        }
+    }
+
+    // Sample-buffer delegate. Mac Catalyst silently skips frame delivery for
+    // AVCaptureVideoDataOutput unless a delegate is set on a queue, so this
+    // exists primarily to force the capture pipeline to flow. We also log
+    // frame counts so we can confirm whether external USB cameras are actually
+    // producing frames under Mac Catalyst.
+    private sealed class VideoOutputDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
+    {
+        private readonly string _deviceName;
+        private readonly ILogger<CameraHeadlessWorker>? _logger;
+        private int _frames;
+
+        public VideoOutputDelegate(string deviceName, ILogger<CameraHeadlessWorker>? logger)
+        {
+            _deviceName = deviceName;
+            _logger = logger;
+        }
+
+        public override void DidOutputSampleBuffer(
+            AVCaptureOutput captureOutput,
+            CoreMedia.CMSampleBuffer sampleBuffer,
+            AVCaptureConnection connection)
+        {
+            var n = System.Threading.Interlocked.Increment(ref _frames);
+            if (n == 1)
+                _logger?.LogInformation("CameraHeadlessWorker[{Device}]: FIRST frame received", _deviceName);
+            else if (n % 30 == 0)
+                _logger?.LogInformation("CameraHeadlessWorker[{Device}]: {Frames} frames received", _deviceName, n);
+            sampleBuffer.Dispose();
         }
     }
 }
