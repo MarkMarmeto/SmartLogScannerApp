@@ -26,6 +26,8 @@ public class CameraPreviewHandler : ViewHandler<CameraPreviewView, WinGrid>
     private Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap? _writeableBitmap;
     private DispatcherQueueTimer? _previewTimer;
     private DispatcherQueue? _dispatcherQueue;
+    private int _ticks;
+    private int _framesRendered;
 
     public CameraPreviewHandler() : base(PropertyMapper) { }
 
@@ -52,6 +54,8 @@ public class CameraPreviewHandler : ViewHandler<CameraPreviewView, WinGrid>
     public void AttachWorker(CameraHeadlessWorker worker)
     {
         _worker = worker;
+        System.Diagnostics.Debug.WriteLine($"[Win-Preview] AttachWorker called, dispatcher={(_dispatcherQueue != null ? "ready" : "null")}");
+        Serilog.Log.Information("[Win-Preview] AttachWorker called, dispatcher={Dispatcher}", _dispatcherQueue != null ? "ready" : "null");
         StartPreviewTimer();
     }
 
@@ -79,10 +83,24 @@ public class CameraPreviewHandler : ViewHandler<CameraPreviewView, WinGrid>
 
     private void OnPreviewTick(DispatcherQueueTimer sender, object args)
     {
-        if (_worker == null || _previewImage == null) return;
+        var n = ++_ticks;
+        if (_worker == null || _previewImage == null)
+        {
+            if (n == 1 || n % 30 == 0)
+                Serilog.Log.Information("[Win-Preview] tick {N}: worker={Worker} image={Image}", n, _worker != null, _previewImage != null);
+            return;
+        }
 
         using var frame = _worker.TakeLatestFrame();
-        if (frame == null) return;
+        if (frame == null)
+        {
+            if (n == 1 || n % 30 == 0)
+                Serilog.Log.Information("[Win-Preview] tick {N}: worker.TakeLatestFrame() returned null ({Frames} frames so far)", n, _framesRendered);
+            return;
+        }
+        var rendered = ++_framesRendered;
+        if (rendered == 1 || rendered % 30 == 0)
+            Serilog.Log.Information("[Win-Preview] rendered frame {Frames} ({W}x{H})", rendered, frame.PixelWidth, frame.PixelHeight);
 
         try
         {
