@@ -171,13 +171,8 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         if (_videoDataOutput != null)
         {
             _videoQueue = new CoreFoundation.DispatchQueue("smartlog.camera.video");
-            _videoDelegate = new VideoOutputDelegate(device.LocalizedName, _logger);
+            _videoDelegate = new VideoOutputDelegate();
             _videoDataOutput.SetSampleBufferDelegate(_videoDelegate, _videoQueue);
-            _logger?.LogInformation("CameraHeadlessWorker[{Device}]: video delegate attached", device.LocalizedName);
-        }
-        else
-        {
-            _logger?.LogWarning("CameraHeadlessWorker[{Device}]: no video output — frames will not be diagnosable", device.LocalizedName);
         }
 
         await Task.Run(() => _captureSession.StartRunning());
@@ -293,31 +288,14 @@ public sealed class CameraHeadlessWorker : ICameraWorker
 
     // Sample-buffer delegate. Mac Catalyst silently skips frame delivery for
     // AVCaptureVideoDataOutput unless a delegate is set on a queue, so this
-    // exists primarily to force the capture pipeline to flow. We also log
-    // frame counts so we can confirm whether external USB cameras are actually
-    // producing frames under Mac Catalyst.
+    // exists purely to force the capture pipeline to flow. Buffers are dropped.
     private sealed class VideoOutputDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
     {
-        private readonly string _deviceName;
-        private readonly ILogger<CameraHeadlessWorker>? _logger;
-        private int _frames;
-
-        public VideoOutputDelegate(string deviceName, ILogger<CameraHeadlessWorker>? logger)
-        {
-            _deviceName = deviceName;
-            _logger = logger;
-        }
-
         public override void DidOutputSampleBuffer(
             AVCaptureOutput captureOutput,
             CoreMedia.CMSampleBuffer sampleBuffer,
             AVCaptureConnection connection)
         {
-            var n = System.Threading.Interlocked.Increment(ref _frames);
-            if (n == 1)
-                _logger?.LogInformation("CameraHeadlessWorker[{Device}]: FIRST frame received", _deviceName);
-            else if (n % 30 == 0)
-                _logger?.LogInformation("CameraHeadlessWorker[{Device}]: {Frames} frames received", _deviceName, n);
             sampleBuffer.Dispose();
         }
     }
