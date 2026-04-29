@@ -173,10 +173,10 @@ public sealed class WindowsCameraScanner : IDisposable
                 Serilog.Log.Information("[Win-Cam] OnFrameArrived: SoftwareBitmap is null (format={Fmt})", frame.VideoMediaFrame.VideoFormat?.MediaFrameFormat?.Subtype ?? "?");
             return;
         }
-        if (_frameCount == 0)
-            Serilog.Log.Information("[Win-Cam] OnFrameArrived: FIRST valid frame");
-
         var source = frame.VideoMediaFrame.SoftwareBitmap;
+        if (_frameCount == 0)
+            Serilog.Log.Information("[Win-Cam] OnFrameArrived: FIRST valid frame fmt={Fmt} {W}x{H} alpha={Alpha}",
+                source.BitmapPixelFormat, source.PixelWidth, source.PixelHeight, source.BitmapAlphaMode);
 
         // ------------------------------------------------------------------
         // 1. Convert to BGRA8 for both preview rendering and ZXing decoding
@@ -188,8 +188,10 @@ public sealed class WindowsCameraScanner : IDisposable
                 ? SoftwareBitmap.Copy(source)
                 : SoftwareBitmap.Convert(source, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
         }
-        catch
+        catch (Exception ex)
         {
+            if (_frameCount < 3)
+                Serilog.Log.Error(ex, "[Win-Cam] BGRA8 conversion FAILED (src fmt={Fmt})", source.BitmapPixelFormat);
             return;
         }
 
@@ -198,6 +200,8 @@ public sealed class WindowsCameraScanner : IDisposable
         // ------------------------------------------------------------------
         var old = Interlocked.Exchange(ref _latestFrame, bgra);
         old?.Dispose();
+        if (_frameCount == 0)
+            Serilog.Log.Information("[Win-Cam] _latestFrame set: bgra {W}x{H}", bgra.PixelWidth, bgra.PixelHeight);
 
         // ------------------------------------------------------------------
         // 3. QR decode on every Nth frame (throttled)
