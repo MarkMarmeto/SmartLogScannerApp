@@ -20,7 +20,6 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
     private Task? _pollingTask;
 
     private bool? _isOnline = true; // OPTIMISTIC: Assume online until proven offline (prevents queueing on startup)
-    private string? _cachedServerUrl = null; // Cache to avoid disk I/O on every poll
     private int _consecutiveSuccesses = 0; // Stability window: consecutive successful checks
     private int _consecutiveFailures = 0; // Stability window: consecutive failed checks
     private const int StabilityThreshold = 2; // Require 2 consecutive results before changing status
@@ -143,10 +142,16 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
     }
 
     /// <summary>
+    /// Triggers an immediate health check, bypassing the stability window.
+    /// </summary>
+    public Task CheckNowAsync() => CheckHealthAsync(forceUpdate: true);
+
+    /// <summary>
     /// US0015 AC2/AC3/AC4: Perform single health check poll.
     /// Sends GET /api/v1/health (unauthenticated) and updates IsOnline.
+    /// When forceUpdate is true the stability window is skipped and IsOnline is updated immediately.
     /// </summary>
-    private async Task CheckHealthAsync()
+    private async Task CheckHealthAsync(bool forceUpdate = false)
     {
         // US0015: Serialize concurrent polls (no overlapping requests)
         if (!await _pollLock.WaitAsync(0))
@@ -176,33 +181,28 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
 
         try
         {
-            // Cache server URL to avoid repeated lookups on every poll
-            if (_cachedServerUrl == null)
-            {
-                _cachedServerUrl = _preferences.GetServerBaseUrl();
-            }
+            var serverUrl = _preferences.GetServerBaseUrl();
 
-            if (string.IsNullOrEmpty(_cachedServerUrl))
+            if (string.IsNullOrEmpty(serverUrl))
             {
                 _logger.LogDebug("Server URL not configured yet (setup incomplete)");
                 IsOnline = false;
                 return;
             }
 
-            var healthUrl = $"{_cachedServerUrl.TrimEnd('/')}/api/v1/health";
+            var healthUrl = $"{serverUrl.TrimEnd('/')}/api/v1/health";
 
             // US0015 AC2: GET /api/v1/health (no X-API-Key header)
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // 10s timeout
             var response = await httpClient.GetAsync(healthUrl, cts.Token);
 
-            // US0015 AC3: 200 = online (with stability window)
+            // US0015 AC3: 200 = online (with stability window; bypassed when forceUpdate)
             if (response.IsSuccessStatusCode)
             {
                 _consecutiveSuccesses++;
                 _consecutiveFailures = 0;
 
-                // Only mark online after StabilityThreshold consecutive successes
-                if (_consecutiveSuccesses >= StabilityThreshold || _isOnline == null)
+                if (forceUpdate || _consecutiveSuccesses >= StabilityThreshold || _isOnline == null)
                 {
                     IsOnline = true;
                 }
@@ -214,15 +214,14 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             }
             else
             {
-                // Non-200 status = offline (with stability window)
+                // Non-200 status = offline (with stability window; bypassed when forceUpdate)
                 _consecutiveFailures++;
                 _consecutiveSuccesses = 0;
 
                 _logger.LogWarning("Health check returned {StatusCode} ({Consecutive}/{Threshold})",
                     response.StatusCode, _consecutiveFailures, StabilityThreshold);
 
-                // Only mark offline after StabilityThreshold consecutive failures
-                if (_consecutiveFailures >= StabilityThreshold)
+                if (forceUpdate || _consecutiveFailures >= StabilityThreshold)
                 {
                     IsOnline = false;
                 }
@@ -237,10 +236,8 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             _logger.LogDebug(ex, "Health check failed - connection error ({Consecutive}/{Threshold})",
                 _consecutiveFailures, StabilityThreshold);
 
-            if (_consecutiveFailures >= StabilityThreshold)
-            {
+            if (forceUpdate || _consecutiveFailures >= StabilityThreshold)
                 IsOnline = false;
-            }
         }
         catch (OperationCanceledException)
         {
@@ -251,10 +248,8 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             _logger.LogDebug("Health check timed out ({Consecutive}/{Threshold})",
                 _consecutiveFailures, StabilityThreshold);
 
-            if (_consecutiveFailures >= StabilityThreshold)
-            {
+            if (forceUpdate || _consecutiveFailures >= StabilityThreshold)
                 IsOnline = false;
-            }
         }
         catch (Exception ex)
         {
@@ -265,10 +260,8 @@ public class HealthCheckService : IHealthCheckService, IAsyncDisposable
             _logger.LogError(ex, "Health check failed with unexpected error ({Consecutive}/{Threshold})",
                 _consecutiveFailures, StabilityThreshold);
 
-            if (_consecutiveFailures >= StabilityThreshold)
-            {
+            if (forceUpdate || _consecutiveFailures >= StabilityThreshold)
                 IsOnline = false;
-            }
         }
         finally
         {

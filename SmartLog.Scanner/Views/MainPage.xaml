@@ -47,7 +47,7 @@
                 <!-- Spacer -->
                 <BoxView Grid.Column="2" Color="Transparent" />
 
-                <!-- US0015: Enhanced Connectivity Status with Glass Effect -->
+                <!-- US0015: Connectivity Status pill — tap to trigger immediate refresh -->
                 <Border Grid.Column="3"
                         BackgroundColor="{Binding ConnectivityColor}"
                         Padding="14,8"
@@ -60,15 +60,26 @@
                     <Border.Shadow>
                         <Shadow Brush="{Binding ConnectivityColor}" Opacity="0.3" Radius="6" Offset="0,2" />
                     </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding RefreshConnectivityCommand}" />
+                    </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="8">
+                        <!-- Dot shown when idle; spinner shown while checking -->
                         <Border WidthRequest="8"
                                 HeightRequest="8"
                                 BackgroundColor="White"
-                                VerticalOptions="Center">
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsCheckingConnectivity, Converter={StaticResource InvertedBoolConverter}}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="4" />
                             </Border.StrokeShape>
                         </Border>
+                        <ActivityIndicator IsRunning="{Binding IsCheckingConnectivity}"
+                                           IsVisible="{Binding IsCheckingConnectivity}"
+                                           Color="White"
+                                           WidthRequest="12"
+                                           HeightRequest="12"
+                                           VerticalOptions="Center" />
                         <Label Text="{Binding ConnectivityStatus}"
                                FontSize="14"
                                FontAttributes="Bold"

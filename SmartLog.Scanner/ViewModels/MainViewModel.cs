@@ -58,6 +58,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _connectivityStatus = "Connecting...";
     [ObservableProperty] private string _connectivityIcon = "⚪";
     [ObservableProperty] private Color _connectivityColor = Color.FromArgb("#9E9E9E"); // Gray
+    [ObservableProperty] private bool _isCheckingConnectivity;
 
     // Live clock display (US0092: split into time + date for two-line header)
     [ObservableProperty] private string _currentTime = string.Empty;
@@ -236,20 +237,8 @@ public partial class MainViewModel : ObservableObject
         // US0120: Start heartbeat service — pushes scanner vitals to admin server
         await _heartbeat.StartAsync();
 
-        // BUGFIX: Initialize connectivity status from current health check state
-        var currentStatus = _healthCheck.IsOnline;
-        if (currentStatus == true)
-        {
-            ConnectivityStatus = "Online";
-            ConnectivityIcon = "🟢";
-            ConnectivityColor = Color.FromArgb("#4CAF50");
-        }
-        else if (currentStatus == false)
-        {
-            ConnectivityStatus = "Offline";
-            ConnectivityIcon = "🔴";
-            ConnectivityColor = Color.FromArgb("#F44336");
-        }
+        // Initialize connectivity pill from current health check state
+        ApplyConnectivityState(_healthCheck.IsOnline);
 
         // US0124: Subscribe to slot IsVisible flips so CardWidth recomputes when a slot's visibility
         // toggles post-init (delayed enumeration / hot-add / recovery flow). Subscribe once for all
@@ -889,23 +878,49 @@ public partial class MainViewModel : ObservableObject
 
     // ── Connectivity + sync event handlers ──────────────────────────────────
 
+    /// <summary>Tap-to-refresh: triggers an immediate health check and shows a checking state.</summary>
+    [RelayCommand]
+    private async Task RefreshConnectivity()
+    {
+        if (IsCheckingConnectivity) return;
+
+        IsCheckingConnectivity = true;
+        ConnectivityStatus = "Checking...";
+        ConnectivityIcon = "⚪";
+        ConnectivityColor = Color.FromArgb("#9E9E9E");
+
+        try
+        {
+            await _healthCheck.CheckNowAsync();
+        }
+        finally
+        {
+            IsCheckingConnectivity = false;
+            // ConnectivityChanged only fires on state *change* — always sync pill here so
+            // tapping while already online/offline still clears "Checking..." correctly.
+            MainThread.BeginInvokeOnMainThread(() => ApplyConnectivityState(_healthCheck.IsOnline));
+        }
+    }
+
     private void OnConnectivityChanged(object? sender, bool isOnline)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        MainThread.BeginInvokeOnMainThread(() => ApplyConnectivityState(isOnline));
+    }
+
+    private void ApplyConnectivityState(bool? isOnline)
+    {
+        if (isOnline == true)
         {
-            if (isOnline)
-            {
-                ConnectivityStatus = "Online";
-                ConnectivityIcon = "🟢";
-                ConnectivityColor = Color.FromArgb("#4CAF50");
-            }
-            else
-            {
-                ConnectivityStatus = "Offline";
-                ConnectivityIcon = "🔴";
-                ConnectivityColor = Color.FromArgb("#F44336");
-            }
-        });
+            ConnectivityStatus = "Online";
+            ConnectivityIcon = "🟢";
+            ConnectivityColor = Color.FromArgb("#4CAF50");
+        }
+        else if (isOnline == false)
+        {
+            ConnectivityStatus = "Offline";
+            ConnectivityIcon = "🔴";
+            ConnectivityColor = Color.FromArgb("#F44336");
+        }
     }
 
     private void OnSyncCompleted(object? sender, SyncCompletedEventArgs e)

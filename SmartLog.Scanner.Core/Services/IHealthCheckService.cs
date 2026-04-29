@@ -31,4 +31,11 @@ public interface IHealthCheckService
     /// Stop periodic health check polling.
     /// </summary>
     Task StopAsync();
+
+    /// <summary>
+    /// Triggers an immediate health check outside the normal polling interval.
+    /// Bypasses the stability window so the result is applied instantly — suitable for
+    /// user-initiated refreshes where a single check should update the UI right away.
+    /// </summary>
+    Task CheckNowAsync();
 }
