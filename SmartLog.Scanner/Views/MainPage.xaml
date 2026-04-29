@@ -211,12 +211,14 @@
                                        VerticalOptions="Fill"
                                        Spacing="0">
 
-                    <!-- Camera slot cards (1–8) — inner FlexLayout templated from CameraSlots -->
-                    <FlexLayout BindableLayout.ItemsSource="{Binding CameraSlots}"
-                                Direction="Row"
-                                Wrap="Wrap"
-                                JustifyContent="Start"
-                                VerticalOptions="Start">
+                    <!-- Camera slot cards (1–8) — HorizontalStackLayout templated from CameraSlots.
+                         FlexLayout previously stacked children on top of each other when its parent
+                         was an unconstrained horizontal container (HorizontalStackLayout inside a
+                         horizontal ScrollView). HorizontalStackLayout lays out children side by side
+                         without needing a parent width constraint. -->
+                    <HorizontalStackLayout BindableLayout.ItemsSource="{Binding CameraSlots}"
+                                           Spacing="0"
+                                           VerticalOptions="Start">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="vm:CameraSlotState">
                                 <!-- US0126: ID-card layout — avatar top, 4 detail rows (skeleton/real), device strip bottom. -->
@@ -405,10 +407,10 @@
                                 </Border>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
-                    </FlexLayout>
+                    </HorizontalStackLayout>
 
                     <!-- USB indicator card (peer with camera cards) — US0126 ID-card layout.
-                         Sits inline with camera cards in the outer FlexLayout's row-flow. -->
+                         Sits inline with camera cards in the outer row-flow. -->
                     <Border IsVisible="{Binding UsbScannerSlot.IsVisible}"
                             WidthRequest="{Binding CardWidth}"
                             HeightRequest="{Binding CardHeight}"
