@@ -1,4 +1,8 @@
 using AVFoundation;
+using CoreFoundation;
+using CoreImage;
+using CoreMedia;
+using CoreVideo;
 using Foundation;
 using Microsoft.Extensions.Logging;
 using SmartLog.Scanner.Core.Services;
@@ -8,31 +12,55 @@ namespace SmartLog.Scanner.Platforms.MacCatalyst;
 /// <summary>
 /// EP0011: Headless Mac Catalyst camera worker.
 ///
-/// Uses AVCaptureSession + AVCaptureMetadataOutput for QR detection.
-/// Deliberately does NOT create a UIView or AVCaptureVideoPreviewLayer —
-/// that was what broke the Mac Catalyst window compositor when 8 native
-/// views were added to the MAUI view hierarchy simultaneously.
+/// Two execution paths:
+///
+/// 1. Multi-cam path (preferred). When the OS reports
+///    <see cref="AVCaptureMultiCamSession.MultiCamSupported"/> = true and a
+///    <see cref="MacMultiCamSessionHost"/> singleton is injected, this worker registers
+///    its input + a per-camera metadata output on the shared session. This is the only
+///    way to run two cameras concurrently on Mac Catalyst — parallel
+///    <see cref="AVCaptureSession"/> instances starve each other.
+///
+/// 2. Single-session fallback (older Intel Macs that don't expose multi-cam support).
+///    Each worker owns its own session. Multi-camera operation is unreliable on this
+///    path; it exists so single-camera scanning still works on unsupported hardware.
+///
+/// Deliberately does NOT create a UIView in the fallback path either — the preview
+/// layer is attached to a UIView supplied by <see cref="CameraPreviewHandler"/> only
+/// for the first enabled slot.
 /// </summary>
 public sealed class CameraHeadlessWorker : ICameraWorker
 {
     private readonly ILogger<CameraHeadlessWorker>? _logger;
+    private readonly MacMultiCamSessionHost? _multiCamHost;
+
+    // Multi-cam path state
+    private MacMultiCamRegistration? _registration;
+    private MacMultiCamPreviewHandle? _multiCamPreview;
+    private VideoSampleDelegate? _videoDelegate;
+    private DispatchQueue? _videoQueue;
+
+    // Single-session fallback state
     private AVCaptureSession? _captureSession;
     private AVCaptureMetadataOutput? _metadataOutput;
-    private AVCaptureVideoDataOutput? _videoDataOutput;
-    private MetadataOutputDelegate? _delegate;
-    private VideoOutputDelegate? _videoDelegate;
-    private CoreFoundation.DispatchQueue? _videoQueue;
     private AVCaptureVideoPreviewLayer? _previewLayer;
+
+    private MetadataOutputDelegate? _delegate;
     private bool _isRunning;
 
     public event EventHandler<string>? QrCodeDetected;
     public event EventHandler<string>? ErrorOccurred;
     public bool IsRunning => _isRunning;
 
-    public CameraHeadlessWorker(ILogger<CameraHeadlessWorker>? logger = null)
+    public CameraHeadlessWorker(
+        ILogger<CameraHeadlessWorker>? logger = null,
+        MacMultiCamSessionHost? multiCamHost = null)
     {
         _logger = logger;
+        _multiCamHost = multiCamHost;
     }
+
+    private bool UseMultiCam => _multiCamHost != null && AVCaptureMultiCamSession.MultiCamSupported;
 
     public async Task StartAsync(string? deviceId = null)
     {
@@ -40,35 +68,10 @@ public sealed class CameraHeadlessWorker : ICameraWorker
 
         _logger?.LogInformation("CameraHeadlessWorker: starting (deviceId={DeviceId})", deviceId ?? "default");
 
-        // Camera permission
-        var status = AVCaptureDevice.GetAuthorizationStatus(AVAuthorizationMediaType.Video);
-        if (status == AVAuthorizationStatus.NotDetermined)
-        {
-            var granted = await AVCaptureDevice.RequestAccessForMediaTypeAsync(AVAuthorizationMediaType.Video);
-            if (!granted)
-            {
-                const string msg = "Camera permission denied";
-                _logger?.LogWarning(msg);
-                ErrorOccurred?.Invoke(this, msg);
-                return;
-            }
-        }
-        else if (status != AVAuthorizationStatus.Authorized)
-        {
-            var msg = $"Camera not authorized: {status}";
-            _logger?.LogWarning(msg);
-            ErrorOccurred?.Invoke(this, msg);
+        if (!await EnsureCameraPermissionAsync())
             return;
-        }
 
-        _captureSession = new AVCaptureSession();
-
-        // Device selection
-        AVCaptureDevice? device = null;
-        if (!string.IsNullOrWhiteSpace(deviceId))
-            device = AVCaptureDevice.DeviceWithUniqueID(deviceId);
-        device ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
-
+        var device = ResolveDevice(deviceId);
         if (device == null)
         {
             const string msg = "No video capture device found";
@@ -76,6 +79,148 @@ public sealed class CameraHeadlessWorker : ICameraWorker
             ErrorOccurred?.Invoke(this, msg);
             return;
         }
+
+        if (UseMultiCam)
+        {
+            await StartMultiCamAsync(device);
+        }
+        else
+        {
+            await StartSingleSessionAsync(device);
+        }
+    }
+
+    public Task StopAsync()
+    {
+        if (!_isRunning) return Task.CompletedTask;
+
+        _logger?.LogInformation("CameraHeadlessWorker: stopping");
+
+        DetachPreview();
+
+        if (_registration != null && _multiCamHost != null)
+        {
+            try { _registration.VideoOutput.SetSampleBufferDelegate(null, null); }
+            catch (Exception ex) { _logger?.LogWarning(ex, "Multi-cam: clearing sample buffer delegate threw"); }
+
+            _multiCamHost.Unregister(_registration);
+            _registration = null;
+
+            _videoDelegate?.Dispose();
+            _videoDelegate = null;
+            _videoQueue?.Dispose();
+            _videoQueue = null;
+        }
+        else
+        {
+            _captureSession?.StopRunning();
+            _metadataOutput?.SetDelegate(null, CoreFoundation.DispatchQueue.MainQueue);
+
+            _captureSession?.Dispose();
+            _metadataOutput?.Dispose();
+
+            _captureSession = null;
+            _metadataOutput = null;
+        }
+
+        _delegate = null;
+        _isRunning = false;
+
+        _logger?.LogInformation("CameraHeadlessWorker: stopped");
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+    }
+
+    /// <summary>
+    /// Attaches a live preview layer to the supplied UIView. Must be called after
+    /// <see cref="StartAsync"/>. Safe to call multiple times — replaces the previous layer.
+    /// </summary>
+    public void AttachPreview(UIKit.UIView containerView)
+    {
+        DetachPreview();
+
+        if (_registration != null && _multiCamHost != null)
+        {
+            _multiCamPreview = _multiCamHost.AttachPreview(_registration, containerView);
+            if (_multiCamPreview != null)
+                _logger?.LogDebug("CameraHeadlessWorker: multi-cam preview attached");
+            else
+                _logger?.LogWarning("CameraHeadlessWorker: multi-cam preview attach returned null");
+            return;
+        }
+
+        if (_captureSession == null) return;
+
+        _previewLayer = AVCaptureVideoPreviewLayer.FromSession(_captureSession);
+        _previewLayer.VideoGravity = AVLayerVideoGravity.ResizeAspectFill;
+        _previewLayer.Frame = containerView.Bounds;
+        containerView.Layer.AddSublayer(_previewLayer);
+        _logger?.LogDebug("CameraHeadlessWorker: single-session preview attached");
+    }
+
+    /// <summary>
+    /// Removes the preview layer. The capture session continues running headlessly.
+    /// </summary>
+    public void DetachPreview()
+    {
+        if (_multiCamPreview != null && _multiCamHost != null)
+        {
+            _multiCamHost.DetachPreview(_multiCamPreview);
+            _multiCamPreview = null;
+            return;
+        }
+
+        if (_previewLayer == null) return;
+        _previewLayer.RemoveFromSuperLayer();
+        _previewLayer.Dispose();
+        _previewLayer = null;
+    }
+
+    private static async Task<bool> EnsureCameraPermissionAsync()
+    {
+        var status = AVCaptureDevice.GetAuthorizationStatus(AVAuthorizationMediaType.Video);
+        if (status == AVAuthorizationStatus.NotDetermined)
+        {
+            return await AVCaptureDevice.RequestAccessForMediaTypeAsync(AVAuthorizationMediaType.Video);
+        }
+        return status == AVAuthorizationStatus.Authorized;
+    }
+
+    private static AVCaptureDevice? ResolveDevice(string? deviceId)
+    {
+        AVCaptureDevice? device = null;
+        if (!string.IsNullOrWhiteSpace(deviceId))
+            device = AVCaptureDevice.DeviceWithUniqueID(deviceId);
+        return device ?? AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+    }
+
+    private async Task StartMultiCamAsync(AVCaptureDevice device)
+    {
+        var registration = await Task.Run(() => _multiCamHost!.Register(device));
+        if (registration == null)
+        {
+            var msg = $"Multi-cam registration failed for {device.LocalizedName}";
+            _logger?.LogError(msg);
+            ErrorOccurred?.Invoke(this, msg);
+            return;
+        }
+
+        _registration = registration;
+        _videoQueue = new DispatchQueue($"smartlog.camera.{device.UniqueID}");
+        _videoDelegate = new VideoSampleDelegate(this);
+        registration.VideoOutput.SetSampleBufferDelegate(_videoDelegate, _videoQueue);
+
+        _isRunning = true;
+        _logger?.LogInformation("CameraHeadlessWorker: running ({Device})", device.LocalizedName);
+    }
+
+    private async Task StartSingleSessionAsync(AVCaptureDevice device)
+    {
+        _captureSession = new AVCaptureSession();
 
         NSError? error = null;
         var input = new AVCaptureDeviceInput(device, out error);
@@ -87,8 +232,6 @@ public sealed class CameraHeadlessWorker : ICameraWorker
             return;
         }
 
-        // Configure session inside Begin/Commit so AVFoundation re-evaluates
-        // capability checks once both the input and output are attached.
         _captureSession.BeginConfiguration();
 
         if (!_captureSession.CanAddInput(input))
@@ -101,7 +244,6 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
         _captureSession.AddInput(input);
 
-        // QR metadata output — no preview layer, no UIView
         _metadataOutput = new AVCaptureMetadataOutput();
         if (!_captureSession.CanAddOutput(_metadataOutput))
         {
@@ -113,32 +255,8 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
         _captureSession.AddOutput(_metadataOutput);
 
-        // Video data output — only added for external USB cameras. Built-in
-        // cameras (FaceTime HD) work fine with just AVCaptureMetadataOutput,
-        // and adding a second output to every session saturates AVFoundation
-        // when multiple sessions run simultaneously, breaking QR detection on
-        // the built-in camera. External cameras need it because Mac Catalyst
-        // doesn't pump frames to AVCaptureMetadataOutput / AVCaptureVideoPreviewLayer
-        // for ExternalUnknown devices unless a video data output is attached.
-        var isExternal = device.DeviceType == AVCaptureDeviceType.ExternalUnknown;
-        if (isExternal)
-        {
-            _videoDataOutput = new AVCaptureVideoDataOutput { AlwaysDiscardsLateVideoFrames = true };
-            if (_captureSession.CanAddOutput(_videoDataOutput))
-            {
-                _captureSession.AddOutput(_videoDataOutput);
-            }
-            else
-            {
-                _logger?.LogWarning("CameraHeadlessWorker[{Device}]: video data output not addable", device.LocalizedName);
-                _videoDataOutput.Dispose();
-                _videoDataOutput = null;
-            }
-        }
-
-        // Pick the highest preset the device actually supports. USB webcams
-        // often don't advertise PresetHigh and StartRunning silently no-ops
-        // when the preset is unsupported, leaving the preview layer black.
+        // Pick the highest preset the device actually supports. USB webcams often don't
+        // advertise PresetHigh and StartRunning silently no-ops when the preset is unsupported.
         var presets = new[]
         {
             AVCaptureSession.PresetHigh,
@@ -148,32 +266,13 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         };
         var chosenPreset = presets.FirstOrDefault(p => _captureSession.CanSetSessionPreset(p));
         if (chosenPreset != null)
-        {
             _captureSession.SessionPreset = chosenPreset;
-            _logger?.LogInformation("CameraHeadlessWorker: using preset {Preset}", chosenPreset);
-        }
-        else
-        {
-            _logger?.LogWarning("CameraHeadlessWorker: no preset supported, leaving session default");
-        }
 
         _captureSession.CommitConfiguration();
 
         _delegate = new MetadataOutputDelegate(this);
         _metadataOutput.SetDelegate(_delegate, CoreFoundation.DispatchQueue.MainQueue);
         _metadataOutput.MetadataObjectTypes = AVMetadataObjectType.QRCode;
-
-        // AVCaptureVideoDataOutput requires a sample-buffer delegate on a serial
-        // dispatch queue or AVFoundation skips frame delivery entirely. We don't
-        // process the buffers — the delegate exists purely to keep the pipeline
-        // pumping so the preview layer (and metadata output) receive frames on
-        // external USB cameras under Mac Catalyst.
-        if (_videoDataOutput != null)
-        {
-            _videoQueue = new CoreFoundation.DispatchQueue("smartlog.camera.video");
-            _videoDelegate = new VideoOutputDelegate();
-            _videoDataOutput.SetSampleBufferDelegate(_videoDelegate, _videoQueue);
-        }
 
         await Task.Run(() => _captureSession.StartRunning());
 
@@ -187,72 +286,6 @@ public sealed class CameraHeadlessWorker : ICameraWorker
 
         _isRunning = true;
         _logger?.LogInformation("CameraHeadlessWorker: running ({Device})", device.LocalizedName);
-    }
-
-    public Task StopAsync()
-    {
-        if (!_isRunning) return Task.CompletedTask;
-
-        _logger?.LogInformation("CameraHeadlessWorker: stopping");
-
-        _captureSession?.StopRunning();
-        _metadataOutput?.SetDelegate(null, CoreFoundation.DispatchQueue.MainQueue);
-        DetachPreview();
-
-        _videoDataOutput?.SetSampleBufferDelegate(null, null);
-
-        _captureSession?.Dispose();
-        _metadataOutput?.Dispose();
-        _videoDataOutput?.Dispose();
-        _videoQueue?.Dispose();
-
-        _captureSession = null;
-        _metadataOutput = null;
-        _videoDataOutput = null;
-        _delegate = null;
-        _videoDelegate = null;
-        _videoQueue = null;
-        _isRunning = false;
-
-        _logger?.LogInformation("CameraHeadlessWorker: stopped");
-        return Task.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await StopAsync();
-    }
-
-    /// <summary>
-    /// Attaches a live preview layer to the supplied UIView using the running capture session.
-    /// Must be called after StartAsync completes. Safe to call multiple times — replaces the previous layer.
-    /// </summary>
-    public void AttachPreview(UIKit.UIView containerView)
-    {
-        if (_captureSession == null) return;
-
-        // Remove existing preview layer if any
-        DetachPreview();
-
-        _previewLayer = AVCaptureVideoPreviewLayer.FromSession(_captureSession);
-        _previewLayer.VideoGravity = AVLayerVideoGravity.ResizeAspectFill;
-        _previewLayer.Frame = containerView.Bounds;
-
-        containerView.Layer.AddSublayer(_previewLayer);
-        _logger?.LogDebug("CameraHeadlessWorker: preview layer attached");
-    }
-
-    /// <summary>
-    /// Removes the preview layer from its superlayer and releases it.
-    /// The capture session continues running headlessly.
-    /// </summary>
-    public void DetachPreview()
-    {
-        if (_previewLayer == null) return;
-        _previewLayer.RemoveFromSuperLayer();
-        _previewLayer.Dispose();
-        _previewLayer = null;
-        _logger?.LogDebug("CameraHeadlessWorker: preview layer detached");
     }
 
     private void OnQrCodeDetected(string value)
@@ -286,17 +319,73 @@ public sealed class CameraHeadlessWorker : ICameraWorker
         }
     }
 
-    // Sample-buffer delegate. Mac Catalyst silently skips frame delivery for
-    // AVCaptureVideoDataOutput unless a delegate is set on a queue, so this
-    // exists purely to force the capture pipeline to flow. Buffers are dropped.
-    private sealed class VideoOutputDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
+    /// <summary>
+    /// Multi-cam path: AVCaptureMultiCamSession does not support AVCaptureMetadataOutput,
+    /// so QR codes are decoded from raw frames. CIDetector with the QRCode feature is
+    /// CPU-cheap on Apple Silicon. Decodes every Nth frame (matches the Windows path's
+    /// 5-frame throttle, ~6 fps from a 30 fps camera) to avoid CPU/thermal pressure when
+    /// running multiple cameras concurrently.
+    /// </summary>
+    private sealed class VideoSampleDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
     {
+        private const int DecodeEveryNFrames = 5;
+        private readonly CameraHeadlessWorker _parent;
+        private readonly CIDetector _detector;
+        private int _frameCounter;
+
+        public VideoSampleDelegate(CameraHeadlessWorker parent)
+        {
+            _parent = parent;
+            // CIDetector accepts a nullable CIContext (Apple uses a default), but the .NET
+            // binding is non-nullable; null-forgiving keeps the call concise.
+            _detector = CIDetector.CreateQRDetector(
+                context: null!,
+                detectorOptions: new CIDetectorOptions { Accuracy = FaceDetectorAccuracy.High })!;
+        }
+
         public override void DidOutputSampleBuffer(
             AVCaptureOutput captureOutput,
-            CoreMedia.CMSampleBuffer sampleBuffer,
+            CMSampleBuffer sampleBuffer,
             AVCaptureConnection connection)
         {
-            sampleBuffer.Dispose();
+            try
+            {
+                if ((Interlocked.Increment(ref _frameCounter) % DecodeEveryNFrames) != 0)
+                    return;
+
+                using var pixelBuffer = sampleBuffer.GetImageBuffer() as CVPixelBuffer;
+                if (pixelBuffer == null) return;
+
+                using var ciImage = CIImage.FromImageBuffer(pixelBuffer);
+                var features = _detector.FeaturesInImage(ciImage);
+                if (features == null) return;
+
+                foreach (var f in features)
+                {
+                    if (f is CIQRCodeFeature qr && !string.IsNullOrEmpty(qr.MessageString))
+                    {
+                        _parent.OnQrCodeDetected(qr.MessageString);
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _parent._logger?.LogWarning(ex, "Multi-cam: QR decode threw");
+            }
+            finally
+            {
+                sampleBuffer.Dispose();
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _detector.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

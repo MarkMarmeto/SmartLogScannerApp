@@ -285,6 +285,8 @@ public static class MauiProgram
 #if MACCATALYST
 		builder.Services.AddSingleton<IDeviceDetectionService, Platforms.MacCatalyst.DeviceDetectionService>();
 		builder.Services.AddSingleton<ICameraEnumerationService, Platforms.MacCatalyst.CameraEnumerationService>();
+		// EP0011 macOS multi-cam: shared AVCaptureMultiCamSession owner.
+		builder.Services.AddSingleton<Platforms.MacCatalyst.MacMultiCamSessionHost>();
 		// EP0011: Headless camera worker factory — no native views, no preview layers
 		builder.Services.AddSingleton<ICameraWorkerFactory, Platforms.MacCatalyst.CameraWorkerFactory>();
 #elif WINDOWS
