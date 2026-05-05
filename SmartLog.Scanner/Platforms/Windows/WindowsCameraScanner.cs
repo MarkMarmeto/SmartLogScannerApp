@@ -83,6 +83,14 @@ public sealed class WindowsCameraScanner : IDisposable
         if (frameSource == null)
             throw new InvalidOperationException("No video frame source found on the selected camera.");
 
+        // Select the highest-resolution format, capped at 1080p to avoid excess CPU on multi-camera setups.
+        var bestFormat = frameSource.SupportedFormats
+            .Where(f => f.VideoFormat?.Width > 0 && f.VideoFormat?.Width <= 1920 && f.VideoFormat?.Height <= 1080)
+            .OrderByDescending(f => (long)(f.VideoFormat?.Width ?? 0) * (f.VideoFormat?.Height ?? 0))
+            .FirstOrDefault();
+        if (bestFormat != null)
+            await frameSource.SetFormatAsync(bestFormat);
+
         _frameReader = await _mediaCapture.CreateFrameReaderAsync(
             frameSource,
             MediaEncodingSubtypes.Bgra8);

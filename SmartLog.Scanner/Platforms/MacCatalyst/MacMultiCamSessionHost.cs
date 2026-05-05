@@ -1,5 +1,6 @@
 using AVFoundation;
 using CoreFoundation;
+using CoreMedia;
 using CoreVideo;
 using Foundation;
 using Microsoft.Extensions.Logging;
@@ -308,15 +309,24 @@ public sealed class MacMultiCamSessionHost : IDisposable
 
     private static AVCaptureDeviceFormat? SelectFormat(AVCaptureDevice device)
     {
-        // Probe showed every format on every camera reports MultiCamSupported=true,
-        // so we don't need to score by resolution — pick the first compatible one.
-        // Fall back to ActiveFormat if filtering somehow yields nothing.
+        // Pick the highest-resolution multi-cam compatible format, capped at 1080p.
+        // Above 1080p is overkill for QR decoding and wastes CPU on multi-camera setups.
+        // Fall back to ActiveFormat if filtering yields nothing.
         return (device.Formats ?? Array.Empty<AVCaptureDeviceFormat>())
-            .FirstOrDefault(f =>
+            .Where(f => { try { return f.MultiCamSupported; } catch { return false; } })
+            .Select(f =>
             {
-                try { return f.MultiCamSupported; }
-                catch { return false; }
-            }) ?? device.ActiveFormat;
+                try
+                {
+                    var dims = ((CMVideoFormatDescription)f.FormatDescription).Dimensions;
+                    return (format: f, pixels: (long)dims.Width * dims.Height, width: dims.Width, height: dims.Height);
+                }
+                catch { return (format: f, pixels: 0L, width: 0, height: 0); }
+            })
+            .Where(x => x.pixels > 0 && x.width <= 1920 && x.height <= 1080)
+            .OrderByDescending(x => x.pixels)
+            .Select(x => x.format)
+            .FirstOrDefault() ?? device.ActiveFormat;
     }
 
     public void Dispose()
