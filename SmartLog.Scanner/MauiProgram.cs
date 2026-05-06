@@ -321,8 +321,7 @@ public static class MauiProgram
 		// EP0012/US0121: Alias so HeartbeatService can resolve IQrScannerService → UsbQrScannerService singleton.
 		builder.Services.AddSingleton<IQrScannerService>(sp => sp.GetRequiredService<UsbQrScannerService>());
 
-		// EP0011: Register multi-camera manager + adaptive throttle
-		builder.Services.AddSingleton<AdaptiveDecodeThrottle>();
+		// EP0011: Register multi-camera manager
 		builder.Services.AddSingleton<IMultiCameraManager, MultiCameraManager>();
 
 		// US0010: Register scan submission service

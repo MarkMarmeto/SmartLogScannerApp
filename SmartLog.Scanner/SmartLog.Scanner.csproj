@@ -17,6 +17,12 @@
 		<!-- Suppress EOL warning raised by .NET 9 SDK for net8.0-maccatalyst -->
 		<NoWarn>$(NoWarn);NETSDK1202</NoWarn>
 
+		<!-- Author / publisher metadata (surfaces in Windows File Properties → Details and macOS Get Info) -->
+		<Authors>Mark Daniel Marmeto</Authors>
+		<Company>Mark Daniel Marmeto</Company>
+		<Copyright>© 2026 Mark Daniel Marmeto</Copyright>
+		<Product>SmartLog Scanner</Product>
+
 		<!-- Display name -->
 		<ApplicationTitle>SmartLog Scanner</ApplicationTitle>
 

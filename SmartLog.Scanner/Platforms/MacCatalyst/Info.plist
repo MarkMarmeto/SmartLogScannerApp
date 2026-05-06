@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleName</key>
+	<string>SmartLog Scanner</string>
+	<key>CFBundleDisplayName</key>
+	<string>SmartLog Scanner</string>
 	<!-- US0007: Camera permission for QR code scanning -->
 	<key>NSCameraUsageDescription</key>
 	<string>SmartLog Scanner needs camera access to scan student QR codes for attendance tracking.</string>

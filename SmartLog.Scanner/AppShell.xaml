@@ -34,10 +34,6 @@
             Route="queue"
             ContentTemplate="{DataTemplate local:OfflineQueuePage}" />
 
-        <ShellContent
-            Title="About"
-            Route="about"
-            ContentTemplate="{DataTemplate local:AboutPage}" />
     </TabBar>
 
 </Shell>

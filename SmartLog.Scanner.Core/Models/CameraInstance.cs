@@ -27,8 +27,8 @@ public class CameraInstance
     public string? ErrorMessage { get; set; }
 
     /// <summary>
-    /// Adaptive frame-skip count calculated by AdaptiveDecodeThrottle.
-    /// Platform handler only forwards a barcode event every N-th frame.
+    /// Frame-skip count for the camera decode pipeline. Set by the orchestrator at slot init:
+    /// 5 for ≤2 active cameras, 8 for 3–4. Default of 5 covers single-camera startup before init.
     /// </summary>
     public int DecodeThrottleFrames { get; set; } = 5;
 

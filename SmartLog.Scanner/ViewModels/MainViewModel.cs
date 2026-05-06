@@ -368,7 +368,7 @@ public partial class MainViewModel : ObservableObject
                 DisplayName = _preferences.GetCameraName(i),
                 ScanType = scanType,
                 IsEnabled = _preferences.GetCameraEnabled(i),
-                DecodeThrottleFrames = AdaptiveDecodeThrottle.Calculate(count)
+                DecodeThrottleFrames = count <= 2 ? 5 : 8
             });
         }
         return configs;
@@ -399,7 +399,7 @@ public partial class MainViewModel : ObservableObject
         for (var i = 0; i < filtered.Count; i++)
         {
             filtered[i].Index = i;
-            filtered[i].DecodeThrottleFrames = AdaptiveDecodeThrottle.Calculate(filtered.Count);
+            filtered[i].DecodeThrottleFrames = filtered.Count <= 2 ? 5 : 8;
         }
 
         return filtered;

@@ -6,7 +6,7 @@ namespace SmartLog.Scanner.Views;
 
 /// <summary>
 /// US0007/US0008/EP0011: Main scanning page.
-/// Supports multi-camera QR scanning (1–8 cameras) and USB keyboard-wedge input.
+/// Supports multi-camera QR scanning (1–4 cameras) and USB keyboard-wedge input.
 /// </summary>
 public partial class MainPage : ContentPage
 {
@@ -167,11 +167,6 @@ public partial class MainPage : ContentPage
             await nav.GoToAsync("//setup");
         else
             await Shell.Current.GoToAsync("//setup");
-    }
-
-    private async void OnAboutClicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//about");
     }
 
     /// <summary>

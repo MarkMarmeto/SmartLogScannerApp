@@ -5,7 +5,7 @@ using SmartLog.Scanner.Core.Models;
 namespace SmartLog.Scanner.Core.Services;
 
 /// <summary>
-/// EP0011 (US0066–US0070): Orchestrates 1–8 simultaneous camera QR scanner instances.
+/// EP0011 (US0066–US0070), capped to 4 by US0129: Orchestrates 1–4 simultaneous camera QR scanner instances.
 ///
 /// Design notes:
 /// - Each camera gets its own CameraQrScannerService instance (independent debounce/lockout state).
@@ -52,8 +52,8 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
     /// <inheritdoc/>
     public async Task InitializeAsync(IReadOnlyList<CameraInstance> cameras)
     {
-        if (cameras.Count > 8)
-            throw new ArgumentException("Maximum 8 cameras are supported.", nameof(cameras));
+        if (cameras.Count > 4)
+            throw new ArgumentException("Maximum 4 cameras are supported.", nameof(cameras));
 
         // Stop watchdog and cancel any in-progress recovery before rebuilding.
         StopWatchdog();
@@ -194,7 +194,7 @@ public class MultiCameraManager : IMultiCameraManager, IAsyncDisposable
     public void UpdateThrottleValues()
     {
         var activeCount = _cameras.Count(c => c.IsEnabled && c.Status != CameraStatus.Offline);
-        var throttle = AdaptiveDecodeThrottle.Calculate(Math.Max(activeCount, 1));
+        var throttle = activeCount <= 2 ? 5 : 8;
 
         foreach (var cam in _cameras)
             cam.DecodeThrottleFrames = throttle;

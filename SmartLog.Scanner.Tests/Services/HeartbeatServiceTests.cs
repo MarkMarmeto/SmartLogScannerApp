@@ -21,6 +21,7 @@ public class HeartbeatServiceTests
     private readonly Mock<IOfflineQueueService> _mockOfflineQueue;
     private readonly Mock<IScanHistoryService> _mockScanHistory;
     private readonly Mock<IQrScannerService> _mockUsbScanner;
+    private readonly Mock<IHealthCheckService> _mockHealthCheck;
     private readonly Mock<ILogger<HeartbeatService>> _mockLogger;
     private readonly Mock<HttpMessageHandler> _mockHandler;
 
@@ -32,6 +33,7 @@ public class HeartbeatServiceTests
         _mockOfflineQueue = new Mock<IOfflineQueueService>();
         _mockScanHistory = new Mock<IScanHistoryService>();
         _mockUsbScanner = new Mock<IQrScannerService>();
+        _mockHealthCheck = new Mock<IHealthCheckService>();
         _mockLogger = new Mock<ILogger<HeartbeatService>>();
         _mockHandler = new Mock<HttpMessageHandler>();
 
@@ -47,6 +49,9 @@ public class HeartbeatServiceTests
 
         // Default: use factory client (no self-signed cert override)
         _mockPreferences.Setup(p => p.GetAcceptSelfSignedCerts()).Returns(false);
+
+        // Default: online — tests that need offline override this explicitly
+        _mockHealthCheck.SetupGet(h => h.IsOnline).Returns(true);
 
         var httpClient = new HttpClient(_mockHandler.Object);
         _mockFactory.Setup(f => f.CreateClient("Heartbeat")).Returns(httpClient);
@@ -68,6 +73,7 @@ public class HeartbeatServiceTests
         _mockOfflineQueue.Object,
         _mockScanHistory.Object,
         _mockUsbScanner.Object,
+        _mockHealthCheck.Object,
         _mockLogger.Object);
 
     // ── ComputeNextInterval ────────────────────────────────────────────────────
@@ -83,6 +89,59 @@ public class HeartbeatServiceTests
     {
         var result = HeartbeatService.ComputeNextInterval(current, success, baseSeconds, maxSeconds);
         Assert.Equal(expected, result);
+    }
+
+    // ── SendHeartbeatAsync — US0131: skip when offline ────────────────────────
+
+    [Fact]
+    public async Task SendHeartbeatAsync_WhenOffline_ReturnsFalseWithoutPost()
+    {
+        _mockHealthCheck.SetupGet(h => h.IsOnline).Returns(false);
+        var service = BuildService();
+
+        var result = await service.SendHeartbeatAsync(CancellationToken.None);
+
+        Assert.False(result);
+        _mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Never(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SendHeartbeatAsync_WhenOnline_DoesPost()
+    {
+        _mockHealthCheck.SetupGet(h => h.IsOnline).Returns(true);
+        SetupSuccessfulRequest();
+        var service = BuildService();
+
+        var result = await service.SendHeartbeatAsync(CancellationToken.None);
+
+        Assert.True(result);
+        _mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SendHeartbeatAsync_WhenIsOnlineNull_DoesPost()
+    {
+        // null = startup state — heartbeat should still fire
+        _mockHealthCheck.SetupGet(h => h.IsOnline).Returns((bool?)null);
+        SetupSuccessfulRequest();
+        var service = BuildService();
+
+        var result = await service.SendHeartbeatAsync(CancellationToken.None);
+
+        Assert.True(result);
+        _mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
     }
 
     // ── SendHeartbeatAsync — no-op cases ──────────────────────────────────────

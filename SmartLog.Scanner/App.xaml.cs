@@ -48,6 +48,7 @@ public partial class App : Application
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
 		var window = base.CreateWindow(activationState);
+		window.Title = "SmartLog Scanner";
 		// Set a sensible default window size so the window is visible on first launch
 		window.MinimumWidth = 960;
 		window.MinimumHeight = 640;

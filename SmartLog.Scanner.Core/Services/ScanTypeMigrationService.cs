@@ -14,7 +14,7 @@ namespace SmartLog.Scanner.Core.Services;
 /// </summary>
 public class ScanTypeMigrationService
 {
-    public const int MaxCameraSlots = 8;
+    public const int MaxCameraSlots = 4;
     public const string MigrationDoneKey = "Migration.ScanTypeUnified.v1";
     public const string NotifyKey = "Migration.ScanTypeUnifiedNotify";
 

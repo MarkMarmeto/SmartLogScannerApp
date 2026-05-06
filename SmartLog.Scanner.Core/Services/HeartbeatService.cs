@@ -22,6 +22,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IScanHistoryService _scanHistory;
     private readonly IQrScannerService _usbScanner;
+    private readonly IHealthCheckService _healthCheck;
     private readonly ILogger<HeartbeatService> _logger;
 
     private CancellationTokenSource? _cts;
@@ -42,6 +43,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         IOfflineQueueService offlineQueue,
         IScanHistoryService scanHistory,
         IQrScannerService usbScanner,
+        IHealthCheckService healthCheck,
         ILogger<HeartbeatService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -51,6 +53,7 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
         _offlineQueue = offlineQueue;
         _scanHistory = scanHistory;
         _usbScanner = usbScanner;
+        _healthCheck = healthCheck;
         _logger = logger;
 
         // Subscribe in the constructor so USB scan timestamps are captured even before
@@ -146,6 +149,12 @@ public class HeartbeatService : IHeartbeatService, IAsyncDisposable
 
     internal async Task<bool> SendHeartbeatAsync(CancellationToken ct)
     {
+        if (_healthCheck.IsOnline == false)
+        {
+            _logger.LogDebug("Heartbeat skipped — HealthCheck reports offline");
+            return false;
+        }
+
         var apiKey = await _secureConfig.GetApiKeyAsync();
         if (string.IsNullOrEmpty(apiKey))
         {

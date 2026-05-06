@@ -115,12 +115,12 @@ public class MultiCameraManagerTests
     public async Task InitializeAsync_ExactlyMaxCameras_Succeeds()
     {
         var (manager, _) = CreateManager();
-        var cameras = MakeCameras(8);
+        var cameras = MakeCameras(4);
 
         var ex = await Record.ExceptionAsync(() => manager.InitializeAsync(cameras));
 
         Assert.Null(ex);
-        Assert.Equal(8, manager.Cameras.Count);
+        Assert.Equal(4, manager.Cameras.Count);
     }
 
     // ── UpdateThrottleValues ──────────────────────────────────────────────────
@@ -130,7 +130,6 @@ public class MultiCameraManagerTests
     [InlineData(2, 5)]
     [InlineData(3, 8)]
     [InlineData(4, 8)]
-    [InlineData(8, 15)]
     public async Task UpdateThrottleValues_SetsCorrectThrottle(int cameraCount, int expectedThrottle)
     {
         var (manager, _) = CreateManager();
@@ -157,7 +156,7 @@ public class MultiCameraManagerTests
         // Only 1 camera is enabled → throttle should match 1-camera tier (5)
         manager.UpdateThrottleValues();
 
-        Assert.Equal(AdaptiveDecodeThrottle.Calculate(1), manager.Cameras[2].DecodeThrottleFrames);
+        Assert.Equal(5, manager.Cameras[2].DecodeThrottleFrames);
     }
 
     // ── UpdateScanTypes ───────────────────────────────────────────────────────
