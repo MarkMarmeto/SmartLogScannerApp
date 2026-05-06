@@ -1,19 +1,19 @@
 # Story Registry
 
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-06
 **Personas Reference:** [User Personas](../personas.md)
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Draft | 4 |
+| Draft | 8 |
 | Ready | 0 |
 | Planned | 0 |
 | In Progress | 0 |
 | Review | 0 |
 | Done | 31 |
-| **Total** | **35** |
+| **Total** | **39** |
 
 ## Stories by Epic
 
@@ -89,6 +89,15 @@
 | [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 5 | AI Assistant |
 | [US0126](US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards (Avatar Top, Device Strip Bottom) | Draft | 3 | AI Assistant |
 
+### [EP0018: Scanner Slim-down](../epics/EP0018-scanner-slim-down.md)
+
+| ID | Title | Status | Points | Owner |
+|----|-------|--------|--------|-------|
+| [US0128](US0128-remove-aboutpage-and-author-metadata.md) | Remove AboutPage and Surface Author Metadata in OS App Properties | Draft | 1 | AI Assistant |
+| [US0129](US0129-lower-engine-camera-cap.md) | Lower Engine Camera Cap from 8 to 4 | Draft | 1 | AI Assistant |
+| [US0130](US0130-inline-decode-throttle.md) | Inline Frame-Skip Throttle and Delete AdaptiveDecodeThrottle | Draft | 1 | AI Assistant |
+| [US0131](US0131-skip-heartbeat-when-offline.md) | Skip Heartbeat POST When HealthCheck Reports Offline | Draft | 2 | AI Assistant |
+
 ## All Stories
 
 | ID | Title | Epic | Status | Points | Persona |
@@ -128,6 +137,10 @@
 | [US0124](US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 5 | Guard Gary |
 | [US0125](US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout (No Scroll, Sticky Save) | [EP0001](../epics/EP0001-device-setup-and-configuration.md) | Draft | 3 | IT Admin Ian |
 | [US0126](US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards (Avatar Top, Device Strip Bottom) | [EP0012](../epics/EP0012-concurrent-multi-modal-scanning.md) | Draft | 3 | Guard Gary |
+| [US0128](US0128-remove-aboutpage-and-author-metadata.md) | Remove AboutPage and Surface Author Metadata in OS App Properties | [EP0018](../epics/EP0018-scanner-slim-down.md) | Draft | 1 | Maintainer |
+| [US0129](US0129-lower-engine-camera-cap.md) | Lower Engine Camera Cap from 8 to 4 | [EP0018](../epics/EP0018-scanner-slim-down.md) | Draft | 1 | Maintainer |
+| [US0130](US0130-inline-decode-throttle.md) | Inline Frame-Skip Throttle and Delete AdaptiveDecodeThrottle | [EP0018](../epics/EP0018-scanner-slim-down.md) | Draft | 1 | Maintainer |
+| [US0131](US0131-skip-heartbeat-when-offline.md) | Skip Heartbeat POST When HealthCheck Reports Offline | [EP0018](../epics/EP0018-scanner-slim-down.md) | Draft | 2 | System |
 
 ## Notes
 
@@ -148,3 +161,4 @@
 | 2026-04-28 | Added US0124 (Per-Station Student Detail Cards) under EP0012 — Draft, 5 pts. Eliminates the shared central student card; each scan station card (cameras + USB) shows full student details. Reconciled US0121/US0122 by-Epic status to Done (matched All Stories table). |
 | 2026-04-28 | Added US0125 (Setup Wizard Compact Layout) under EP0001 — Draft, 3 pts. Restructures SetupPage from single-column scroll to row-based grid (Server + Security side-by-side, Scanner Config full-width, Camera Config full-width) with sticky save bar at the bottom. |
 | 2026-04-28 | Added US0126 (ID-Card-Style Station Cards) under EP0012 — Draft, 3 pts. Inverts visual hierarchy of per-station cards from US0124: avatar at top, student details (skeleton when idle, real on flash) in middle, device identity strip at bottom. Per-card ENTRY/EXIT badge removed (relies on global ENTRY MODE pill). |
+| 2026-05-06 | Added US0128–US0131 under new EP0018 (Scanner Slim-down) — Draft, 5 pts total. Bounded cleanup pass: drop AboutPage + add OS-level author metadata; lower engine camera cap 8→4 (UI cap stays at 3 per US0127); inline AdaptiveDecodeThrottle and delete the class; skip heartbeat POST when HealthCheck reports offline. Source: 12-feature reevaluation review with Mark Daniel Marmeto on 2026-05-06. |

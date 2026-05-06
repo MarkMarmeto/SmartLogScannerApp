@@ -1,18 +1,18 @@
 # Epic Registry
 
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-06
 **PRD Reference:** [Product Requirements Document](../prd.md)
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Draft | 1 |
+| Draft | 2 |
 | Ready | 0 |
 | Approved | 0 |
 | In Progress | 0 |
 | Done | 5 |
-| **Total** | **6** |
+| **Total** | **7** |
 
 ## Epics
 
@@ -24,6 +24,7 @@
 | [EP0004](EP0004-offline-resilience-and-sync.md) | Offline Resilience and Sync | Done | AI Assistant | 4 | 1.0.0 |
 | EP0011 (cross-project, see WebApp) | Multi-Camera Scanning | In Progress | AI Assistant | 11 | 2.0.0 / 2.1.0 |
 | [EP0012](EP0012-concurrent-multi-modal-scanning.md) | Concurrent Multi-Modal Scanning | Draft | AI Assistant | 3 | 2.2.0 |
+| [EP0018](EP0018-scanner-slim-down.md) | Scanner Slim-down | Draft | AI Assistant | 4 | 2.3.0 |
 
 ## Feature-to-Epic Mapping
 
@@ -71,3 +72,4 @@ EP0001 (Setup & Config)
 | 2026-04-22 | Status reconciliation — registry updated from Draft to Done; added EP0011 reference row |
 | 2026-04-24 | EP0011 re-opened for V2.1 scanner-side additions (US0088-US0092). Scanner story count: 23 Done + 5 Draft = 28 total |
 | 2026-04-28 | EP0012 (Concurrent Multi-Modal Scanning) added in Draft — adds `Both` mode to run cameras + USB scanner simultaneously, USB indicator slot card with 60s health heuristic. 3 stories (US0121-US0123), 13 points, target V2.2.0 |
+| 2026-05-06 | EP0018 (Scanner Slim-down) added in Draft — bounded cleanup pass from 12-feature reevaluation review. 4 stories (US0128-US0131), 6 points, target V2.3.0. Drops AboutPage, lowers engine camera cap 8→4, inlines AdaptiveDecodeThrottle, skips heartbeat POST when offline. No user-visible behavior change at the gate. |

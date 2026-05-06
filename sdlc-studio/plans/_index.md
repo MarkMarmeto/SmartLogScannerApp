@@ -1,7 +1,9 @@
 # Implementation Plans Index
 
-> **Total Plans:** 24
-> **Status:** Planned (9) | In Progress (0) | Completed (15)
+> **Total Plans:** 28
+> **Status:** Planned (13) | In Progress (0) | Completed (15)
+>
+> Note: PL0025 exists on disk (Done) but is not reflected here — pre-existing index drift, out of scope for the EP0018 update.
 
 ## All Plans
 
@@ -31,10 +33,14 @@
 | [PL0022](./PL0022-per-station-student-detail-cards.md) | [US0124](../stories/US0124-per-station-student-detail-cards.md) | Per-Station Student Detail Cards | Draft | 2026-04-28 |
 | [PL0023](./PL0023-setup-wizard-compact-layout.md) | [US0125](../stories/US0125-setup-wizard-compact-layout.md) | Setup Wizard — Compact Layout | Draft | 2026-04-28 |
 | [PL0024](./PL0024-id-card-style-station-cards.md) | [US0126](../stories/US0126-id-card-style-station-cards.md) | ID-Card-Style Station Cards | Draft | 2026-04-28 |
+| [PL0026](./PL0026-remove-aboutpage-and-author-metadata.md) | [US0128](../stories/US0128-remove-aboutpage-and-author-metadata.md) | Remove AboutPage and Surface Author Metadata in OS App Properties | Draft | 2026-05-06 |
+| [PL0027](./PL0027-lower-engine-camera-cap.md) | [US0129](../stories/US0129-lower-engine-camera-cap.md) | Lower Engine Camera Cap from 8 to 4 | Draft | 2026-05-06 |
+| [PL0028](./PL0028-inline-decode-throttle.md) | [US0130](../stories/US0130-inline-decode-throttle.md) | Inline Frame-Skip Throttle and Delete AdaptiveDecodeThrottle | Draft | 2026-05-06 |
+| [PL0029](./PL0029-skip-heartbeat-when-offline.md) | [US0131](../stories/US0131-skip-heartbeat-when-offline.md) | Skip Heartbeat POST When HealthCheck Reports Offline | Draft | 2026-05-06 |
 
 ## By Status
 
-### Planned (Draft) (9)
+### Planned (Draft) (13)
 - [PL0013](./PL0013-scan-payload-camera-identity.md) - Scan Payload — Camera Identity (US0090)
 - [PL0014](./PL0014-multi-camera-windows-compatibility.md) - Multi-Camera Windows Compatibility Verification (US0088)
 - [PL0015](./PL0015-unify-scan-type-to-device-level.md) - Unify Scan Type to Device-Level (US0089)
@@ -44,6 +50,10 @@
 - [PL0022](./PL0022-per-station-student-detail-cards.md) - Per-Station Student Detail Cards (US0124)
 - [PL0023](./PL0023-setup-wizard-compact-layout.md) - Setup Wizard Compact Layout (US0125)
 - [PL0024](./PL0024-id-card-style-station-cards.md) - ID-Card-Style Station Cards (US0126)
+- [PL0026](./PL0026-remove-aboutpage-and-author-metadata.md) - Remove AboutPage and Surface Author Metadata in OS App Properties (US0128)
+- [PL0027](./PL0027-lower-engine-camera-cap.md) - Lower Engine Camera Cap from 8 to 4 (US0129)
+- [PL0028](./PL0028-inline-decode-throttle.md) - Inline Frame-Skip Throttle and Delete AdaptiveDecodeThrottle (US0130)
+- [PL0029](./PL0029-skip-heartbeat-when-offline.md) - Skip Heartbeat POST When HealthCheck Reports Offline (US0131)
 
 ### In Progress (0)
 
