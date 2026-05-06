@@ -17,6 +17,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IMultiCameraManager _multiCameraManager;
     private readonly UsbQrScannerService? _usbScanner;
     private readonly IPreferencesService _preferences;
+    private readonly ICameraEnumerationService _cameraEnumeration;
     private readonly ISoundService _soundService;
     private readonly IOfflineQueueService _offlineQueue;
     private readonly IHealthCheckService _healthCheck;
@@ -155,6 +156,7 @@ public partial class MainViewModel : ObservableObject
         IMultiCameraManager multiCameraManager,
         UsbQrScannerService usbScanner,
         IPreferencesService preferences,
+        ICameraEnumerationService cameraEnumeration,
         ISoundService soundService,
         IOfflineQueueService offlineQueue,
         IHealthCheckService healthCheck,
@@ -168,6 +170,7 @@ public partial class MainViewModel : ObservableObject
         _multiCameraManager = multiCameraManager;
         _usbScanner = usbScanner;
         _preferences = preferences;
+        _cameraEnumeration = cameraEnumeration;
         _soundService = soundService;
         _offlineQueue = offlineQueue;
         _healthCheck = healthCheck;
@@ -252,10 +255,10 @@ public partial class MainViewModel : ObservableObject
         // EP0012/US0121: Start each pipeline independently — both run in "Both" mode.
         if (IsCameraMode)
         {
-            var cameraCount = ResolveCameraCount();
-            _loadedCameraCount = cameraCount;
-            var cameraConfigs = BuildCameraConfigs(cameraCount);
-            ApplyCameraConfigsToSlots(cameraConfigs, cameraCount);
+            var cameraConfigs = BuildCameraConfigs(ResolveCameraCount());
+            cameraConfigs = await FilterByAvailableCamerasAsync(cameraConfigs);
+            _loadedCameraCount = cameraConfigs.Count;
+            ApplyCameraConfigsToSlots(cameraConfigs, cameraConfigs.Count);
 
             await _multiCameraManager.InitializeAsync(cameraConfigs);
             await _multiCameraManager.StartAllAsync();
@@ -313,14 +316,14 @@ public partial class MainViewModel : ObservableObject
     public async Task<bool> ReloadCameraConfigAsync()
     {
         if (!IsCameraMode) return false;
-        var newCount = ResolveCameraCount();
-        var newConfigs = BuildCameraConfigs(newCount);
+        var newConfigs = BuildCameraConfigs(ResolveCameraCount());
+        newConfigs = await FilterByAvailableCamerasAsync(newConfigs);
 
-        if (!CameraConfigChanged(newCount, newConfigs)) return false;
+        if (!CameraConfigChanged(newConfigs.Count, newConfigs)) return false;
 
         await _multiCameraManager.StopAllAsync();
-        ApplyCameraConfigsToSlots(newConfigs, newCount);
-        _loadedCameraCount = newCount;
+        ApplyCameraConfigsToSlots(newConfigs, newConfigs.Count);
+        _loadedCameraCount = newConfigs.Count;
         await _multiCameraManager.InitializeAsync(newConfigs);
         await _multiCameraManager.StartAllAsync();
         return true;
@@ -369,6 +372,37 @@ public partial class MainViewModel : ObservableObject
             });
         }
         return configs;
+    }
+
+    // Filters configs to only physically connected cameras. Configs with an empty DeviceId
+    // (legacy single-camera fallback) are always kept. Remaining configs are re-indexed
+    // and their decode throttle is recalculated to match the new count.
+    private async Task<List<CameraInstance>> FilterByAvailableCamerasAsync(List<CameraInstance> configs)
+    {
+        IList<CameraDeviceInfo> available;
+        try
+        {
+            available = await _cameraEnumeration.GetAvailableCamerasAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Camera enumeration failed; using all saved configs.");
+            return configs;
+        }
+
+        var availableIds = available.Select(c => c.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var filtered = configs
+            .Where(c => string.IsNullOrEmpty(c.CameraDeviceId) || availableIds.Contains(c.CameraDeviceId))
+            .ToList();
+
+        // Re-index slots and recalculate throttle for the new count
+        for (var i = 0; i < filtered.Count; i++)
+        {
+            filtered[i].Index = i;
+            filtered[i].DecodeThrottleFrames = AdaptiveDecodeThrottle.Calculate(filtered.Count);
+        }
+
+        return filtered;
     }
 
     /// <summary>
